@@ -236,7 +236,10 @@ export default function Home() {
 
   const filteredPosts = useMemo(() => {
     const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
-    const sortedAll = [...posts].sort((a, b) => {
+    const valid = posts.filter(
+      (post) => post.headline && post.headline.trim() && post.headline !== "Untitled Story"
+    );
+    const sortedAll = [...valid].sort((a, b) => {
       const aTime = new Date(a.updatedTime || a.createdTime).getTime();
       const bTime = new Date(b.updatedTime || b.createdTime).getTime();
       return bTime - aTime;
