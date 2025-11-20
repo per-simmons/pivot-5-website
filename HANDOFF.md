@@ -231,7 +231,9 @@ Project root: set Vercel’s root directory to `p5-dashboard/` (contains package
 ```json
 {
   "version": 2,
-  "buildCommand": "cd p5-dashboard && npm install && npm run build",
+  "rootDirectory": "p5-dashboard",
+  "installCommand": "cd p5-dashboard && npm install",
+  "buildCommand": "cd p5-dashboard && npm run build",
   "outputDirectory": "p5-dashboard/.next",
   "framework": "nextjs"
 }
