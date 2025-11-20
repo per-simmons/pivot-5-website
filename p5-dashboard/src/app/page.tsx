@@ -325,13 +325,13 @@ export default function Home() {
                   ))}
                 </ul>
               )}
-              <div className="mt-auto">
+              <div className="mt-auto flex items-center justify-center">
                 {post.derivedSource && post.url && (
                   <a
                     href={post.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-3 flex h-10 w-full items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-[13px] font-semibold text-slate-800 transition hover:bg-white"
+                    className="mt-3 inline-flex h-10 min-w-[180px] items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 text-[13px] font-semibold text-slate-800 transition hover:bg-white"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {post.derivedSource}
@@ -339,7 +339,7 @@ export default function Home() {
                   </a>
                 )}
                 {post.derivedSource && !post.url && (
-                  <div className="mt-3 flex h-10 w-full items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-[13px] font-semibold text-slate-800">
+                  <div className="mt-3 inline-flex h-10 min-w-[180px] items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 text-[13px] font-semibold text-slate-800">
                     {post.derivedSource}
                   </div>
                 )}
