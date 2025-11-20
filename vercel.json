@@ -1,5 +1,1 @@
-{
-  "buildCommand": "cd p5-dashboard && npm install && npm run build",
-  "outputDirectory": "p5-dashboard/.next",
-  "installCommand": "cd p5-dashboard && npm install"
-}
+{}
