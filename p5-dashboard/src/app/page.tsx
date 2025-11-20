@@ -109,12 +109,24 @@ const ensureString = (value: unknown): string | undefined => {
   if (!value) return undefined;
   if (typeof value === "string") return value;
   if (Array.isArray(value) && value.length > 0) {
-    const firstItem = value[0];
+    const firstItem = value[0] as unknown;
     if (typeof firstItem === "string") return firstItem;
-    if (firstItem && typeof firstItem.url === "string") return firstItem.url;
+    if (
+      firstItem &&
+      typeof firstItem === "object" &&
+      "url" in firstItem &&
+      typeof (firstItem as { url?: unknown }).url === "string"
+    ) {
+      return (firstItem as { url: string }).url;
+    }
   }
-  if (typeof value === "object" && typeof value.url === "string") {
-    return value.url;
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "url" in value &&
+    typeof (value as { url?: unknown }).url === "string"
+  ) {
+    return (value as { url: string }).url;
   }
   return undefined;
 };
