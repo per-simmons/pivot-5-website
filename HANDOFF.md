@@ -227,14 +227,13 @@ If you are at the repo root (`.../pivot-5-website_11.19.25`) without changing in
 
 Repo to use: https://github.com/per-simmons/pivot-5-website.git
 
-Project root: set Vercel’s root directory to `p5-dashboard/` (contains package.json). A `vercel.json` in repo root runs build from that subdirectory:
+Project root: set Vercel’s Root Directory to `p5-dashboard/` (in the Vercel dashboard). `vercel.json` simply runs install/build/output at repo root:
 ```json
 {
   "version": 2,
-  "rootDirectory": "p5-dashboard",
-  "installCommand": "cd p5-dashboard && npm install",
-  "buildCommand": "cd p5-dashboard && npm run build",
-  "outputDirectory": "p5-dashboard/.next",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
   "framework": "nextjs"
 }
 ```
