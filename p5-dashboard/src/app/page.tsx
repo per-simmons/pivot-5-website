@@ -1,8 +1,9 @@
 'use client';
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 interface AirtableRecord {
   id: string;
@@ -38,6 +39,7 @@ interface SocialPost {
 const HEADLINE_FIELDS = ["Headline", "Title", "headline"];
 const SUMMARY_FIELDS = ["Raw Text", "Summary", "Body", "raw text", "Raw"];
 const IMAGE_FIELDS = [
+  "cld_img",
   "Image Raw URL",
   "image raw url",
   "Image URL",
@@ -184,11 +186,17 @@ const stripTags = (input: string): string => input.replace(/<[^>]+>/g, "");
 const truncate = (input: string, max: number) =>
   input.length > max ? `${input.slice(0, max)}…` : input;
 
+const createSlug = (headline: string): string => {
+  return headline
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+};
+
 export default function Home() {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<SocialPost | null>(null);
   const [page, setPage] = useState(1);
 
   const PAGE_SIZE = 12; // 3 rows * 4 cols
@@ -259,7 +267,7 @@ export default function Home() {
   );
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-7xl space-y-8 bg-white px-4 py-8 lg:px-6">
+    <main className="mx-auto min-h-screen w-full space-y-8 bg-white px-4 py-8 lg:px-8">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-lg font-semibold text-slate-900">
         <div className="flex items-center gap-2">
           <Image src="/pivot5-logo.svg" alt="Pivot 5" width={100} height={40} className="h-10 w-auto" />
@@ -275,10 +283,10 @@ export default function Home() {
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {pagedPosts.map((post, index) => (
-          <article
+          <Link
             key={post.id}
-            onClick={() => setSelected(post)}
-            className="flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.08)]"
+            href={`/post/${createSlug(post.headline)}`}
+            className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.08)]"
           >
             <div className="h-56 w-full bg-slate-100">
               {post.imageUrl ? (
@@ -342,7 +350,7 @@ export default function Home() {
                 ) : null}
               </div>
             </div>
-          </article>
+          </Link>
         ))}
       </div>
 
@@ -369,79 +377,6 @@ export default function Home() {
               </button>
             );
           })}
-        </div>
-      )}
-
-      {selected && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/10 backdrop-blur-sm" onClick={() => setSelected(null)}>
-          <div
-            className="mt-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(0,0,0,0.15)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-end p-3">
-              <button
-                onClick={() => setSelected(null)}
-                className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex flex-col">
-              <div className="h-56 w-full bg-slate-100">
-                {selected.imageUrl ? (
-                  <Image
-                    src={selected.imageUrl}
-                    alt={selected.headline}
-                    width={450}
-                    height={450}
-                    className="h-full w-full object-cover"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="h-full w-full bg-slate-100" />
-                )}
-              </div>
-
-              <div className="space-y-3 px-5 py-4">
-                {selected.label && (
-                  <span className="inline-flex h-7 items-center rounded-full bg-orange-100 px-3 text-[11px] font-semibold uppercase text-orange-700">
-                    {selected.label}
-                  </span>
-                )}
-                <h3 className="text-lg font-semibold leading-tight text-slate-900">{selected.headline}</h3>
-                {selected.bullets.length === 0 && selected.summary && (
-                  <p className="text-sm text-slate-700">{selected.summary}</p>
-                )}
-                {!!selected.bullets.length && (
-                  <ul className="space-y-2">
-                    {selected.bullets.map((bullet, idx) => (
-                      <li key={`${selected.id}-modal-${idx}`} className="flex gap-3 text-sm text-slate-800">
-                        <span className="mt-2 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-orange-500" />
-                        <span>{bullet}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="flex justify-center pt-2">
-                  {selected.derivedSource && selected.url ? (
-                    <a
-                      href={selected.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center justify-center gap-1.5 rounded-full bg-slate-100 px-4 py-2 text-[13px] font-medium text-slate-700 transition hover:bg-slate-200"
-                    >
-                      {selected.derivedSource}
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  ) : selected.derivedSource ? (
-                    <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-4 py-2 text-[13px] font-medium text-slate-700">
-                      {selected.derivedSource}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </main>
