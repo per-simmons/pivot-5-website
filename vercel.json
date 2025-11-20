@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "buildCommand": "cd p5-dashboard && npm install && npm run build",
+  "outputDirectory": "p5-dashboard/.next",
+  "framework": "nextjs"
+}

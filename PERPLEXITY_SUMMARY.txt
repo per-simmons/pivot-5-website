@@ -1,0 +1,5 @@
+Perplexity MCP summary on listen EPERM and docker.sock permission issues:
+
+- listen EPERM typically means either a port bind is blocked (permissions) or the port is already in use. Ports <1024 require root; prefer >1024. Check with lsof/netstat. Ensure the app listens on 0.0.0.0 if in Docker.
+- docker.sock permission denied: user lacks access to Docker daemon socket. Fix by adding the user to the docker group, or adjusting ~/.docker ownership/permissions. Avoid chmod 666.
+- Docker port mapping: ensure the container listens on 0.0.0.0 and that the docker daemon is running; verify with docker ps. Check host port collisions.

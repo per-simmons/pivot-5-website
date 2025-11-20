@@ -1,0 +1,9 @@
+node_modules
+p5-dashboard/node_modules
+p5-dashboard/.next
+.env.local
+p5-dashboard/.env.local
+.DS_Store
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
