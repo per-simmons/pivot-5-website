@@ -292,9 +292,7 @@ export default function Home() {
                   unoptimized
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">
-                  No image provided
-                </div>
+                <div className="h-full w-full bg-slate-100" />
               )}
             </div>
             <div className="flex flex-1 flex-col space-y-3 p-5">
@@ -325,24 +323,23 @@ export default function Home() {
                   ))}
                 </ul>
               )}
-              <div className="mt-auto flex items-center justify-center">
-                {post.derivedSource && post.url && (
+              <div className="mt-auto flex items-center justify-center pt-2">
+                {post.derivedSource && post.url ? (
                   <a
                     href={post.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-3 inline-flex h-10 min-w-[180px] items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 text-[13px] font-semibold text-slate-800 transition hover:bg-white"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-full bg-slate-100 px-4 py-2 text-[13px] font-medium text-slate-700 transition hover:bg-slate-200"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {post.derivedSource}
-                    <ExternalLink className="ml-2 h-4 w-4" />
+                    <ExternalLink className="h-3.5 w-3.5" />
                   </a>
-                )}
-                {post.derivedSource && !post.url && (
-                  <div className="mt-3 inline-flex h-10 min-w-[180px] items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 text-[13px] font-semibold text-slate-800">
+                ) : post.derivedSource ? (
+                  <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-4 py-2 text-[13px] font-medium text-slate-700">
                     {post.derivedSource}
-                  </div>
-                )}
+                  </span>
+                ) : null}
               </div>
             </div>
           </article>
@@ -350,9 +347,7 @@ export default function Home() {
       </div>
 
       {!loading && !filteredPosts.length && !error && (
-        <p className="text-center text-sm text-slate-500">
-          No Airtable records yet. Add a row to &quot;{AIRTABLE_TABLE_NAME}&quot; to see it here.
-        </p>
+        <div className="text-center text-sm text-slate-500" />
       )}
 
       {filteredPosts.length > PAGE_SIZE && (
@@ -403,9 +398,7 @@ export default function Home() {
                     unoptimized
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">
-                    No image
-                  </div>
+                  <div className="h-full w-full bg-slate-100" />
                 )}
               </div>
 
@@ -429,20 +422,23 @@ export default function Home() {
                     ))}
                   </ul>
                 )}
-                {selected.derivedSource && selected.url && (
-                  <a
-                    href={selected.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 inline-flex items-center gap-2 text-[13px] font-semibold text-slate-800 transition hover:underline"
-                  >
-                    {selected.derivedSource}
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                )}
-                {selected.derivedSource && !selected.url && (
-                  <p className="mt-2 text-[13px] font-semibold text-slate-800">{selected.derivedSource}</p>
-                )}
+                <div className="flex justify-center pt-2">
+                  {selected.derivedSource && selected.url ? (
+                    <a
+                      href={selected.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-full bg-slate-100 px-4 py-2 text-[13px] font-medium text-slate-700 transition hover:bg-slate-200"
+                    >
+                      {selected.derivedSource}
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  ) : selected.derivedSource ? (
+                    <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-4 py-2 text-[13px] font-medium text-slate-700">
+                      {selected.derivedSource}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
