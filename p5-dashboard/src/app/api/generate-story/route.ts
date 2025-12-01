@@ -89,7 +89,7 @@ async function callGemini(prompt: string): Promise<string> {
   return generatedText.trim();
 }
 
-async function saveToAirtable(recordId: string, generatedStory: string): Promise<boolean> {
+async function saveToAirtable(recordId: string, generatedStory: string): Promise<{ ok: boolean; error?: string }> {
   const response = await fetch(
     `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}/${recordId}`,
     {
@@ -109,10 +109,22 @@ async function saveToAirtable(recordId: string, generatedStory: string): Promise
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`Airtable save error: ${response.status} - ${errorText}`);
-    return false;
+    // Parse the error for better reporting
+    try {
+      const errorData = JSON.parse(errorText);
+      if (errorData.error?.type === "UNKNOWN_FIELD_NAME") {
+        return {
+          ok: false,
+          error: `Field "${GENERATED_STORY_FIELD}" does not exist in Airtable. Please create this column in your table.`
+        };
+      }
+      return { ok: false, error: errorData.error?.message || errorText };
+    } catch {
+      return { ok: false, error: errorText };
+    }
   }
 
-  return true;
+  return { ok: true };
 }
 
 export async function POST(request: NextRequest) {
@@ -148,11 +160,12 @@ ${rawText}`;
     const generatedStory = await callGemini(prompt);
 
     // Save to Airtable
-    const saved = await saveToAirtable(recordId, generatedStory);
+    const saveResult = await saveToAirtable(recordId, generatedStory);
 
     return NextResponse.json({
       story: generatedStory,
-      saved,
+      saved: saveResult.ok,
+      saveError: saveResult.error,
       recordId,
     });
   } catch (error) {
