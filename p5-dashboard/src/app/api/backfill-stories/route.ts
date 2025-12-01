@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
-const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || "";
+const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || "appRUgK44hQnXH1PM";
 const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE || "Social Post Input";
 const GENERATED_STORY_FIELD = "Blog Post Raw";
 
