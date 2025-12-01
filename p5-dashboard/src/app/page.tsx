@@ -199,32 +199,46 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
-  const PAGE_SIZE = 12; // 3 rows * 4 cols
-
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(
-        AIRTABLE_TABLE_NAME
-      )}`;
+      const allRecords: AirtableRecord[] = [];
+      let offset: string | undefined = undefined;
 
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${AIRTABLE_TOKEN}`,
-        },
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Airtable API responded with ${response.status} ${response.statusText}`
+      // Fetch all pages from Airtable (API returns max 100 records per page)
+      do {
+        const url = new URL(
+          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(
+            AIRTABLE_TABLE_NAME
+          )}`
         );
-      }
+        if (offset) {
+          url.searchParams.set("offset", offset);
+        }
 
-      const data: AirtableResponse = await response.json();
-      const normalized = normalizeRecords(data.records || []);
+        const response = await fetch(url.toString(), {
+          headers: {
+            Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+          },
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Airtable API responded with ${response.status} ${response.statusText}`
+          );
+        }
+
+        const data: AirtableResponse = await response.json();
+        allRecords.push(...(data.records || []));
+        offset = data.offset;
+      } while (offset);
+
+      console.log(`Fetched ${allRecords.length} total records from Airtable`);
+      const normalized = normalizeRecords(allRecords);
+      console.log(`Normalized ${normalized.length} posts, ${normalized.filter(p => p.status === "Published").length} are Published`);
       setPosts(normalized);
     } catch (apiError: unknown) {
       const message =
@@ -242,29 +256,50 @@ export default function Home() {
     fetchPosts();
   }, [fetchPosts]);
 
+  const PAGE_SIZE = 20; // 4 cols x 5 rows = 20 posts per page (covers ~4 newsletter days)
+
+  // Filter and sort posts
   const filteredPosts = useMemo(() => {
-    const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
-    const valid = posts.filter(
-      (post) => post.headline && post.headline.trim() && post.headline !== "Untitled Story"
-    );
-    const sortedAll = [...valid].sort((a, b) => {
+    // Filter valid published posts (accept both "Published" and "ready" statuses)
+    const valid = posts.filter((post) => {
+      if (post.status !== "Published" && post.status !== "ready") {
+        return false;
+      }
+      if (!post.headline || !post.headline.trim() || post.headline === "Untitled Story") {
+        return false;
+      }
+      // Skip corrupted records where headline contains raw article text (> 200 chars)
+      if (post.headline.length > 200) {
+        return false;
+      }
+      return true;
+    });
+
+    // Sort by updated time (newest first)
+    return [...valid].sort((a, b) => {
       const aTime = new Date(a.updatedTime || a.createdTime).getTime();
       const bTime = new Date(b.updatedTime || b.createdTime).getTime();
       return bTime - aTime;
     });
-    const recent = sortedAll.filter((post) => {
-      const ts = new Date(post.updatedTime || post.createdTime).getTime();
-      return !Number.isNaN(ts) && ts >= threeDaysAgo;
-    });
-    return recent;
   }, [posts]);
 
+  // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredPosts.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pagedPosts = filteredPosts.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   );
+
+  // Format date for card display
+  const formatCardDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
   return (
     <main className="mx-auto min-h-screen w-full space-y-8 bg-white px-4 py-8 lg:px-8">
@@ -304,13 +339,16 @@ export default function Home() {
               )}
             </div>
             <div className="flex flex-1 flex-col space-y-3 p-5">
-              {post.label && (
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2">
+                {post.label && (
                   <span className="inline-flex h-7 items-center rounded-full bg-orange-100 px-3 text-[11px] font-semibold uppercase text-orange-700">
                     {post.label}
                   </span>
-                </div>
-              )}
+                )}
+                <span className="text-[12px] text-slate-500 ml-auto">
+                  {formatCardDate(post.updatedTime || post.createdTime)}
+                </span>
+              </div>
               <h3 className="text-[17px] font-semibold leading-snug text-slate-900">
                 {post.headline}
               </h3>
@@ -332,22 +370,12 @@ export default function Home() {
                 </ul>
               )}
               <div className="mt-auto flex items-center justify-center pt-2">
-                {post.derivedSource && post.url ? (
-                  <a
-                    href={post.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 rounded-full bg-slate-100 px-4 py-2 text-[13px] font-medium text-slate-700 transition hover:bg-slate-200"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                {post.derivedSource && (
+                  <span className="inline-flex items-center justify-center gap-1.5 rounded-full bg-slate-100 px-4 py-2 text-[13px] font-medium text-slate-700">
                     {post.derivedSource}
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                ) : post.derivedSource ? (
-                  <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-4 py-2 text-[13px] font-medium text-slate-700">
-                    {post.derivedSource}
+                    {post.url && <ExternalLink className="h-3.5 w-3.5" />}
                   </span>
-                ) : null}
+                )}
               </div>
             </div>
           </Link>
@@ -355,28 +383,84 @@ export default function Home() {
       </div>
 
       {!loading && !filteredPosts.length && !error && (
-        <div className="text-center text-sm text-slate-500" />
+        <div className="text-center text-sm text-slate-500 py-12">
+          No published newsletter posts found.
+        </div>
       )}
 
-      {filteredPosts.length > PAGE_SIZE && (
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
-          {Array.from({ length: totalPages }).map((_, idx) => {
-            const pageNum = idx + 1;
-            const isActive = pageNum === currentPage;
-            return (
-              <button
-                key={pageNum}
-                onClick={() => setPage(pageNum)}
-                className={`min-w-[36px] rounded-full px-3 py-1 text-sm font-semibold transition ${
-                  isActive
-                    ? "bg-orange-500 text-white"
-                    : "border border-orange-300 text-orange-700 hover:bg-orange-50"
-                }`}
-              >
-                {pageNum}
-              </button>
-            );
-          })}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button
+            onClick={() => setPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className="cursor-pointer rounded-full px-3 py-1 text-sm font-semibold transition border border-orange-300 text-orange-700 hover:bg-orange-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Prev
+          </button>
+
+          {(() => {
+            const pages: (number | string)[] = [];
+
+            if (totalPages <= 7) {
+              // Show all pages if 7 or fewer
+              for (let i = 1; i <= totalPages; i++) pages.push(i);
+            } else {
+              // Always show first page
+              pages.push(1);
+
+              if (currentPage > 3) {
+                pages.push("...");
+              }
+
+              // Pages around current
+              const start = Math.max(2, currentPage - 1);
+              const end = Math.min(totalPages - 1, currentPage + 1);
+
+              for (let i = start; i <= end; i++) {
+                if (!pages.includes(i)) pages.push(i);
+              }
+
+              if (currentPage < totalPages - 2) {
+                pages.push("...");
+              }
+
+              // Always show last page
+              if (!pages.includes(totalPages)) pages.push(totalPages);
+            }
+
+            return pages.map((p, idx) => {
+              if (p === "...") {
+                return (
+                  <span key={`ellipsis-${idx}`} className="px-2 text-slate-400">
+                    ...
+                  </span>
+                );
+              }
+              const pageNum = p as number;
+              const isActive = pageNum === currentPage;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setPage(pageNum)}
+                  className={`cursor-pointer min-w-[36px] rounded-full px-3 py-1 text-sm font-semibold transition ${
+                    isActive
+                      ? "bg-orange-500 text-white"
+                      : "border border-orange-300 text-orange-700 hover:bg-orange-50"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            });
+          })()}
+
+          <button
+            onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            className="cursor-pointer rounded-full px-3 py-1 text-sm font-semibold transition border border-orange-300 text-orange-700 hover:bg-orange-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
         </div>
       )}
     </main>

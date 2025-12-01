@@ -13,6 +13,7 @@ interface AirtableRecord {
 
 interface AirtableResponse {
   records: AirtableRecord[];
+  offset?: string;
 }
 
 interface SocialPost {
@@ -20,6 +21,7 @@ interface SocialPost {
   headline: string;
   summary: string;
   raw?: string;
+  generatedStory?: string;
   imageUrl?: string;
   bullets: string[];
   source?: string;
@@ -32,6 +34,7 @@ interface SocialPost {
 const HEADLINE_FIELDS = ["Headline", "Title", "headline"];
 const SUMMARY_FIELDS = ["Summary", "Body", "summary"];
 const RAW_FIELDS = ["Raw", "raw", "Raw Text", "raw text"];
+const GENERATED_STORY_FIELDS = ["Blog Post Raw", "generated_story", "Generated Story"];
 const IMAGE_FIELDS = [
   "cld_img",
   "Image Raw URL",
@@ -133,6 +136,8 @@ const normalizeRecord = (record: AirtableRecord): SocialPost => {
   const summary = summaryRaw ? stripTags(summaryRaw) : "";
   const rawRaw = ensureString(findFieldValue(fields, RAW_FIELDS));
   const raw = rawRaw ? stripTags(rawRaw) : undefined;
+  const generatedStoryRaw = ensureString(findFieldValue(fields, GENERATED_STORY_FIELDS));
+  const generatedStory = generatedStoryRaw ? stripTags(generatedStoryRaw) : undefined;
   const imageUrl = ensureString(findFieldValue(fields, IMAGE_FIELDS));
   const source = ensureString(findFieldValue(fields, SOURCE_FIELDS));
   const url = ensureString(findFieldValue(fields, URL_FIELDS));
@@ -154,6 +159,7 @@ const normalizeRecord = (record: AirtableRecord): SocialPost => {
     headline,
     summary,
     raw,
+    generatedStory,
     imageUrl,
     bullets: bullets.slice(0, 3),
     source,
@@ -173,23 +179,37 @@ export default function PostPage({ params }: { params: Promise<{ slug: string }>
       try {
         const { slug } = await params;
 
-        const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(
-          AIRTABLE_TABLE_NAME
-        )}`;
+        // Fetch all pages from Airtable
+        const allRecords: AirtableRecord[] = [];
+        let offset: string | undefined = undefined;
 
-        const response = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${AIRTABLE_TOKEN}`,
-          },
-          cache: "no-store",
-        });
+        do {
+          const url = new URL(
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(
+              AIRTABLE_TABLE_NAME
+            )}`
+          );
+          if (offset) {
+            url.searchParams.set("offset", offset);
+          }
 
-        if (!response.ok) {
-          throw new Error(`Airtable API responded with ${response.status}`);
-        }
+          const response = await fetch(url.toString(), {
+            headers: {
+              Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+            },
+            cache: "no-store",
+          });
 
-        const data: AirtableResponse = await response.json();
-        const normalized = data.records.map(normalizeRecord);
+          if (!response.ok) {
+            throw new Error(`Airtable API responded with ${response.status}`);
+          }
+
+          const data: AirtableResponse = await response.json();
+          allRecords.push(...(data.records || []));
+          offset = data.offset;
+        } while (offset);
+
+        const normalized = allRecords.map(normalizeRecord);
 
         const foundPost = normalized.find(
           (p) => createSlug(p.headline) === slug
@@ -304,11 +324,11 @@ export default function PostPage({ params }: { params: Promise<{ slug: string }>
             </div>
           )}
 
-          {post.raw && (
+          {(post.generatedStory || post.raw) && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900">Here's the Full Story</h2>
               <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                {post.raw}
+                {post.generatedStory || post.raw}
               </p>
             </div>
           )}
