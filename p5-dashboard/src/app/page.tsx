@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Loader2 } from "lucide-react";
 
 interface AirtableRecord {
   id: string;
@@ -316,7 +316,14 @@ export default function Home() {
         </div>
       )}
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
+          <p className="mt-4 text-sm text-slate-500">Loading stories...</p>
+        </div>
+      )}
+
+      {!loading && <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {pagedPosts.map((post, index) => (
           <Link
             key={post.id}
@@ -380,7 +387,7 @@ export default function Home() {
             </div>
           </Link>
         ))}
-      </div>
+      </div>}
 
       {!loading && !filteredPosts.length && !error && (
         <div className="text-center text-sm text-slate-500 py-12">

@@ -47,9 +47,9 @@ interface AirtableRecord {
 }
 
 async function fetchPendingRecords(): Promise<AirtableRecord[]> {
-  // Fetch records where publish_status is "ready" or "Published" and Blog Post Raw is empty
+  // Fetch records where publish_status is "ready" and Blog Post Raw is empty
   const filterFormula = encodeURIComponent(
-    `AND(OR({publish_status}="ready",{publish_status}="Published"),OR({Blog Post Raw}="",{Blog Post Raw}=BLANK()))`
+    `AND({publish_status}="ready",OR({Blog Post Raw}="",{Blog Post Raw}=BLANK()))`
   );
 
   const response = await fetch(
@@ -72,7 +72,7 @@ async function fetchPendingRecords(): Promise<AirtableRecord[]> {
 
 async function callGemini(prompt: string): Promise<string> {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: "POST",
       headers: {
