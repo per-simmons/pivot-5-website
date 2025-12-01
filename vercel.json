@@ -1,1 +1,12 @@
-{}
+{
+  "buildCommand": "cd p5-dashboard && npm run build",
+  "installCommand": "cd p5-dashboard && npm install",
+  "outputDirectory": "p5-dashboard/.next",
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/generate-stories",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}
