@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const AIRTABLE_TOKEN = process.env.NEXT_PUBLIC_AIRTABLE_TOKEN || "";
+const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
 const AIRTABLE_BASE_ID = "appRUgK44hQnXH1PM"; // P5 Social Posts base
 const AIRTABLE_TABLE_NAME = "Social Post Input";
 const GENERATED_STORY_FIELD = "Blog Post Raw";

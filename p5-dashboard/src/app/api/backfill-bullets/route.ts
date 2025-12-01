@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const AIRTABLE_TOKEN = process.env.NEXT_PUBLIC_AIRTABLE_TOKEN || "";
+const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
 
 // Source table (P5N8N) - read only
 const SOURCE_BASE_ID = "appRXkjvqEavU8Znj";
 const SOURCE_TABLE_NAME = "p5 n8n";
 
 // Target table (Social Post Input) - write access
-const TARGET_BASE_ID = process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID || "appRUgK44hQnXH1PM";
-const TARGET_TABLE_NAME = process.env.NEXT_PUBLIC_AIRTABLE_TABLE || "Social Post Input";
+const TARGET_BASE_ID = process.env.AIRTABLE_BASE_ID || "appRUgK44hQnXH1PM";
+const TARGET_TABLE_NAME = process.env.AIRTABLE_TABLE || "Social Post Input";
 
 interface AirtableRecord {
   id: string;

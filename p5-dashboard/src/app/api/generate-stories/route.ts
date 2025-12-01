@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const AIRTABLE_TOKEN = process.env.NEXT_PUBLIC_AIRTABLE_TOKEN || "";
-const AIRTABLE_BASE_ID = process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID || "appRUgK44hQnXH1PM";
-const AIRTABLE_TABLE_NAME = process.env.NEXT_PUBLIC_AIRTABLE_TABLE || "Social Post Input";
+const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
+const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || "appRUgK44hQnXH1PM";
+const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE || "Social Post Input";
 const GENERATED_STORY_FIELD = "Blog Post Raw";
 
 const SYSTEM_PROMPT = `You are a skilled newsletter writer for "Pivot 5," a daily business and technology newsletter that delivers 5 headlines in 5 minutes, 5 days a week.

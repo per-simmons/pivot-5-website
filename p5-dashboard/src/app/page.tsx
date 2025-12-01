@@ -77,12 +77,6 @@ const FALLBACK_SOURCE_FROM_URL = (url?: string) => {
   }
 };
 
-const AIRTABLE_BASE_ID =
-  process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID || "appRUgK44hQnXH1PM"; // P5 Social Posts base
-const AIRTABLE_TABLE_NAME =
-  process.env.NEXT_PUBLIC_AIRTABLE_TABLE || "Social Post Input";
-const AIRTABLE_TOKEN =
-  process.env.NEXT_PUBLIC_AIRTABLE_TOKEN || "";
 
 const findFieldValue = (
   fields: AirtableFields,
@@ -204,39 +198,22 @@ export default function Home() {
     setError(null);
 
     try {
-      const allRecords: AirtableRecord[] = [];
-      let offset: string | undefined = undefined;
+      // Fetch from our server-side API (keeps Airtable credentials secure)
+      const response = await fetch("/api/posts", {
+        cache: "no-store",
+      });
 
-      // Fetch all pages from Airtable (API returns max 100 records per page)
-      do {
-        const url = new URL(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(
-            AIRTABLE_TABLE_NAME
-          )}`
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || `API responded with ${response.status}`
         );
-        if (offset) {
-          url.searchParams.set("offset", offset);
-        }
+      }
 
-        const response = await fetch(url.toString(), {
-          headers: {
-            Authorization: `Bearer ${AIRTABLE_TOKEN}`,
-          },
-          cache: "no-store",
-        });
+      const data = await response.json();
+      const allRecords: AirtableRecord[] = data.records || [];
 
-        if (!response.ok) {
-          throw new Error(
-            `Airtable API responded with ${response.status} ${response.statusText}`
-          );
-        }
-
-        const data: AirtableResponse = await response.json();
-        allRecords.push(...(data.records || []));
-        offset = data.offset;
-      } while (offset);
-
-      console.log(`Fetched ${allRecords.length} total records from Airtable`);
+      console.log(`Fetched ${allRecords.length} total records`);
       const normalized = normalizeRecords(allRecords);
       console.log(`Normalized ${normalized.length} posts, ${normalized.filter(p => p.status === "Published").length} are Published`);
       setPosts(normalized);

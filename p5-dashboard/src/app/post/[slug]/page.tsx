@@ -59,10 +59,6 @@ const UPDATED_FIELDS = [
 ];
 const BULLET_FIELDS = ["B1", "B2", "B3", "b1", "b2", "b3"];
 
-const AIRTABLE_BASE_ID = process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID || "appRUgK44hQnXH1PM";
-const AIRTABLE_TABLE_NAME = process.env.NEXT_PUBLIC_AIRTABLE_TABLE || "Social Post Input";
-const AIRTABLE_TOKEN = process.env.NEXT_PUBLIC_AIRTABLE_TOKEN || "";
-
 const FALLBACK_SOURCE_FROM_URL = (url?: string) => {
   if (!url) return undefined;
   try {
@@ -179,47 +175,23 @@ export default function PostPage({ params }: { params: Promise<{ slug: string }>
       try {
         const { slug } = await params;
 
-        // Fetch all pages from Airtable
-        const allRecords: AirtableRecord[] = [];
-        let offset: string | undefined = undefined;
+        // Fetch from our server-side API (keeps Airtable credentials secure)
+        const response = await fetch(`/api/posts/${encodeURIComponent(slug)}`, {
+          cache: "no-store",
+        });
 
-        do {
-          const url = new URL(
-            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(
-              AIRTABLE_TABLE_NAME
-            )}`
-          );
-          if (offset) {
-            url.searchParams.set("offset", offset);
+        if (!response.ok) {
+          if (response.status === 404) {
+            setError("Post not found");
+            return;
           }
-
-          const response = await fetch(url.toString(), {
-            headers: {
-              Authorization: `Bearer ${AIRTABLE_TOKEN}`,
-            },
-            cache: "no-store",
-          });
-
-          if (!response.ok) {
-            throw new Error(`Airtable API responded with ${response.status}`);
-          }
-
-          const data: AirtableResponse = await response.json();
-          allRecords.push(...(data.records || []));
-          offset = data.offset;
-        } while (offset);
-
-        const normalized = allRecords.map(normalizeRecord);
-
-        const foundPost = normalized.find(
-          (p) => createSlug(p.headline) === slug
-        );
-
-        if (!foundPost) {
-          setError("Post not found");
-        } else {
-          setPost(foundPost);
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `API responded with ${response.status}`);
         }
+
+        const data = await response.json();
+        const foundPost = normalizeRecord(data.record);
+        setPost(foundPost);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load post");
       } finally {
