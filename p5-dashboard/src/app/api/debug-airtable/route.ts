@@ -4,106 +4,113 @@ const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || "";
 const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE || "Social Post Input";
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
 
+// The base ID that was previously hardcoded in the cron job
+const CRON_HARDCODED_BASE = "appRUgK44hQnXH1PM";
+
+async function fetchFromBase(baseId: string, tableName: string) {
+  const url = new URL(
+    `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`
+  );
+  url.searchParams.set("maxRecords", "10");
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    return { error: `${response.status}: ${errorText}`, records: [] };
+  }
+
+  const data = await response.json();
+  return { records: data.records || [], error: null };
+}
+
+function analyzeRecords(records: { id: string; fields: Record<string, unknown> }[]) {
+  const allFieldNames = new Set<string>();
+  let blogPostRawCount = 0;
+
+  records.forEach((record) => {
+    Object.keys(record.fields).forEach(key => allFieldNames.add(key));
+    if (record.fields["Blog Post Raw"]) {
+      blogPostRawCount++;
+    }
+  });
+
+  return {
+    totalRecords: records.length,
+    allFieldNames: Array.from(allFieldNames).sort(),
+    blogPostRawCount,
+    hasBlogPostRaw: blogPostRawCount > 0,
+    sampleRecordIds: records.slice(0, 3).map(r => r.id),
+  };
+}
+
 export async function GET() {
   try {
-    // Debug: Show what env vars are being used (masked for security)
-    const envDebug = {
-      AIRTABLE_BASE_ID: AIRTABLE_BASE_ID ? `${AIRTABLE_BASE_ID.substring(0, 6)}...` : "NOT SET",
-      AIRTABLE_TABLE: AIRTABLE_TABLE_NAME,
-      AIRTABLE_TOKEN: AIRTABLE_TOKEN ? `${AIRTABLE_TOKEN.substring(0, 8)}...` : "NOT SET",
-    };
-
-    if (!AIRTABLE_TOKEN || !AIRTABLE_BASE_ID) {
+    if (!AIRTABLE_TOKEN) {
       return NextResponse.json({
-        error: "Missing env vars",
-        envDebug,
+        error: "AIRTABLE_TOKEN not configured",
       }, { status: 500 });
     }
 
-    // Fetch first 3 records to inspect fields
-    const url = new URL(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}`
-    );
-    url.searchParams.set("maxRecords", "10");
+    const results: Record<string, unknown> = {
+      envVarBaseId: AIRTABLE_BASE_ID ? `${AIRTABLE_BASE_ID.substring(0, 8)}...` : "NOT SET",
+      cronHardcodedBase: `${CRON_HARDCODED_BASE.substring(0, 8)}...`,
+      baseIdsMatch: AIRTABLE_BASE_ID === CRON_HARDCODED_BASE,
+      tableName: AIRTABLE_TABLE_NAME,
+    };
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${AIRTABLE_TOKEN}`,
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return NextResponse.json({
-        error: `Airtable API error: ${response.status}`,
-        errorDetails: errorText,
-        envDebug,
-      }, { status: response.status });
+    // Fetch from env var base (current production)
+    if (AIRTABLE_BASE_ID) {
+      const envVarResult = await fetchFromBase(AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME);
+      if (envVarResult.error) {
+        results.envVarBase = { error: envVarResult.error };
+      } else {
+        results.envVarBase = analyzeRecords(envVarResult.records);
+      }
+    } else {
+      results.envVarBase = { error: "AIRTABLE_BASE_ID not set" };
     }
 
-    const data = await response.json();
-    const records = data.records || [];
+    // Fetch from hardcoded base (cron job was using this)
+    const hardcodedResult = await fetchFromBase(CRON_HARDCODED_BASE, AIRTABLE_TABLE_NAME);
+    if (hardcodedResult.error) {
+      results.hardcodedBase = { error: hardcodedResult.error };
+    } else {
+      results.hardcodedBase = analyzeRecords(hardcodedResult.records);
+    }
 
-    // Get all unique field names across all records
-    const allFieldNames = new Set<string>();
-    records.forEach((record: { fields: Record<string, unknown> }) => {
-      Object.keys(record.fields).forEach(key => allFieldNames.add(key));
-    });
+    // Check if record IDs overlap
+    const envRecordIds = new Set((results.envVarBase as { sampleRecordIds?: string[] })?.sampleRecordIds || []);
+    const hardcodedRecordIds = (results.hardcodedBase as { sampleRecordIds?: string[] })?.sampleRecordIds || [];
+    const overlappingIds = hardcodedRecordIds.filter(id => envRecordIds.has(id));
 
-    // Check specifically for Blog Post Raw variations
-    const blogPostRawVariations = [
-      "Blog Post Raw",
-      "blog post raw",
-      "Blog_Post_Raw",
-      "blog_post_raw",
-      "BlogPostRaw",
-      "blogpostraw",
-      "Generated Story",
-      "generated_story",
-    ];
+    results.comparison = {
+      sameRecords: overlappingIds.length === hardcodedRecordIds.length && hardcodedRecordIds.length > 0,
+      overlappingRecordIds: overlappingIds.length,
+      recommendation: "",
+    };
 
-    const foundVariations: Record<string, number> = {};
-    blogPostRawVariations.forEach(variation => {
-      let count = 0;
-      records.forEach((record: { fields: Record<string, unknown> }) => {
-        if (record.fields[variation] !== undefined && record.fields[variation] !== null && record.fields[variation] !== "") {
-          count++;
-        }
-      });
-      if (count > 0) {
-        foundVariations[variation] = count;
-      }
-    });
+    // Generate recommendation
+    const envHasBlogPostRaw = (results.envVarBase as { hasBlogPostRaw?: boolean })?.hasBlogPostRaw;
+    const hardcodedHasBlogPostRaw = (results.hardcodedBase as { hasBlogPostRaw?: boolean })?.hasBlogPostRaw;
 
-    // Count records with any field containing "blog" or "post" or "raw" in name
-    const fieldsContainingKeywords = Array.from(allFieldNames).filter(name =>
-      name.toLowerCase().includes("blog") ||
-      name.toLowerCase().includes("post") ||
-      (name.toLowerCase().includes("raw") && name.toLowerCase() !== "raw")
-    );
+    if (envHasBlogPostRaw) {
+      (results.comparison as Record<string, unknown>).recommendation =
+        "ENV VAR base has Blog Post Raw data. Current setup should work.";
+    } else if (hardcodedHasBlogPostRaw) {
+      (results.comparison as Record<string, unknown>).recommendation =
+        `ISSUE FOUND: Hardcoded base (${CRON_HARDCODED_BASE}) has Blog Post Raw data, but ENV VAR base does not. Update AIRTABLE_BASE_ID in Vercel to: ${CRON_HARDCODED_BASE}`;
+    } else {
+      (results.comparison as Record<string, unknown>).recommendation =
+        "Neither base has Blog Post Raw data in the sampled records. The field may exist but all cells are empty, or the field doesn't exist yet.";
+    }
 
-    return NextResponse.json({
-      envDebug,
-      totalRecords: records.length,
-      allFieldNames: Array.from(allFieldNames).sort(),
-      blogPostRawCheck: {
-        variations: foundVariations,
-        noMatchesFound: Object.keys(foundVariations).length === 0,
-        fieldsContainingKeywords,
-      },
-      sampleRecords: records.slice(0, 3).map((r: { id: string; fields: Record<string, unknown> }) => ({
-        id: r.id,
-        fieldNames: Object.keys(r.fields),
-        // Show first 100 chars of each field value
-        fieldPreviews: Object.fromEntries(
-          Object.entries(r.fields).map(([k, v]) => [
-            k,
-            typeof v === "string" ? v.substring(0, 100) + (v.length > 100 ? "..." : "") : v
-          ])
-        ),
-      })),
-    });
+    return NextResponse.json(results);
   } catch (error) {
     return NextResponse.json({
       error: error instanceof Error ? error.message : "Unknown error",

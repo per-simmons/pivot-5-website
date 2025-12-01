@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
-const AIRTABLE_BASE_ID = "appRUgK44hQnXH1PM"; // P5 Social Posts base
-const AIRTABLE_TABLE_NAME = "Social Post Input";
+const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || "";
+const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE || "Social Post Input";
 const GENERATED_STORY_FIELD = "Blog Post Raw";
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -179,6 +179,13 @@ export async function GET(request: NextRequest) {
     if (!AIRTABLE_TOKEN) {
       return NextResponse.json(
         { error: "AIRTABLE_TOKEN not configured" },
+        { status: 500 }
+      );
+    }
+
+    if (!AIRTABLE_BASE_ID) {
+      return NextResponse.json(
+        { error: "AIRTABLE_BASE_ID not configured" },
         { status: 500 }
       );
     }
