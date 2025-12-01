@@ -38,18 +38,25 @@ Write as flowing prose paragraphs only. Remember: minimum 500 words.`;
 interface AirtableRecord {
   id: string;
   fields: {
-    Headline?: string;
-    "Raw Text"?: string;
-    Bullets?: string;
+    // Actual field names from Airtable (case-sensitive!)
+    headline?: string;
+    Headline?: string; // Backup in case
+    Raw?: string;
+    "Raw Text"?: string; // Backup in case
+    b1?: string;
+    b2?: string;
+    b3?: string;
     "Blog Post Raw"?: string;
-    publish_status?: string;
+    Status?: string;
+    publish_status?: string; // Backup in case
   };
 }
 
 async function fetchPendingRecords(): Promise<AirtableRecord[]> {
-  // Fetch records where publish_status is "ready" and Blog Post Raw is empty
+  // Fetch records where Status is "Published" and Blog Post Raw is empty
+  // Note: Field name is "Status" not "publish_status" based on actual Airtable schema
   const filterFormula = encodeURIComponent(
-    `AND({publish_status}="ready",OR({Blog Post Raw}="",{Blog Post Raw}=BLANK()))`
+    `AND({Status}="Published",OR({Blog Post Raw}="",{Blog Post Raw}=BLANK()))`
   );
 
   const response = await fetch(
@@ -118,7 +125,7 @@ async function callGemini(prompt: string): Promise<string> {
   return generatedText.trim();
 }
 
-async function saveToAirtable(recordId: string, generatedStory: string): Promise<boolean> {
+async function saveToAirtable(recordId: string, generatedStory: string): Promise<{ success: boolean; error?: string }> {
   const response = await fetch(
     `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}/${recordId}`,
     {
@@ -138,10 +145,23 @@ async function saveToAirtable(recordId: string, generatedStory: string): Promise
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`Airtable save error: ${response.status} - ${errorText}`);
-    return false;
+
+    // Parse error for more details
+    try {
+      const errorData = JSON.parse(errorText);
+      if (errorData.error?.type === "UNKNOWN_FIELD_NAME") {
+        return {
+          success: false,
+          error: `Field "${GENERATED_STORY_FIELD}" does not exist in Airtable. Please create this column in your "${AIRTABLE_TABLE_NAME}" table.`
+        };
+      }
+      return { success: false, error: errorData.error?.message || errorText };
+    } catch {
+      return { success: false, error: `Airtable ${response.status}: ${errorText}` };
+    }
   }
 
-  return true;
+  return { success: true };
 }
 
 export async function GET(request: NextRequest) {
@@ -177,13 +197,22 @@ export async function GET(request: NextRequest) {
 
     // Process each record
     for (const record of pendingRecords) {
-      const { Headline: headline, "Raw Text": rawText, Bullets: bullets } = record.fields;
+      // Handle both capitalized and lowercase field names
+      const headline = record.fields.headline || record.fields.Headline;
+      const rawText = record.fields.Raw || record.fields["Raw Text"];
+
+      // Combine bullet points from b1, b2, b3
+      const bulletParts: string[] = [];
+      if (record.fields.b1) bulletParts.push(record.fields.b1);
+      if (record.fields.b2) bulletParts.push(record.fields.b2);
+      if (record.fields.b3) bulletParts.push(record.fields.b3);
+      const bullets = bulletParts.length > 0 ? bulletParts.join("\n") : null;
 
       if (!headline || !rawText) {
         results.push({
           recordId: record.id,
           success: false,
-          error: "Missing headline or rawText",
+          error: `Missing headline (${!!headline}) or rawText (${!!rawText})`,
         });
         continue;
       }
@@ -201,15 +230,16 @@ ${rawText}`;
         const wordCount = generatedStory.split(/\s+/).length;
 
         // Save to Airtable
-        const saved = await saveToAirtable(record.id, generatedStory);
+        const saveResult = await saveToAirtable(record.id, generatedStory);
 
         results.push({
           recordId: record.id,
-          success: saved,
+          success: saveResult.success,
           wordCount,
+          error: saveResult.error,
         });
 
-        console.log(`Generated story for ${record.id}: ${wordCount} words`);
+        console.log(`Generated story for ${record.id}: ${wordCount} words, saved: ${saveResult.success}`);
 
         // Small delay between API calls to avoid rate limiting
         await new Promise((resolve) => setTimeout(resolve, 1000));
