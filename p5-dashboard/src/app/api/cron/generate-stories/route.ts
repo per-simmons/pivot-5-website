@@ -53,10 +53,10 @@ interface AirtableRecord {
 }
 
 async function fetchPendingRecords(): Promise<AirtableRecord[]> {
-  // Fetch records where Status is "Published" and Blog Post Raw is empty
+  // Fetch records where Status is "Ready" and Blog Post Raw is empty
   // Note: Field name is "Status" not "publish_status" based on actual Airtable schema
   const filterFormula = encodeURIComponent(
-    `AND({Status}="Published",OR({Blog Post Raw}="",{Blog Post Raw}=BLANK()))`
+    `AND({Status}="Ready",OR({Blog Post Raw}="",{Blog Post Raw}=BLANK()))`
   );
 
   const response = await fetch(
