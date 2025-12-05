@@ -85,8 +85,9 @@ async function fetchPendingRecords(): Promise<AirtableRecord[]> {
 }
 
 async function callGeminiImageGeneration(prompt: string): Promise<string> {
+  // Using Gemini 3 Pro Image Preview model
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: "POST",
       headers: {
@@ -95,8 +96,11 @@ async function callGeminiImageGeneration(prompt: string): Promise<string> {
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          responseModalities: ["image", "text"],
-          responseMimeType: "image/png",
+          responseModalities: ["TEXT", "IMAGE"],
+          imageConfig: {
+            aspectRatio: "16:9",
+            imageSize: "2K",
+          },
         },
       }),
     }
@@ -104,7 +108,7 @@ async function callGeminiImageGeneration(prompt: string): Promise<string> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+    throw new Error(`Gemini 3 Pro API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
@@ -115,7 +119,7 @@ async function callGeminiImageGeneration(prompt: string): Promise<string> {
   )?.inlineData?.data;
 
   if (!imageBase64) {
-    throw new Error("No image generated from Gemini");
+    throw new Error("No image generated from Gemini 3 Pro");
   }
 
   return imageBase64;
