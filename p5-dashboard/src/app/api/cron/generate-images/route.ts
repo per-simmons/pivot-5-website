@@ -5,9 +5,9 @@ const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || "";
 const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE || "Social Post Input";
 
-// Cloudinary unsigned upload - only needs cloud name and upload preset
-const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
-const CLOUDINARY_UPLOAD_PRESET = process.env.CLOUDINARY_UPLOAD_PRESET || "";
+// Cloudinary unsigned upload - hardcoded for simplicity
+const CLOUDINARY_CLOUD_NAME = "dzocuy47k";
+const CLOUDINARY_UPLOAD_PRESET = "MakeImage";
 
 interface AirtableRecord {
   id: string;
@@ -210,12 +210,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-      return NextResponse.json(
-        { error: "Cloudinary credentials not configured (need CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET)" },
-        { status: 500 }
-      );
-    }
 
     // Fetch pending records
     const pendingRecords = await fetchPendingRecords();
