@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { v2 as cloudinary } from "cloudinary";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || "";
 const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE || "Social Post Input";
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Cloudinary unsigned upload - only needs cloud name and upload preset
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
+const CLOUDINARY_UPLOAD_PRESET = process.env.CLOUDINARY_UPLOAD_PRESET || "";
 
 interface AirtableRecord {
   id: string;
@@ -126,14 +122,27 @@ async function callGeminiImageGeneration(prompt: string): Promise<string> {
 }
 
 async function uploadToCloudinary(base64Image: string): Promise<string> {
-  const result = await cloudinary.uploader.upload(
-    `data:image/png;base64,${base64Image}`,
+  // Use unsigned upload - only needs cloud name and upload preset
+  const formData = new FormData();
+  formData.append("file", `data:image/png;base64,${base64Image}`);
+  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  formData.append("folder", "pivot5-headers");
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
     {
-      folder: "pivot5-headers",
-      transformation: [{ width: 1920, height: 1080, crop: "fill" }],
+      method: "POST",
+      body: formData,
     }
   );
-  return result.secure_url;
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Cloudinary upload error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.secure_url;
 }
 
 async function saveImageUrlToAirtable(
@@ -201,9 +210,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
       return NextResponse.json(
-        { error: "Cloudinary credentials not configured" },
+        { error: "Cloudinary credentials not configured (need CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET)" },
         { status: 500 }
       );
     }
