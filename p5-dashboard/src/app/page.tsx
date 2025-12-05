@@ -39,6 +39,7 @@ interface SocialPost {
 const HEADLINE_FIELDS = ["Headline", "Title", "headline"];
 const SUMMARY_FIELDS = ["Raw Text", "Summary", "Body", "raw text", "Raw"];
 const IMAGE_FIELDS = [
+  "website_image_url", // AI-generated header image
   "cld_img",
   "Image Raw URL",
   "image raw url",

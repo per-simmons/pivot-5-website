@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/generate-stories",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/generate-images",
+      "schedule": "30 10 * * *"
     }
   ]
 }

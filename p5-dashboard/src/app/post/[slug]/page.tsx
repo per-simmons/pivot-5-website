@@ -36,6 +36,7 @@ const SUMMARY_FIELDS = ["Summary", "Body", "summary"];
 const RAW_FIELDS = ["Raw", "raw", "Raw Text", "raw text"];
 const GENERATED_STORY_FIELDS = ["Blog Post Raw", "generated_story", "Generated Story"];
 const IMAGE_FIELDS = [
+  "website_image_url", // AI-generated header image
   "cld_img",
   "Image Raw URL",
   "image raw url",
