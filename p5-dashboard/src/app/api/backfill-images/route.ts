@@ -67,7 +67,7 @@ async function fetchRecordsToRegenerate(limit: number = 5): Promise<AirtableReco
   );
 
   const response = await fetch(
-    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}?filterByFormula=${filterFormula}&maxRecords=${limit}&sort%5B0%5D%5Bfield%5D=Last%20Modified&sort%5B0%5D%5Bdirection%5D=desc`,
+    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}?filterByFormula=${filterFormula}&maxRecords=${limit}`,
     {
       headers: {
         Authorization: `Bearer ${AIRTABLE_TOKEN}`,
