@@ -189,15 +189,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if it's a Pivot AI record
-    const issueId = record.fields.issue_id || "";
-    if (!issueId.includes("Pivot AI")) {
-      return NextResponse.json(
-        { error: "Record is not a Pivot AI story", skipped: true },
-        { status: 200 }
-      );
-    }
-
     // Check if story already exists
     if (record.fields.blog_post_raw) {
       return NextResponse.json(
