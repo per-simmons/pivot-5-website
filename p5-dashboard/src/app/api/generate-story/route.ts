@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
-const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || "appRUgK44hQnXH1PM";
-const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE || "Social Post Input";
-const GENERATED_STORY_FIELD = "Blog Post Raw";
+const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN_NEW || process.env.AIRTABLE_TOKEN || "";
+
+// NEW Airtable configuration for Pivot AI stories
+const AIRTABLE_BASE_ID = "appwSozYTkrsQWUXB";
+const AIRTABLE_TABLE_ID = "tblaHcFFG6Iw3w7lL";
+const GENERATED_STORY_FIELD = "blog_post_raw";
+
+interface AirtableRecord {
+  id: string;
+  fields: {
+    ai_headline?: string;
+    ai_dek?: string;
+    "markdown (from story_link)"?: string;
+    bullet_1?: string;
+    bullet_2?: string;
+    bullet_3?: string;
+    blog_post_raw?: string;
+  };
+}
 
 const SYSTEM_PROMPT = `You are a skilled newsletter writer for "Pivot 5," a daily business and technology newsletter that delivers 5 headlines in 5 minutes, 5 days a week.
 
@@ -34,16 +49,27 @@ Do NOT include:
 
 Write as flowing prose paragraphs only. Remember: minimum 500 words.`;
 
-interface GenerateStoryRequest {
-  recordId: string;
-  headline: string;
-  rawText: string;
-  bullets?: string[];
+async function fetchRecord(recordId: string): Promise<AirtableRecord | null> {
+  const response = await fetch(
+    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    console.error(`Failed to fetch record ${recordId}: ${response.status}`);
+    return null;
+  }
+
+  return response.json();
 }
 
 async function callGemini(prompt: string): Promise<string> {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: "POST",
       headers: {
@@ -91,7 +117,7 @@ async function callGemini(prompt: string): Promise<string> {
 
 async function saveToAirtable(recordId: string, generatedStory: string): Promise<{ ok: boolean; error?: string }> {
   const response = await fetch(
-    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}/${recordId}`,
+    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`,
     {
       method: "PATCH",
       headers: {
@@ -129,12 +155,12 @@ async function saveToAirtable(recordId: string, generatedStory: string): Promise
 
 export async function POST(request: NextRequest) {
   try {
-    const body: GenerateStoryRequest = await request.json();
-    const { recordId, headline, rawText, bullets } = body;
+    const body = await request.json();
+    const recordId = body.recordId || body.record_id || body.id;
 
-    if (!recordId || !headline || !rawText) {
+    if (!recordId) {
       return NextResponse.json(
-        { error: "Missing required fields: recordId, headline, rawText" },
+        { error: "recordId is required" },
         { status: 400 }
       );
     }
@@ -146,8 +172,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!AIRTABLE_TOKEN) {
+      return NextResponse.json(
+        { error: "AIRTABLE_TOKEN not configured" },
+        { status: 500 }
+      );
+    }
+
+    let headline: string;
+    let rawText: string;
+    let bullets: string[] = [];
+
+    // Check if headline/rawText provided directly, or fetch from Airtable
+    if (body.headline && body.rawText) {
+      // Direct mode - use provided data
+      headline = body.headline;
+      rawText = body.rawText;
+      bullets = body.bullets || [];
+    } else {
+      // Fetch mode - get data from Airtable (for Airtable automation)
+      const record = await fetchRecord(recordId);
+      if (!record) {
+        return NextResponse.json(
+          { error: "Record not found" },
+          { status: 404 }
+        );
+      }
+
+      // Check if story already exists
+      if (record.fields.blog_post_raw) {
+        return NextResponse.json(
+          { message: "Story already exists", skipped: true },
+          { status: 200 }
+        );
+      }
+
+      headline = record.fields.ai_headline || "";
+      rawText = record.fields["markdown (from story_link)"] || "";
+
+      if (!headline || !rawText) {
+        return NextResponse.json(
+          { error: "Missing headline or source text in Airtable record", skipped: true },
+          { status: 200 }
+        );
+      }
+
+      // Build bullets from Airtable
+      if (record.fields.bullet_1) bullets.push(record.fields.bullet_1);
+      if (record.fields.bullet_2) bullets.push(record.fields.bullet_2);
+      if (record.fields.bullet_3) bullets.push(record.fields.bullet_3);
+    }
+
     // Build the prompt with content
-    const bulletText = bullets?.length
+    const bulletText = bullets.length
       ? `\n\nKey points:\n${bullets.map((b) => `- ${b}`).join("\n")}`
       : "";
 
@@ -158,15 +235,21 @@ ${rawText}`;
 
     // Call Gemini API
     const generatedStory = await callGemini(prompt);
+    const wordCount = generatedStory.split(/\s+/).length;
 
     // Save to Airtable
     const saveResult = await saveToAirtable(recordId, generatedStory);
 
+    console.log(`Generate-story: ${recordId}: ${wordCount} words, saved: ${saveResult.ok}`);
+
     return NextResponse.json({
+      success: true,
       story: generatedStory,
       saved: saveResult.ok,
       saveError: saveResult.error,
       recordId,
+      headline,
+      wordCount,
     });
   } catch (error) {
     console.error("Generate story error:", error);
