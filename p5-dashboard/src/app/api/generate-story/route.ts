@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Extend timeout to 60 seconds (max for Vercel Hobby, 300 for Pro)
-export const maxDuration = 60;
+// Extend timeout to 300 seconds (Vercel Pro limit)
+export const maxDuration = 300;
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN_NEW || process.env.AIRTABLE_TOKEN || "";
