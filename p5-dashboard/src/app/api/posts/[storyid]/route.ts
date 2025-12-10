@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 // New Airtable configuration for Pivot AI stories
 const AIRTABLE_BASE_ID = "appwSozYTkrsQWUXB";
 const AIRTABLE_TABLE_ID = "tblaHcFFG6Iw3w7lL";
-const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN_NEW || process.env.AIRTABLE_TOKEN || "";
+const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
 
 interface AirtableRecord {
   id: string;

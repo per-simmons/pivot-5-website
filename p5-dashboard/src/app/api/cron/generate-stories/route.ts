@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-// Use new Airtable token/config or fall back to old
-const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN_NEW || process.env.AIRTABLE_TOKEN || "";
+const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
 // New Airtable for Pivot AI stories
 const AIRTABLE_BASE_ID = "appwSozYTkrsQWUXB";
 const AIRTABLE_TABLE_ID = "tblaHcFFG6Iw3w7lL";

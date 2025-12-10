@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 export const maxDuration = 300;
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN_NEW || process.env.AIRTABLE_TOKEN || "";
+const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
 
 // NEW Airtable configuration for Pivot AI stories
 const AIRTABLE_BASE_ID = "appwSozYTkrsQWUXB";
