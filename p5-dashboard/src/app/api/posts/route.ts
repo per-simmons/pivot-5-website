@@ -28,9 +28,9 @@ export async function GET() {
     const allRecords: AirtableRecord[] = [];
     let offset: string | undefined = undefined;
 
-    // Filter for "Pivot AI" newsletter with date_og_published set
+    // Filter for "Pivot AI" newsletter stories
     const filterFormula = encodeURIComponent(
-      `AND(FIND("Pivot AI", {issue_id}) > 0, {date_og_published} != "")`
+      `FIND("Pivot AI", {issue_id}) > 0`
     );
 
     // Fetch all pages from Airtable (API returns max 100 records per page)
