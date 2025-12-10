@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
-const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || "";
-const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE || "Social Post Input";
-const GENERATED_STORY_FIELD = "Blog Post Raw";
+// Use new Airtable token/config or fall back to old
+const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN_NEW || process.env.AIRTABLE_TOKEN || "";
+// New Airtable for Pivot AI stories
+const AIRTABLE_BASE_ID = "appwSozYTkrsQWUXB";
+const AIRTABLE_TABLE_ID = "tblaHcFFG6Iw3w7lL";
+const GENERATED_STORY_FIELD = "blog_post_raw";
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
 const SYSTEM_PROMPT = `You are a skilled newsletter writer for "Pivot 5," a daily business and technology newsletter that delivers 5 headlines in 5 minutes, 5 days a week.
@@ -38,28 +40,27 @@ Write as flowing prose paragraphs only. Remember: minimum 500 words.`;
 interface AirtableRecord {
   id: string;
   fields: {
-    // Actual field names from Airtable (case-sensitive!)
-    headline?: string;
-    Headline?: string; // Backup in case
-    Raw?: string;
-    "Raw Text"?: string; // Backup in case
-    b1?: string;
-    b2?: string;
-    b3?: string;
-    "Blog Post Raw"?: string;
-    Status?: string;
-    publish_status?: string; // Backup in case
+    // New Airtable field names
+    ai_headline?: string;
+    ai_dek?: string;
+    "markdown (from story_link)"?: string;
+    bullet_1?: string;
+    bullet_2?: string;
+    bullet_3?: string;
+    blog_post_raw?: string;
+    date_og_published?: string;
+    issue_id?: string;
   };
 }
 
 async function fetchPendingRecords(): Promise<AirtableRecord[]> {
-  // Fetch records where publish_status is "ready" and Blog Post Raw is empty
+  // Fetch "Pivot AI" records where date_og_published is set and blog_post_raw is empty
   const filterFormula = encodeURIComponent(
-    `AND({publish_status}="ready",OR({Blog Post Raw}="",{Blog Post Raw}=BLANK()))`
+    `AND(FIND("Pivot AI", {issue_id}) > 0, {date_og_published} != "", OR({blog_post_raw}="", {blog_post_raw}=BLANK()))`
   );
 
   const response = await fetch(
-    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}?filterByFormula=${filterFormula}&maxRecords=5`,
+    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula=${filterFormula}&maxRecords=5`,
     {
       headers: {
         Authorization: `Bearer ${AIRTABLE_TOKEN}`,
@@ -126,7 +127,7 @@ async function callGemini(prompt: string): Promise<string> {
 
 async function saveToAirtable(recordId: string, generatedStory: string): Promise<{ success: boolean; error?: string }> {
   const response = await fetch(
-    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}/${recordId}`,
+    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`,
     {
       method: "PATCH",
       headers: {
@@ -151,7 +152,7 @@ async function saveToAirtable(recordId: string, generatedStory: string): Promise
       if (errorData.error?.type === "UNKNOWN_FIELD_NAME") {
         return {
           success: false,
-          error: `Field "${GENERATED_STORY_FIELD}" does not exist in Airtable. Please create this column in your "${AIRTABLE_TABLE_NAME}" table.`
+          error: `Field "${GENERATED_STORY_FIELD}" does not exist in Airtable. Please create this column.`
         };
       }
       return { success: false, error: errorData.error?.message || errorText };
@@ -203,15 +204,15 @@ export async function GET(request: NextRequest) {
 
     // Process each record
     for (const record of pendingRecords) {
-      // Handle both capitalized and lowercase field names
-      const headline = record.fields.headline || record.fields.Headline;
-      const rawText = record.fields.Raw || record.fields["Raw Text"];
+      // Use new Airtable field names
+      const headline = record.fields.ai_headline;
+      const rawText = record.fields["markdown (from story_link)"];
 
-      // Combine bullet points from b1, b2, b3
+      // Combine bullet points from bullet_1, bullet_2, bullet_3
       const bulletParts: string[] = [];
-      if (record.fields.b1) bulletParts.push(record.fields.b1);
-      if (record.fields.b2) bulletParts.push(record.fields.b2);
-      if (record.fields.b3) bulletParts.push(record.fields.b3);
+      if (record.fields.bullet_1) bulletParts.push(record.fields.bullet_1);
+      if (record.fields.bullet_2) bulletParts.push(record.fields.bullet_2);
+      if (record.fields.bullet_3) bulletParts.push(record.fields.bullet_3);
       const bullets = bulletParts.length > 0 ? bulletParts.join("\n") : null;
 
       if (!headline || !rawText) {

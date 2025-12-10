@@ -20,6 +20,7 @@ type AirtableFields = Record<string, unknown>;
 
 interface SocialPost {
   id: string;
+  storyId: string;
   headline: string;
   summary: string;
   imageUrl?: string;
@@ -36,10 +37,12 @@ interface SocialPost {
   updatedTime?: string;
 }
 
-const HEADLINE_FIELDS = ["Headline", "Title", "headline"];
-const SUMMARY_FIELDS = ["Raw Text", "Summary", "Body", "raw text", "Raw"];
+// New Airtable field mappings (keeping old names for backwards compatibility)
+const HEADLINE_FIELDS = ["ai_headline", "Headline", "Title", "headline"];
+const SUMMARY_FIELDS = ["ai_dek", "Raw Text", "Summary", "Body", "raw text", "Raw"];
 const IMAGE_FIELDS = [
-  "website_image_url", // AI-generated header image
+  "image_url", // New Airtable field
+  "website_image_url", // Old AI-generated header image
   "cld_img",
   "Image Raw URL",
   "image raw url",
@@ -48,13 +51,15 @@ const IMAGE_FIELDS = [
   "Image",
   "image_raw_url",
 ];
+const STORY_ID_FIELDS = ["StoryID", "storyid", "story_id"];
 const CTA_LABEL_FIELDS = ["CTA", "CTA Label", "cta_label", "Call To Action"];
 const CTA_URL_FIELDS = ["CTA URL", "CTA Link", "cta_url", "Link"];
 const STATUS_FIELDS = ["Status", "status", "Workflow Stage", "publish_status"];
 const PLATFORM_FIELDS = ["Platform", "Channel", "platform"];
 const LABEL_FIELDS = ["Label", "label", "Topic", "tag"];
 const SOURCE_FIELDS = ["Source", "source", "Publisher", "publisher"];
-const URL_FIELDS = ["URL", "Url", "url", "URL_clean", "url_clean", "url_cleaned"];
+const URL_FIELDS = ["decorated_url", "URL", "Url", "url", "URL_clean", "url_clean", "url_cleaned"];
+const ISSUE_ID_FIELDS = ["issue_id", "Issue ID", "newsletter"];
 const UPDATED_FIELDS = [
   "Last Modified",
   "last_modified",
@@ -66,7 +71,7 @@ const UPDATED_FIELDS = [
   "updated_at",
   "Updated At"
 ];
-const BULLET_FIELDS = ["B1", "B2", "B3", "b1", "b2", "b3"];
+const BULLET_FIELDS = ["bullet_1", "bullet_2", "bullet_3", "B1", "B2", "B3", "b1", "b2", "b3"];
 const CARD_BULLET_CHAR_LIMIT = 140;
 const FALLBACK_SOURCE_FROM_URL = (url?: string) => {
   if (!url) return undefined;
@@ -132,6 +137,7 @@ const normalizeRecords = (records: AirtableRecord[]): SocialPost[] => {
   return records.map((record) => {
     const { fields } = record;
 
+    const storyId = ensureString(findFieldValue(fields, STORY_ID_FIELDS)) || record.id;
     const headline =
       ensureString(findFieldValue(fields, HEADLINE_FIELDS)) ||
       "Untitled Story";
@@ -159,6 +165,7 @@ const normalizeRecords = (records: AirtableRecord[]): SocialPost[] => {
 
     return {
       id: record.id,
+      storyId,
       createdTime: record.createdTime,
       headline,
       summary,
@@ -180,13 +187,6 @@ const normalizeRecords = (records: AirtableRecord[]): SocialPost[] => {
 const stripTags = (input: string): string => input.replace(/<[^>]+>/g, "");
 const truncate = (input: string, max: number) =>
   input.length > max ? `${input.slice(0, max)}…` : input;
-
-const createSlug = (headline: string): string => {
-  return headline
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-};
 
 export default function Home() {
   const [posts, setPosts] = useState<SocialPost[]>([]);
@@ -238,11 +238,8 @@ export default function Home() {
 
   // Filter and sort posts
   const filteredPosts = useMemo(() => {
-    // Filter valid published posts (accept both "Published" and "ready" statuses)
+    // Filter valid posts (API already filters by date_og_published)
     const valid = posts.filter((post) => {
-      if (post.status !== "Published" && post.status !== "ready") {
-        return false;
-      }
       if (!post.headline || !post.headline.trim() || post.headline === "Untitled Story") {
         return false;
       }
@@ -305,7 +302,7 @@ export default function Home() {
         {pagedPosts.map((post, index) => (
           <Link
             key={post.id}
-            href={`/post/${createSlug(post.headline)}`}
+            href={`/${post.storyId}`}
             className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.08)]"
           >
             <div className="h-56 w-full bg-slate-100">

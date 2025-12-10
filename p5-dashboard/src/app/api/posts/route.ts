@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
-const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || "";
-const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE || "Social Post Input";
-const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
+// New Airtable configuration for Pivot AI stories
+const AIRTABLE_BASE_ID = "appwSozYTkrsQWUXB";
+const AIRTABLE_TABLE_ID = "tblaHcFFG6Iw3w7lL";
+const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN_NEW || process.env.AIRTABLE_TOKEN || "";
 
 interface AirtableRecord {
   id: string;
@@ -24,23 +25,20 @@ export async function GET() {
       );
     }
 
-    if (!AIRTABLE_BASE_ID) {
-      return NextResponse.json(
-        { error: "AIRTABLE_BASE_ID not configured" },
-        { status: 500 }
-      );
-    }
-
     const allRecords: AirtableRecord[] = [];
     let offset: string | undefined = undefined;
+
+    // Filter for "Pivot AI" newsletter with date_og_published set
+    const filterFormula = encodeURIComponent(
+      `AND(FIND("Pivot AI", {issue_id}) > 0, {date_og_published} != "")`
+    );
 
     // Fetch all pages from Airtable (API returns max 100 records per page)
     do {
       const url = new URL(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(
-          AIRTABLE_TABLE_NAME
-        )}`
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`
       );
+      url.searchParams.set("filterByFormula", filterFormula);
       if (offset) {
         url.searchParams.set("offset", offset);
       }
