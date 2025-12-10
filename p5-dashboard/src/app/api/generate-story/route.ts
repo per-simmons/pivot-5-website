@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Extend timeout to 60 seconds (max for Vercel Hobby, 300 for Pro)
+export const maxDuration = 60;
+
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN_NEW || process.env.AIRTABLE_TOKEN || "";
 
@@ -13,12 +16,20 @@ interface AirtableRecord {
   fields: {
     ai_headline?: string;
     ai_dek?: string;
-    "markdown (from story_link)"?: string;
+    // Lookup fields return arrays in Airtable API
+    "markdown (from story_link)"?: string | string[];
     bullet_1?: string;
     bullet_2?: string;
     bullet_3?: string;
     blog_post_raw?: string;
   };
+}
+
+// Helper to extract value from Airtable field (handles both string and array)
+function extractFieldValue(field: string | string[] | undefined): string {
+  if (!field) return "";
+  if (Array.isArray(field)) return field[0] || "";
+  return field;
 }
 
 const SYSTEM_PROMPT = `You are a skilled newsletter writer for "Pivot 5," a daily business and technology newsletter that delivers 5 headlines in 5 minutes, 5 days a week.
@@ -208,7 +219,8 @@ export async function POST(request: NextRequest) {
       }
 
       headline = record.fields.ai_headline || "";
-      rawText = record.fields["markdown (from story_link)"] || "";
+      // Handle lookup field which may be an array
+      rawText = extractFieldValue(record.fields["markdown (from story_link)"]);
 
       if (!headline || !rawText) {
         return NextResponse.json(
