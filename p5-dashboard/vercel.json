@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/generate-stories",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}
