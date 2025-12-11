@@ -3,6 +3,11 @@
   "installCommand": "cd p5-dashboard && npm install",
   "outputDirectory": "p5-dashboard/.next",
   "framework": "nextjs",
+  "build": {
+    "env": {
+      "NODE_VERSION": "22"
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/generate-stories",
