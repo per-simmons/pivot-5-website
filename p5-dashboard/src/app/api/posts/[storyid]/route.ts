@@ -31,9 +31,8 @@ export async function GET(
     }
 
     // Direct lookup by StoryID field - simple exact match
-    const filterFormula = encodeURIComponent(
-      `{StoryID}="${storyid}"`
-    );
+    // Note: Don't use encodeURIComponent - searchParams.set() handles encoding
+    const filterFormula = `{StoryID}="${storyid}"`;
 
     const url = new URL(
       `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`
