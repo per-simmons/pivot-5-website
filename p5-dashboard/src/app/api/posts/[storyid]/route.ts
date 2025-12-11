@@ -20,12 +20,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ storyid: string }> }
 ) {
+  const _v = "v4-debug";
+
   try {
     const { storyid } = await params;
 
     if (!AIRTABLE_TOKEN) {
       return NextResponse.json(
-        { error: "AIRTABLE_TOKEN not configured" },
+        { error: "AIRTABLE_TOKEN not configured", _version: _v },
         { status: 500 }
       );
     }
@@ -44,17 +46,17 @@ export async function GET(
 
       if (directResponse.ok) {
         const record = await directResponse.json();
-        return NextResponse.json({ record });
+        return NextResponse.json({ record, _version: _v, _strategy: "direct" });
       }
+      // Log what happened with direct lookup
+      console.log(`Direct lookup for ${storyid} returned ${directResponse.status}`);
     }
 
     // Strategy 2: Fetch all records and filter client-side
-    // This avoids Airtable filterByFormula issues with certain field types
-    const url = new URL(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`
-    );
+    const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
+    console.log(`Fetching all records from: ${airtableUrl}`);
 
-    const response = await fetch(url.toString(), {
+    const response = await fetch(airtableUrl, {
       headers: {
         Authorization: `Bearer ${AIRTABLE_TOKEN}`,
       },
@@ -65,12 +67,13 @@ export async function GET(
       const errorText = await response.text();
       console.error(`Airtable API error: ${response.status} - ${errorText}`);
       return NextResponse.json(
-        { error: `Airtable API error: ${response.status}` },
+        { error: `Airtable API error: ${response.status}`, _version: _v, _url: airtableUrl, _errorDetail: errorText.slice(0, 200) },
         { status: response.status }
       );
     }
 
     const data: AirtableResponse = await response.json();
+    console.log(`Fetched ${data.records.length} records`);
 
     // Find record by StoryID field or record ID
     const record = data.records.find((r) => {
@@ -80,16 +83,16 @@ export async function GET(
 
     if (!record) {
       return NextResponse.json(
-        { error: "Post not found" },
+        { error: "Post not found", _version: _v, _searchedFor: storyid, _totalRecords: data.records.length },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ record, _version: "v3-no-filter" });
+    return NextResponse.json({ record, _version: _v, _strategy: "filtered" });
   } catch (error) {
     console.error("Error fetching post:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch post", _version: "v3-no-filter" },
+      { error: error instanceof Error ? error.message : "Failed to fetch post", _version: _v },
       { status: 500 }
     );
   }
