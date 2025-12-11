@@ -20,7 +20,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ storyid: string }> }
 ) {
-  const _v = "v5-deployed";
+  const _v = "v6-pivotnews-url-only";
 
   try {
     const { storyid } = await params;
@@ -32,29 +32,8 @@ export async function GET(
       );
     }
 
-    // Strategy 1: If it looks like a record ID, try direct lookup first
-    const isRecordId = storyid.startsWith("rec") && storyid.length >= 14;
-
-    if (isRecordId) {
-      const directUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${storyid}`;
-      const directResponse = await fetch(directUrl, {
-        headers: {
-          Authorization: `Bearer ${AIRTABLE_TOKEN}`,
-        },
-        cache: "no-store",
-      });
-
-      if (directResponse.ok) {
-        const record = await directResponse.json();
-        return NextResponse.json({ record, _version: _v, _strategy: "direct" });
-      }
-      // Log what happened with direct lookup
-      console.log(`Direct lookup for ${storyid} returned ${directResponse.status}`);
-    }
-
-    // Strategy 2: Fetch all records and search by pivotnews_url or StoryID
+    // Fetch all records from Pivot AI table and search by pivotnews_url
     const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
-    console.log(`Fetching all records from: ${airtableUrl}`);
 
     const response = await fetch(airtableUrl, {
       headers: {
