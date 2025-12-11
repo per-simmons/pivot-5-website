@@ -35,6 +35,7 @@ interface SocialPost {
   derivedSource?: string;
   createdTime: string;
   updatedTime?: string;
+  pivotnewsUrl?: string;
 }
 
 // New Airtable field mappings (keeping old names for backwards compatibility)
@@ -49,6 +50,7 @@ const PLATFORM_FIELDS = ["Platform", "Channel", "platform"];
 const LABEL_FIELDS = ["Label", "label", "Topic", "tag"];
 const SOURCE_FIELDS = ["Source", "source", "Publisher", "publisher"];
 const URL_FIELDS = ["decorated_url", "URL", "Url", "url", "URL_clean", "url_clean", "url_cleaned"];
+const PIVOTNEWS_URL_FIELDS = ["pivotnews_url"];
 const ISSUE_ID_FIELDS = ["issue_id", "Issue ID", "newsletter"];
 const UPDATED_FIELDS = [
   "Last Modified",
@@ -143,6 +145,7 @@ const normalizeRecords = (records: AirtableRecord[]): SocialPost[] => {
     const url = ensureString(findFieldValue(fields, URL_FIELDS));
     const derivedSource = source || FALLBACK_SOURCE_FROM_URL(url);
     const updatedTime = ensureString(findFieldValue(fields, UPDATED_FIELDS));
+    const pivotnewsUrl = ensureString(findFieldValue(fields, PIVOTNEWS_URL_FIELDS));
 
     const bullets: string[] = [];
     BULLET_FIELDS.forEach((key) => {
@@ -170,6 +173,7 @@ const normalizeRecords = (records: AirtableRecord[]): SocialPost[] => {
       url,
       derivedSource,
       updatedTime,
+      pivotnewsUrl,
     };
   });
 };
@@ -187,6 +191,19 @@ const stripTags = (input: string): string => {
 };
 const truncate = (input: string, max: number) =>
   input.length > max ? `${input.slice(0, max)}…` : input;
+
+// Extract path from pivotnews_url (e.g., "https://pivotnews.com/rec123" -> "/rec123")
+const getPostPath = (post: SocialPost): string => {
+  if (post.pivotnewsUrl) {
+    try {
+      const url = new URL(post.pivotnewsUrl);
+      return url.pathname; // Returns "/rec123"
+    } catch {
+      // If pivotnews_url is malformed, fall back to post.id
+    }
+  }
+  return `/${post.id}`;
+};
 
 export default function Home() {
   const [posts, setPosts] = useState<SocialPost[]>([]);
@@ -302,7 +319,7 @@ export default function Home() {
         {pagedPosts.map((post, index) => (
           <Link
             key={post.id}
-            href={`/${post.id}`}
+            href={getPostPath(post)}
             className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.08)]"
           >
             <div className="h-56 w-full bg-slate-100">
