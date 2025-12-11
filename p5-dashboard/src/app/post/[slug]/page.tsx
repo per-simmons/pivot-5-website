@@ -35,17 +35,7 @@ const HEADLINE_FIELDS = ["Headline", "Title", "headline"];
 const SUMMARY_FIELDS = ["Summary", "Body", "summary"];
 const RAW_FIELDS = ["Raw", "raw", "Raw Text", "raw text"];
 const GENERATED_STORY_FIELDS = ["Blog Post Raw", "generated_story", "Generated Story"];
-const IMAGE_FIELDS = [
-  "image_url", // Manual image from Airtable (priority)
-  "website_image_url", // Legacy AI-generated header image
-  "cld_img",
-  "Image Raw URL",
-  "image raw url",
-  "Image URL",
-  "image",
-  "Image",
-  "image_raw_url",
-];
+const IMAGE_FIELDS = ["image_url"];
 const SOURCE_FIELDS = ["Source", "source", "Publisher", "publisher"];
 const URL_FIELDS = ["URL", "Url", "url", "URL_clean", "url_clean", "url_cleaned"];
 const UPDATED_FIELDS = [

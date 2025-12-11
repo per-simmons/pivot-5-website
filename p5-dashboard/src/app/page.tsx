@@ -40,17 +40,7 @@ interface SocialPost {
 // New Airtable field mappings (keeping old names for backwards compatibility)
 const HEADLINE_FIELDS = ["ai_headline", "Headline", "Title", "headline"];
 const SUMMARY_FIELDS = ["ai_dek", "Raw Text", "Summary", "Body", "raw text", "Raw"];
-const IMAGE_FIELDS = [
-  "image_url", // New Airtable field
-  "website_image_url", // Old AI-generated header image
-  "cld_img",
-  "Image Raw URL",
-  "image raw url",
-  "Image URL",
-  "image",
-  "Image",
-  "image_raw_url",
-];
+const IMAGE_FIELDS = ["image_url"];
 const STORY_ID_FIELDS = ["StoryID", "storyid", "story_id"];
 const CTA_LABEL_FIELDS = ["CTA", "CTA Label", "cta_label", "Call To Action"];
 const CTA_URL_FIELDS = ["CTA URL", "CTA Link", "cta_url", "Link"];
