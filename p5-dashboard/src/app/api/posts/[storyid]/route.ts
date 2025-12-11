@@ -52,7 +52,7 @@ export async function GET(
       console.log(`Direct lookup for ${storyid} returned ${directResponse.status}`);
     }
 
-    // Strategy 2: Fetch all records and filter client-side
+    // Strategy 2: Fetch all records and search by pivotnews_url or StoryID
     const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
     console.log(`Fetching all records from: ${airtableUrl}`);
 
@@ -75,9 +75,16 @@ export async function GET(
     const data: AirtableResponse = await response.json();
     console.log(`Fetched ${data.records.length} records`);
 
-    // Find record by StoryID field or record ID
+    // Find record by: 1) pivotnews_url containing the ID, 2) record ID, 3) StoryID field
     const record = data.records.find((r) => {
       const recordStoryId = r.fields.StoryID as string | undefined;
+      const pivotnewsUrl = r.fields.pivotnews_url as string | undefined;
+
+      // Check if pivotnews_url contains this storyid (e.g., "https://pivotnews.com/recXXX" contains "recXXX")
+      if (pivotnewsUrl && pivotnewsUrl.includes(storyid)) {
+        return true;
+      }
+
       return r.id === storyid || recordStoryId === storyid;
     });
 
