@@ -107,7 +107,17 @@ const ensureStringArray = (value: unknown): string[] => {
   return [];
 };
 
-const stripTags = (input: string): string => input.replace(/<[^>]+>/g, "");
+const stripTags = (input: string): string => {
+  // Remove HTML tags
+  let result = input.replace(/<[^>]+>/g, "");
+  // Remove markdown bold **text** and __text__
+  result = result.replace(/\*\*([^*]+)\*\*/g, "$1");
+  result = result.replace(/__([^_]+)__/g, "$1");
+  // Remove markdown italic *text* and _text_
+  result = result.replace(/\*([^*]+)\*/g, "$1");
+  result = result.replace(/_([^_]+)_/g, "$1");
+  return result;
+};
 
 const normalizeRecord = (record: AirtableRecord): SocialPost => {
   const { fields } = record;

@@ -30,9 +30,9 @@ export async function GET(
       );
     }
 
-    // Direct lookup by StoryID field - much more efficient than iterating all records
+    // Direct lookup by StoryID field - simple exact match
     const filterFormula = encodeURIComponent(
-      `AND({StoryID}="${storyid}",FIND("Pivot AI", {issue_id}) > 0)`
+      `{StoryID}="${storyid}"`
     );
 
     const url = new URL(
