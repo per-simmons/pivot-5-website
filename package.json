@@ -1,0 +1,7 @@
+{
+  "name": "pivot-5-website",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  }
+}
