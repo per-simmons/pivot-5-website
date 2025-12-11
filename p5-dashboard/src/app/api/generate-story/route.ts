@@ -210,8 +210,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Check if story already exists
-      if (record.fields.blog_post_raw) {
+      // Check if story already exists (skip unless force=true)
+      const force = body.force === true;
+      if (record.fields.blog_post_raw && !force) {
         return NextResponse.json(
           { message: "Story already exists", skipped: true },
           { status: 200 }
