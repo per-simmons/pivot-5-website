@@ -20,7 +20,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ storyid: string }> }
 ) {
-  const _v = "v4-debug";
+  const _v = "v5-deployed";
 
   try {
     const { storyid } = await params;
