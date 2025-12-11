@@ -56,46 +56,73 @@ async function clearBlogPostRaw(recordId: string): Promise<boolean> {
   return response.ok;
 }
 
+async function clearAllBlogPosts() {
+  if (!AIRTABLE_TOKEN) {
+    return {
+      error: "AIRTABLE_TOKEN not configured",
+      status: 500,
+    };
+  }
+
+  // Fetch records with existing blog posts
+  const records = await fetchRecordsWithBlogPosts();
+
+  if (records.length === 0) {
+    return {
+      message: "No records with blog_post_raw to clear",
+      cleared: 0,
+    };
+  }
+
+  let cleared = 0;
+  const errors: string[] = [];
+  const clearedIds: string[] = [];
+
+  // Clear each record
+  for (const record of records) {
+    const success = await clearBlogPostRaw(record.id);
+    if (success) {
+      cleared++;
+      clearedIds.push(record.id);
+    } else {
+      errors.push(record.id);
+    }
+    // Small delay to avoid rate limiting
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
+  return {
+    message: `Cleared ${cleared}/${records.length} records`,
+    cleared,
+    total: records.length,
+    clearedIds,
+    errors: errors.length > 0 ? errors : undefined,
+  };
+}
+
+export async function GET() {
+  try {
+    const result = await clearAllBlogPosts();
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: result.status || 500 });
+    }
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("Clear blog posts error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to clear blog posts" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    if (!AIRTABLE_TOKEN) {
-      return NextResponse.json(
-        { error: "AIRTABLE_TOKEN not configured" },
-        { status: 500 }
-      );
+    const result = await clearAllBlogPosts();
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: result.status || 500 });
     }
-
-    // Fetch records with existing blog posts
-    const records = await fetchRecordsWithBlogPosts();
-
-    if (records.length === 0) {
-      return NextResponse.json({
-        message: "No records with blog_post_raw to clear",
-        cleared: 0,
-      });
-    }
-
-    let cleared = 0;
-    const errors: string[] = [];
-
-    // Clear each record
-    for (const record of records) {
-      const success = await clearBlogPostRaw(record.id);
-      if (success) {
-        cleared++;
-      } else {
-        errors.push(record.id);
-      }
-      // Small delay to avoid rate limiting
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-
-    return NextResponse.json({
-      message: `Cleared ${cleared}/${records.length} records`,
-      cleared,
-      total: records.length,
-      errors: errors.length > 0 ? errors : undefined,
-    });
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Clear blog posts error:", error);
     return NextResponse.json(
