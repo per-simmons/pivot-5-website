@@ -30,9 +30,32 @@ export async function GET(
       );
     }
 
-    // Direct lookup by StoryID field - simple exact match
-    // Note: Don't use encodeURIComponent - searchParams.set() handles encoding
-    const filterFormula = `{StoryID}="${storyid}"`;
+    // Try multiple lookup strategies:
+    // 1. If it looks like a record ID, try direct record lookup first
+    // 2. Otherwise search by StoryID or story_link field
+    const isRecordId = storyid.startsWith("rec") && storyid.length >= 14;
+
+    if (isRecordId) {
+      // Try direct record lookup first (most reliable)
+      const directUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${storyid}`;
+      const directResponse = await fetch(directUrl, {
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+        },
+        cache: "no-store",
+      });
+
+      if (directResponse.ok) {
+        const record = await directResponse.json();
+        return NextResponse.json({ record });
+      }
+
+      // If direct lookup fails, try searching by StoryID field using FIND
+      // This handles cases where storyid is stored in a formula/rollup field
+    }
+
+    // Search using FIND() which is more tolerant of field types
+    const filterFormula = `OR(FIND("${storyid}",{StoryID})>0,FIND("${storyid}",ARRAYJOIN({story_link}))>0)`;
 
     const url = new URL(
       `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`
