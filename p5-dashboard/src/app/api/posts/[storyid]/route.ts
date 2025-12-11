@@ -85,11 +85,11 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ record });
+    return NextResponse.json({ record, _version: "v3-no-filter" });
   } catch (error) {
     console.error("Error fetching post:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch post" },
+      { error: error instanceof Error ? error.message : "Failed to fetch post", _version: "v3-no-filter" },
       { status: 500 }
     );
   }
