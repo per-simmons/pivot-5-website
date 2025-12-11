@@ -30,13 +30,10 @@ export async function GET(
       );
     }
 
-    // Try multiple lookup strategies:
-    // 1. If it looks like a record ID, try direct record lookup first
-    // 2. Otherwise search by StoryID or story_link field
+    // Strategy 1: If it looks like a record ID, try direct lookup first
     const isRecordId = storyid.startsWith("rec") && storyid.length >= 14;
 
     if (isRecordId) {
-      // Try direct record lookup first (most reliable)
       const directUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${storyid}`;
       const directResponse = await fetch(directUrl, {
         headers: {
@@ -49,19 +46,13 @@ export async function GET(
         const record = await directResponse.json();
         return NextResponse.json({ record });
       }
-
-      // If direct lookup fails, try searching by StoryID field using FIND
-      // This handles cases where storyid is stored in a formula/rollup field
     }
 
-    // Search using FIND() which is more tolerant of field types
-    const filterFormula = `OR(FIND("${storyid}",{StoryID})>0,FIND("${storyid}",ARRAYJOIN({story_link}))>0)`;
-
+    // Strategy 2: Fetch all records and filter client-side
+    // This avoids Airtable filterByFormula issues with certain field types
     const url = new URL(
       `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`
     );
-    url.searchParams.set("filterByFormula", filterFormula);
-    url.searchParams.set("maxRecords", "1");
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -81,16 +72,20 @@ export async function GET(
 
     const data: AirtableResponse = await response.json();
 
-    if (!data.records || data.records.length === 0) {
+    // Find record by StoryID field or record ID
+    const record = data.records.find((r) => {
+      const recordStoryId = r.fields.StoryID as string | undefined;
+      return r.id === storyid || recordStoryId === storyid;
+    });
+
+    if (!record) {
       return NextResponse.json(
         { error: "Post not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      record: data.records[0],
-    });
+    return NextResponse.json({ record });
   } catch (error) {
     console.error("Error fetching post:", error);
     return NextResponse.json(
