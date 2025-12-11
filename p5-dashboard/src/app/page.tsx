@@ -302,7 +302,7 @@ export default function Home() {
         {pagedPosts.map((post, index) => (
           <Link
             key={post.id}
-            href={`/${post.storyId}`}
+            href={`/${post.id}`}
             className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.08)]"
           >
             <div className="h-56 w-full bg-slate-100">
