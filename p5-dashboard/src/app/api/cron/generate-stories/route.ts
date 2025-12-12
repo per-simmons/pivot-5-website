@@ -53,9 +53,10 @@ interface AirtableRecord {
 }
 
 async function fetchPendingRecords(): Promise<AirtableRecord[]> {
-  // Fetch "Pivot AI" records where date_og_published is set and blog_post_raw is empty
+  // Fetch all Pivot newsletter records where date_og_published is set and blog_post_raw is empty
+  // Includes: Pivot AI, Pivot Build, Pivot Invest, etc.
   const filterFormula = encodeURIComponent(
-    `AND(FIND("Pivot AI", {issue_id}) > 0, {date_og_published} != "", OR({blog_post_raw}="", {blog_post_raw}=BLANK()))`
+    `AND(FIND("Pivot", {issue_id}) > 0, {date_og_published} != "", OR({blog_post_raw}="", {blog_post_raw}=BLANK()))`
   );
 
   const response = await fetch(
