@@ -1,7 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "img.pivotnews.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.cloudflare.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.imagedelivery.net",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
