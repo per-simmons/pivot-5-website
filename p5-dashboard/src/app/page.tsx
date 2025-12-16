@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ExternalLink, Loader2 } from "lucide-react";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 
 interface AirtableRecord {
   id: string;
@@ -301,6 +302,8 @@ export default function Home() {
         </div>
         <span className="text-[15px] font-semibold text-slate-700">5 headlines. 5 minutes. 5 days a week.</span>
       </div>
+
+      <NewsletterSignup />
 
       {error && (
         <div className="rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-800">
