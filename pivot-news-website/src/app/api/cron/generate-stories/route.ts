@@ -1,8 +1,36 @@
+/**
+ * Gemini Blog Post Generation Cron Job
+ *
+ * This endpoint generates blog-style articles from newsletter source material using Gemini AI.
+ *
+ * SUPPORTED NEWSLETTERS:
+ * - Pivot AI ✅ (working)
+ * - Pivot Build ✅ (working)
+ * - Pivot Invest ✅ (working)
+ *
+ * The filter uses FIND("Pivot", {issue_id}) to match ALL Pivot newsletter variants.
+ *
+ * FLOW:
+ * 1. Fetches records from Newsletter Issue Stories table where:
+ *    - issue_id contains "Pivot"
+ *    - date_og_published is set
+ *    - blog_post_raw is empty
+ * 2. Sends ai_headline + markdown + bullet points to Gemini
+ * 3. Gemini writes 500-800 word blog post
+ * 4. Saves to blog_post_raw field in Airtable
+ *
+ * RATE LIMITING:
+ * - Processes 5 records per run (maxRecords=5)
+ * - 1 second delay between Gemini API calls
+ * - Run cron multiple times to process backlog
+ *
+ * VERIFIED: Dec 16, 2025 - All three newsletters (AI, Build, Invest) confirmed working
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
-// New Airtable for Pivot AI stories
 const AIRTABLE_BASE_ID = "appwSozYTkrsQWUXB";
 const AIRTABLE_TABLE_ID = "tblaHcFFG6Iw3w7lL";
 const GENERATED_STORY_FIELD = "blog_post_raw";
