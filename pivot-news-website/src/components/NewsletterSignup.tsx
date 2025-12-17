@@ -113,7 +113,7 @@ export function NewsletterSignup({ className = '' }: NewsletterSignupProps) {
             <div className="flex items-center justify-center gap-3 py-4">
               <CheckCircle2 className="h-6 w-6 text-green-600" />
               <p className="text-green-700 font-medium">
-                You&apos;re in! Check your inbox to confirm your subscription.
+                You&apos;re in! You&apos;ll start to receive Pivot 5 each weekday in your inbox.
               </p>
             </div>
           ) : (
