@@ -20,7 +20,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ storyid: string }> }
 ) {
-  const _v = "v6-pivotnews-url-only";
+  const _v = "v7-airtable-filter";
 
   try {
     const { storyid } = await params;
@@ -32,8 +32,10 @@ export async function GET(
       );
     }
 
-    // Fetch all records from Pivot AI table and search by pivotnews_url
-    const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
+    // Use Airtable filter formula to search directly instead of fetching all records
+    // This avoids the 100-record pagination limit
+    const filterFormula = `OR(SEARCH("${storyid}",{pivotnews_url}),{StoryID}="${storyid}",RECORD_ID()="${storyid}")`;
+    const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula=${encodeURIComponent(filterFormula)}`;
 
     const response = await fetch(airtableUrl, {
       headers: {
@@ -46,35 +48,24 @@ export async function GET(
       const errorText = await response.text();
       console.error(`Airtable API error: ${response.status} - ${errorText}`);
       return NextResponse.json(
-        { error: `Airtable API error: ${response.status}`, _version: _v, _url: airtableUrl, _errorDetail: errorText.slice(0, 200) },
+        { error: `Airtable API error: ${response.status}`, _version: _v, _errorDetail: errorText.slice(0, 200) },
         { status: response.status }
       );
     }
 
     const data: AirtableResponse = await response.json();
-    console.log(`Fetched ${data.records.length} records`);
+    console.log(`Filtered query returned ${data.records.length} records`);
 
-    // Find record by: 1) pivotnews_url containing the ID, 2) record ID, 3) StoryID field
-    const record = data.records.find((r) => {
-      const recordStoryId = r.fields.StoryID as string | undefined;
-      const pivotnewsUrl = r.fields.pivotnews_url as string | undefined;
-
-      // Check if pivotnews_url contains this storyid (e.g., "https://pivotnews.com/recXXX" contains "recXXX")
-      if (pivotnewsUrl && pivotnewsUrl.includes(storyid)) {
-        return true;
-      }
-
-      return r.id === storyid || recordStoryId === storyid;
-    });
+    const record = data.records[0];
 
     if (!record) {
       return NextResponse.json(
-        { error: "Post not found", _version: _v, _searchedFor: storyid, _totalRecords: data.records.length },
+        { error: "Post not found", _version: _v, _searchedFor: storyid },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ record, _version: _v, _strategy: "filtered" });
+    return NextResponse.json({ record, _version: _v, _strategy: "airtable-filter" });
   } catch (error) {
     console.error("Error fetching post:", error);
     return NextResponse.json(
