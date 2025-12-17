@@ -137,7 +137,7 @@ export function NewsletterSignup({ className = '' }: NewsletterSignupProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   disabled={status === 'loading'}
-                  className={`w-full px-4 py-3 rounded-xl border text-base transition-colors outline-none placeholder:text-slate-500 ${
+                  className={`w-full px-4 py-3 rounded-xl border text-base text-slate-900 transition-colors outline-none placeholder:text-slate-400 ${
                     status === 'error'
                       ? 'border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100'
                       : 'border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100'
