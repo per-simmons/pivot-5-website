@@ -1,0 +1,219 @@
+1
+00:00:00,011 --> 00:00:04,093
+Yeah, so just to add on Firecrawl,
+
+2
+00:00:04,094 --> 00:00:08,286
+uhm, we are using a lot of Firecrawl credits at the moment.
+
+3
+00:00:08,716 --> 00:00:12,397
+And the reason is because in order to determine if there's a duplicate,
+
+4
+00:00:12,398 --> 00:00:17,007
+we have to crawl and then compile PivotID based on the URL that was
+
+5
+00:00:17,008 --> 00:00:19,486
+crawled. That's pro- that's inefficient.
+
+6
+00:00:19,487 --> 00:00:23,813
+Uhm, I think the better way to do it would be to determine if
+
+7
+00:00:23,814 --> 00:00:28,674
+there's a duplicate to probably compile PivotID based on the URL that comes straight
+
+8
+00:00:28,675 --> 00:00:32,005
+out of the RSS feed. It's not possible to do with the premium sources.
+
+9
+00:00:32,006 --> 00:00:35,368
+But also the major- the vast majority of the Firecrawl credits,
+
+10
+00:00:35,369 --> 00:00:39,366
+uhm, I guess we actually use Firecrawl twice in this flow.
+
+11
+00:00:39,367 --> 00:00:44,003
+Uhm,
+
+12
+00:00:44,013 --> 00:00:47,227
+there's- there's probably a way- there is a way to do this where we
+
+13
+00:00:47,228 --> 00:00:50,537
+compile a pivot ID based on the URL,
+
+14
+00:00:50,538 --> 00:00:53,276
+like we use Firecrawl once for the premium sources,
+
+15
+00:00:53,277 --> 00:00:56,517
+uhm, and then also to get the raw URLs,
+
+16
+00:00:56,794 --> 00:01:00,317
+we can compile a pivot ID, and then compare it to things that are
+
+17
+00:01:00,318 --> 00:01:05,343
+currently in Airtable, and then only send the articles that are for this secondary
+
+18
+00:01:05,344 --> 00:01:08,019
+to get the markdown, we only send,
+
+19
+00:01:08,020 --> 00:01:12,165
+uhm, articles that are not duplicates in terms of pivot ID on to get
+
+20
+00:01:12,166 --> 00:01:15,731
+the, to strip it, to, ah, to, to crawl and get the markdown.
+
+21
+00:01:16,093 --> 00:01:18,748
+I think we could do that for premium sources, and then I also think
+
+22
+00:01:18,749 --> 00:01:22,761
+we, you could do the same thing for, for these RSS feeds.
+
+23
+00:01:22,762 --> 00:01:24,962
+Uhm, basically, you know,
+
+24
+00:01:24,963 --> 00:01:27,206
+this will spit out a list of URLs.
+
+25
+00:01:27,207 --> 00:01:31,939
+Uhm, it would be totally possible to compute a pivot ID based
+
+26
+00:01:31,940 --> 00:01:35,558
+on this, and then determine if there was a duplicate based on what we
+
+27
+00:01:35,559 --> 00:01:38,175
+currently In articles. Uhm,
+
+28
+00:01:38,185 --> 00:01:41,847
+and then, uh, only crawl the sources that are,
+
+29
+00:01:41,848 --> 00:01:44,112
+only crawl the, the URLs that are unique. Uhm,
+
+30
+00:01:44,123 --> 00:01:47,971
+that way we only get unique news. That I think is like the long
+
+31
+00:01:47,972 --> 00:01:50,684
+term fix for using a lot of fire crawl credits.
+
+32
+00:01:50,685 --> 00:01:54,052
+We would use far less. If we didn't have to crawl in order to
+
+33
+00:01:54,053 --> 00:01:56,989
+get the URL to, uhm,
+
+34
+00:01:56,999 --> 00:02:01,519
+actually, if we move the pivot ID and deduplication step earlier on in
+
+35
+00:02:01,520 --> 00:02:04,909
+the flow, I think that would reduce the number, it would reduce substantially the
+
+36
+00:02:04,910 --> 00:02:07,845
+number of fire crawl credits we're using. Also, I changed this to run every
+
+37
+00:02:07,846 --> 00:02:10,878
+12- hours as opposed to every hour. Umm,
+
+38
+00:02:10,889 --> 00:02:14,566
+we're no longer in like full QA mode with regards to getting news,
+
+39
+00:02:14,567 --> 00:02:17,167
+so this can really run once a day.
+
+40
+00:02:17,168 --> 00:02:21,879
+Umm, I think a few hours before the newsletters compiled at
+
+41
+00:02:21,880 --> 00:02:24,011
+10 p.m. umm.
+
+42
+00:02:24,012 --> 00:02:26,985
+If we ran this flow a few hours before,
+
+43
+00:02:26,986 --> 00:02:30,262
+umm, you know, at around like five or six,
+
+44
+00:02:30,263 --> 00:02:32,613
+so after the markets close and everything, umm,
+
+45
+00:02:32,624 --> 00:02:34,702
+and news, you know, comes out, uhh,
+
+46
+00:02:34,713 --> 00:02:37,484
+as late as possible while still allowing all the other flows,
+
+47
+00:02:37,485 --> 00:02:40,016
+like the decoration flows and all that stuff to,
+
+48
+00:02:40,017 --> 00:02:42,228
+complete, like, the image creation flows,
+
+49
+00:02:42,229 --> 00:02:46,971
+umm, yeah, we only really need to run the ingestion flow once a day,
+
+50
+00:02:46,972 --> 00:02:50,638
+umm, to get the news for the day to go into the newsletter.
+
+51
+00:02:50,639 --> 00:02:54,338
+So I think between those two items moving Pivot ID earlier in the flow,
+
+52
+00:02:54,518 --> 00:02:57,278
+the deduplication Pivot ID- step earlier in the flow,
+
+53
+00:02:57,279 --> 00:02:59,409
+umm, and then also the,
+
+54
+00:02:59,410 --> 00:03:01,742
+umm, running it once a day.
+
+55
+00:03:01,743 --> 00:03:03,628
+I think that would help a lot with fire crawl credits. Let's.

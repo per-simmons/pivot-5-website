@@ -1,0 +1,1035 @@
+1
+00:00:00,011 --> 00:00:02,089
+Okay,
+
+2
+00:00:02,090 --> 00:00:04,744
+so, we have, uh,
+
+3
+00:00:04,754 --> 00:00:09,484
+ingested articles, we have populated newsletter stories with the most interesting
+
+4
+00:00:09,544 --> 00:00:12,173
+stories, we've, uh,
+
+5
+00:00:12,184 --> 00:00:14,785
+decorated those stories with, uhm,
+
+6
+00:00:14,795 --> 00:00:20,020
+content, basically. And we've created images.
+
+7
+00:00:20,021 --> 00:00:23,250
+Now, it's time to,
+
+8
+00:00:23,251 --> 00:00:27,331
+ahem, excuse me, it's time to actually compile the newsletter.
+
+9
+00:00:27,332 --> 00:00:29,815
+Uhm, that is where,
+
+10
+00:00:29,816 --> 00:00:31,915
+so we're done with the decoration flow, we've gone through,
+
+11
+00:00:31,916 --> 00:00:34,016
+uhm, through all the steps in the decoration,
+
+12
+00:00:34,716 --> 00:00:37,564
+ah, decoration, decoration flow,
+
+13
+00:00:37,565 --> 00:00:41,787
+so I'll go through that. Compile the newsletter.
+
+14
+00:00:42,061 --> 00:00:44,164
+This runs at 9.30 p.m.
+
+15
+00:00:44,374 --> 00:00:47,734
+every day, ah, except Monday through Friday,
+
+16
+00:00:47,735 --> 00:00:50,204
+so, yeah. So that's what this chronic expression, ah,
+
+17
+00:00:50,390 --> 00:00:53,292
+designates. Monday through Friday, 9.30 p.m.
+
+18
+00:00:53,293 --> 00:00:57,666
+Eastern. We could move this up,
+
+19
+00:00:57,724 --> 00:01:01,101
+and I would actually recommend moving it up, particularly if you move the images
+
+20
+00:01:01,102 --> 00:01:04,011
+flow to be after, ah, this step.
+
+21
+00:01:04,012 --> 00:01:06,462
+Just because, uhm,
+
+22
+00:01:06,473 --> 00:01:09,131
+ah, yeah, for, for timing purposes.
+
+23
+00:01:09,132 --> 00:01:12,197
+9.30 is sort of arbitrary,
+
+24
+00:01:12,198 --> 00:01:15,720
+uhm, I didn't want, I wanted to complete the whole flow and have a
+
+25
+00:01:15,721 --> 00:01:18,160
+preview ready by 10 p.m.,
+
+26
+00:01:18,631 --> 00:01:21,141
+which is when the current preview is previews go out,
+
+27
+00:01:21,142 --> 00:01:23,976
+uhm, you could move it to,
+
+28
+00:01:23,977 --> 00:01:28,886
+really, whenever made sense. Cron Trigger,
+
+29
+00:01:29,768 --> 00:01:32,223
+Pull, we're now pulling for the,
+
+30
+00:01:32,262 --> 00:01:34,401
+there are, each of these is a flow,
+
+31
+00:01:34,402 --> 00:01:37,343
+so this is for Pivot Invest. This is for Pivot Build,
+
+32
+00:01:37,344 --> 00:01:41,554
+this is for Pivot AI, so, there are three flows,
+
+33
+00:01:41,607 --> 00:01:45,173
+if you added new newsletters, you would need to add new flows here,
+
+34
+00:01:45,174 --> 00:01:47,901
+or figure out a better way to do it, which I would recommend,
+
+35
+00:01:47,902 --> 00:01:51,169
+make it agnostic for the newsletter. Anyway,
+
+36
+00:01:51,170 --> 00:01:53,626
+the way it works right now, is I'm just going to by, so we're
+
+37
+00:01:53,627 --> 00:01:55,959
+filtering from, we're filtering on newsletter stories,
+
+38
+00:01:56,813 --> 00:01:59,125
+all the stories that could be in the newsletter,
+
+39
+00:01:59,606 --> 00:02:02,111
+has not been selected for publication,
+
+40
+00:02:02,112 --> 00:02:04,370
+so selected for publication, ah,
+
+41
+00:02:04,371 --> 00:02:08,629
+is a step that gets selected for publication is a step that gets filled
+
+42
+00:02:08,630 --> 00:02:11,773
+out once, uhm, it's actually gone into the newsletter,
+
+43
+00:02:11,774 --> 00:02:13,873
+it happens at the end of this step,
+
+44
+00:02:13,874 --> 00:02:16,455
+uhm, if a new, you know, if a story is selected,
+
+45
+00:02:16,888 --> 00:02:19,347
+so it has not been selected for publication yet, so we're not going to
+
+46
+00:02:19,348 --> 00:02:22,380
+do a duplicate, and, uh, the image status is complete,
+
+47
+00:02:22,381 --> 00:02:24,825
+so we have an image, which is a, very important,
+
+48
+00:02:26,426 --> 00:02:29,383
+then we do, similar to the previous decoration step,
+
+49
+00:02:29,384 --> 00:02:31,552
+we have a Build Stories set,
+
+50
+00:02:31,553 --> 00:02:34,692
+which just basically builds the payload for Anthropic,
+
+51
+00:02:34,693 --> 00:02:38,310
+uhm, it contains information about,
+
+52
+00:02:38,780 --> 00:02:42,793
+this build stories step is is actually agnostic for,
+
+53
+00:02:42,794 --> 00:02:45,303
+uh, like to a newsletter, you would,
+
+54
+00:02:45,304 --> 00:02:49,311
+if you added new stories, you would need to add to the newsletter map
+
+55
+00:02:49,321 --> 00:02:53,319
+section here, uhm, but for the moment it's agnostic across these three,
+
+56
+00:02:53,628 --> 00:02:55,883
+so if you made a change to one, you could apply it to all
+
+57
+00:02:55,884 --> 00:03:00,562
+three. 3. So then we're building the payload for entropic,
+
+58
+00:03:00,563 --> 00:03:02,716
+umm, it contains a bunch of different,
+
+59
+00:03:02,717 --> 00:03:07,459
+you know, information, uh, about the umm,
+
+60
+00:03:07,470 --> 00:03:14,782
+I'm gonna show you. Oh,
+
+61
+00:03:14,783 --> 00:03:19,483
+come on. There we go. Uh,
+
+62
+00:03:19,494 --> 00:03:23,577
+Build Stories. So you can see there's 600 stories that could work for PivotAI.
+
+63
+00:03:24,269 --> 00:03:28,011
+Build Stories basically selects the top one.
+
+64
+00:03:28,012 --> 00:03:31,478
+Uh, 19.
+
+65
+00:03:31,479 --> 00:03:33,572
+That's changed in candidate count.
+
+66
+00:03:34,878 --> 00:03:37,119
+Actually, you should be selecting the top 20, I wonder why.
+
+67
+00:03:37,120 --> 00:03:40,280
+Oh, zero is counted as one. Yeah. Um,
+
+68
+00:03:40,290 --> 00:03:42,803
+so you, if you change the candidate count, it'll let you,
+
+69
+00:03:43,012 --> 00:03:45,455
+basically what this does is- is it sorts by a few different things.
+
+70
+00:03:45,456 --> 00:03:47,475
+It's like a pre-filter, and it, you know,
+
+71
+00:03:47,476 --> 00:03:49,831
+builds the payload. So the filters are like,
+
+72
+00:03:49,832 --> 00:03:52,176
+um,
+
+73
+00:03:52,187 --> 00:03:55,662
+they're based on the date, so don't allow stories older than this,
+
+74
+00:03:55,663 --> 00:04:00,309
+so that's 36 hours. So don't allow entropic to potentially- use
+
+75
+00:04:00,310 --> 00:04:02,398
+a story, uh, that,
+
+76
+00:04:02,399 --> 00:04:05,415
+uh, is older than 36 hours.
+
+77
+00:04:05,416 --> 00:04:09,106
+Umm, an expert tag, that one is gonna be,
+
+78
+00:04:09,986 --> 00:04:12,317
+yeah. It's pretty consistent.
+
+79
+00:04:12,318 --> 00:04:15,734
+This basically just makes sure that we're not picking stories for multiple,
+
+80
+00:04:15,735 --> 00:04:18,031
+you know. We're not, we don't have four Nvidia stories in a row,
+
+81
+00:04:18,032 --> 00:04:22,801
+right? It's like, don't allow anthropic to see stories and potentially select stories
+
+82
+00:04:22,802 --> 00:04:25,400
+that, uh, are about the same companies.
+
+83
+00:04:26,299 --> 00:04:29,058
+And then candidate count, you could change this if you wanted to give anthropic
+
+84
+00:04:29,059 --> 00:04:32,016
+more or less, uh, stories to choose from.
+
+85
+00:04:32,017 --> 00:04:34,825
+Yeah, these are bonuses.
+
+86
+00:04:34,826 --> 00:04:37,948
+So this is like, you know, uh,
+
+87
+00:04:37,959 --> 00:04:40,001
+freshness half-life. So this is about, like,
+
+88
+00:04:41,075 --> 00:04:44,083
+you know, give the, basically it's a,
+
+89
+00:04:44,084 --> 00:04:48,016
+it's a waiting system that's being used to give a bonus.
+
+90
+00:04:48,017 --> 00:04:50,079
+For stories that are newer. So, like,
+
+91
+00:04:50,080 --> 00:04:52,461
+wait stories that are newer, higher.
+
+92
+00:04:52,738 --> 00:04:56,069
+So that you give anthropic, umm,
+
+93
+00:04:56,091 --> 00:04:59,065
+like, don't just pick stories that are with,
+
+94
+00:04:59,066 --> 00:05:03,160
+you know, a random assortment of 20 stories that have 36.
+
+95
+00:05:04,016 --> 00:05:07,347
+You know, hours that have been published within the last 36 hours,
+
+96
+00:05:07,348 --> 00:05:09,996
+umm, that have, uhh, that don't all,
+
+97
+00:05:09,997 --> 00:05:12,187
+you know, that are, that are deduplicated here, right?
+
+98
+00:05:12,188 --> 00:05:15,438
+It's like, actually give a wait two stories that are newer,
+
+99
+00:05:15,439 --> 00:05:20,011
+umm, because freshness is important when it comes to publishing.
+
+100
+00:05:20,012 --> 00:05:22,031
+Once we've built that payload,
+
+101
+00:05:22,032 --> 00:05:25,372
+we get these story candidate IDs. These are all of the stories that could
+
+102
+00:05:25,373 --> 00:05:27,562
+potentially go into the newsletter.
+
+103
+00:05:27,926 --> 00:05:31,848
+We are now going to ask anthropic in the next step to pick these
+
+104
+00:05:31,849 --> 00:05:34,071
+stories and order them.
+
+105
+00:05:34,072 --> 00:05:36,778
+So, order them and determine which should act- actually end up.
+
+106
+00:05:36,779 --> 00:05:39,518
+We want you to pick five. So,
+
+107
+00:05:39,519 --> 00:05:42,865
+that's what it says, right? It's like five distinct stories.
+
+108
+00:05:42,866 --> 00:05:44,975
+Umm, make sure that,
+
+109
+00:05:44,976 --> 00:05:48,410
+uh, and then order them as well, order them from position one to five,
+
+110
+00:05:48,938 --> 00:05:51,158
+and then we describe the position. So, like,
+
+111
+00:05:51,159 --> 00:05:53,066
+this is what- but this is. This is the type of story we want
+
+112
+00:05:53,067 --> 00:05:55,587
+you to select for position one. Position two,
+
+113
+00:05:55,588 --> 00:05:58,186
+position three, position four, and position five.
+
+114
+00:05:58,594 --> 00:06:01,892
+And then write an email subject. So, this is where the email subject gets
+
+115
+00:06:01,893 --> 00:06:04,358
+computed, and then write a summary of the stories,
+
+116
+00:06:04,383 --> 00:06:07,899
+which is not currently used right right now. And then a second summary of
+
+117
+00:06:07,900 --> 00:06:10,185
+this. Stories kind of like, yeah,
+
+118
+00:06:10,186 --> 00:06:13,756
+two different types of summaries. We're not using either of these in the newsletters
+
+119
+00:06:13,757 --> 00:06:16,975
+right now, but they are being computed. Um,
+
+120
+00:06:16,986 --> 00:06:19,371
+there's some hard filters. We have audience data.
+
+121
+00:06:19,729 --> 00:06:24,016
+This here is why this node is primarily where there are three.
+
+122
+00:06:24,017 --> 00:06:28,616
+Flows. You could compress this the same way that we do in the
+
+123
+00:06:28,617 --> 00:06:32,858
+decorate flow. You could have this set to,
+
+124
+00:06:32,859 --> 00:06:34,958
+umm,
+
+125
+00:06:34,979 --> 00:06:37,319
+there's a way to combine the two.
+
+126
+00:06:37,320 --> 00:06:39,691
+The same way that we do with, uhh,
+
+127
+00:06:39,712 --> 00:06:42,345
+decorate. Like, we have different audiences,
+
+128
+00:06:42,346 --> 00:06:44,632
+but we have one payload builder that builds,
+
+129
+00:06:44,633 --> 00:06:48,318
+and then we just pass through the newsletter that we want it to apply,
+
+130
+00:06:48,588 --> 00:06:51,740
+basically. Umm, we could technically pass all of this to,
+
+131
+00:06:52,223 --> 00:06:54,305
+we could multiply this by three,
+
+132
+00:06:54,306 --> 00:06:58,947
+because we'd have different, Positioning and logic behind why you would want
+
+133
+00:06:58,948 --> 00:07:01,140
+to select different stories for different newsletters,
+
+134
+00:07:01,391 --> 00:07:04,423
+which is why they're broken out, but they could also all be built.
+
+135
+00:07:05,399 --> 00:07:08,978
+Wow, that is not what I meant to do. They could also all be
+
+136
+00:07:08,979 --> 00:07:11,382
+built in this Build Stories category.
+
+137
+00:07:11,383 --> 00:07:13,636
+Umm. We could pass through, like,
+
+138
+00:07:13,637 --> 00:07:16,840
+in markdown format, uh, exactly what we want.
+
+139
+00:07:16,999 --> 00:07:19,707
+It can be agnostic, basically. I hope that makes sense.
+
+140
+00:07:19,708 --> 00:07:21,887
+Uh, you can look at the, the,
+
+141
+00:07:21,888 --> 00:07:25,879
+the decorate flow that determines which newsletter it should go into.
+
+142
+00:07:25,880 --> 00:07:28,005
+Um, and also the flow What's going on?
+
+143
+00:07:28,006 --> 00:07:30,217
+Oh, that, uh, writes headlines and bylines.
+
+144
+00:07:30,218 --> 00:07:32,370
+You could build it like that. Uh,
+
+145
+00:07:32,381 --> 00:07:35,243
+and you wouldn't need three flows for this. I just did it because we
+
+146
+00:07:35,244 --> 00:07:38,724
+were modifying these so much that it made sense to,
+
+147
+00:07:38,725 --> 00:07:41,906
+uh, to break them apart. So,
+
+148
+00:07:42,939 --> 00:07:47,688
+anthropical pick. Click. The stories that it believes are appropriate
+
+149
+00:07:47,689 --> 00:07:51,709
+for this edition of the newsletter.
+
+150
+00:07:53,773 --> 00:07:56,056
+It gets normalized, the output. Uh,
+
+151
+00:07:56,067 --> 00:07:59,419
+we merge it with existing data from previous nodes because we need some data
+
+152
+00:07:59,420 --> 00:08:02,729
+from airtables. Uhm,
+
+153
+00:08:02,740 --> 00:08:07,718
+blah, blah, blah, blah. We compute, uhh,
+
+154
+00:08:07,728 --> 00:08:10,041
+yeah, like the date and slot,
+
+155
+00:08:10,042 --> 00:08:13,985
+so we essentially determine if this is an AM or PM edition.
+
+156
+00:08:13,986 --> 00:08:16,005
+Uhm, this AM- I'll see you next video.
+
+157
+00:08:16,006 --> 00:08:19,336
+The AM and PM thing is not really being used right now.
+
+158
+00:08:19,337 --> 00:08:22,779
+It's only for, it was really designed for Pivot Invest.
+
+159
+00:08:22,780 --> 00:08:27,288
+Uhm, right now this came through as the PM edition because this is being
+
+160
+00:08:27,289 --> 00:08:30,671
+compiled. If this is compiled at,
+
+161
+00:08:30,813 --> 00:08:33,071
+you can pretty much ignore. Per the AMPM,
+
+162
+00:08:33,072 --> 00:08:37,426
+but if you wanted to change, if you wanted to change these issue IDs,
+
+163
+00:08:37,427 --> 00:08:39,597
+um, you would have to,
+
+164
+00:08:40,329 --> 00:08:43,317
+this is being built in, build stories.
+
+165
+00:08:43,633 --> 00:08:47,208
+So, build stories essentially has a calculation that describes like,
+
+166
+00:08:47,513 --> 00:08:52,962
+if in addition. Honestly,
+
+167
+00:08:52,963 --> 00:08:56,741
+I do not remember what the logic was that we use to determine if
+
+168
+00:08:56,742 --> 00:09:01,458
+it's AM or PM. I'm fairly certain that it lives right here,
+
+169
+00:09:01,617 --> 00:09:04,388
+and it's basically, yeah, after f- So,
+
+170
+00:09:06,618 --> 00:09:10,272
+if you run this flow, after 5 PM New York time,
+
+171
+00:09:10,434 --> 00:09:12,841
+the issue will be assigned as AM.
+
+172
+00:09:13,216 --> 00:09:17,324
+So the send slot will be AM, and the issue ID will contain an
+
+173
+00:09:17,325 --> 00:09:20,011
+AM flag instead of PM. Uh,
+
+174
+00:09:20,012 --> 00:09:24,330
+because that's, like, you know, we compile the issue before it goes out.
+
+175
+00:09:24,678 --> 00:09:28,165
+The reason it's, you know, running right now is because if we ran this
+
+176
+00:09:28,166 --> 00:09:31,288
+at, if we run this at, you know, after the market closes it,
+
+177
+00:09:31,289 --> 00:09:34,275
+405, let's say, we wanted to run,
+
+178
+00:09:34,356 --> 00:09:36,874
+like, a PM at it. We, that's- when we would run it if we
+
+179
+00:09:36,875 --> 00:09:39,716
+wanted to run, uh, a PM edition of a newsletter.
+
+180
+00:09:39,938 --> 00:09:42,465
+So that's, that's how it works. So just keep in mind that if you
+
+181
+00:09:42,466 --> 00:09:44,656
+run this flow before 5 p.m.,
+
+182
+00:09:44,657 --> 00:09:46,990
+um, it's going to show up as,
+
+183
+00:09:46,991 --> 00:09:51,744
+uh, it's gonna show up as PM. But it's more for your,
+
+184
+00:09:51,745 --> 00:09:55,896
+it's not- There's no logic to filter AM or PM later on in the
+
+185
+00:09:55,897 --> 00:09:59,803
+flow. It's really just for your understanding of when the newsletter is going out,
+
+186
+00:09:59,804 --> 00:10:03,054
+just for organizational purposes. Uh,
+
+187
+00:10:03,065 --> 00:10:06,129
+yeah. So we add some data back in here. We add the summary,
+
+188
+00:10:06,130 --> 00:10:10,354
+et cetera, et cetera, et cetera. Uh. Yeah,
+
+189
+00:10:10,355 --> 00:10:12,397
+I don't think there's anything else unusual.
+
+190
+00:10:12,398 --> 00:10:14,854
+We have a, we have UTM campaign in here.
+
+191
+00:10:14,855 --> 00:10:17,391
+This isn't really relevant. You can just, uh, because we use our own blog
+
+192
+00:10:17,392 --> 00:10:21,021
+now, it's like, you know, if you wanted to add UTMs,
+
+193
+00:10:21,022 --> 00:10:23,073
+I would just do it in the,
+
+194
+00:10:23,074 --> 00:10:26,729
+uh, image. Image flow, actually, I would modify the image URL,
+
+195
+00:10:26,730 --> 00:10:29,735
+uh, as well as the, like the URL of the,
+
+196
+00:10:29,736 --> 00:10:32,293
+um, of the, of the, of the click-through,
+
+197
+00:10:32,294 --> 00:10:36,067
+uh, which is right here.
+
+198
+00:10:36,141 --> 00:10:39,020
+Pivot news URL. So this is the actual click-through URL.
+
+199
+00:10:39,243 --> 00:10:41,785
+There's probably no- Thank you, you can here because it hasn't been selected for
+
+200
+00:10:41,786 --> 00:10:44,573
+publications. Choose one that actually has been selected.
+
+201
+00:10:44,574 --> 00:10:47,467
+Um, you can just add UTM's here,
+
+202
+00:10:47,468 --> 00:10:50,990
+right? You can very easily just modify this formula to include,
+
+203
+00:10:50,991 --> 00:10:53,953
+uh, UTM's, as opposed to just the story ID.
+
+204
+00:10:53,954 --> 00:10:56,011
+Um.
+
+205
+00:10:56,012 --> 00:11:00,925
+Yeah, in fact, you probably don't even. You
+
+206
+00:11:00,926 --> 00:11:03,290
+still do need this, but not for UTM's.
+
+207
+00:11:03,868 --> 00:11:07,001
+Yeah, not for UTM's. Um,
+
+208
+00:11:07,011 --> 00:11:09,383
+this creates a story in pivot AI.
+
+209
+00:11:09,384 --> 00:11:12,011
+So now we've selected all of the story.
+
+210
+00:11:12,012 --> 00:11:16,360
+And Thropic has selected and infinite wisdom and selected five stories that are going
+
+211
+00:11:16,361 --> 00:11:20,071
+to go into this flow right here.
+
+212
+00:11:20,152 --> 00:11:22,995
+These are all the stories that are actually going to end up in the
+
+213
+00:11:22,996 --> 00:11:27,691
+newsletter. So, you can see there's far less than a newsletter stories
+
+214
+00:11:27,692 --> 00:11:31,331
+because they actually, they're actually going to be published or actually have been published.
+
+215
+00:11:31,332 --> 00:11:36,304
+All of these have been published. Once they've actually been published,
+
+216
+00:11:36,305 --> 00:11:39,736
+um, we're able to, uh,
+
+217
+00:11:39,747 --> 00:11:42,849
+yeah, so it, all this does is it creates a completely new record.
+
+218
+00:11:42,850 --> 00:11:45,471
+This is what this is. The step that populates,
+
+219
+00:11:45,472 --> 00:11:47,571
+uh, newsletter issue stories.
+
+220
+00:11:47,572 --> 00:11:50,732
+So we have a handle on every single story that's gone out in the
+
+221
+00:11:50,733 --> 00:11:54,233
+newsletter. So it, it populates it with all of this data.
+
+222
+00:11:54,234 --> 00:11:58,827
+Um, and then create or update
+
+223
+00:11:58,828 --> 00:12:02,292
+a record newsletter. Yeah, so we just basically determined that,
+
+224
+00:12:02,293 --> 00:12:05,937
+um, uh, this is where the issue gets created.
+
+225
+00:12:05,938 --> 00:12:10,074
+So this is this table here.
+
+226
+00:12:10,680 --> 00:12:13,580
+I'm just gonna run this so you can see what happens when we do.
+
+227
+00:12:13,581 --> 00:12:18,580
+So
+
+228
+00:12:28,689 --> 00:12:32,016
+now we have the,
+
+229
+00:12:32,017 --> 00:12:34,143
+KEM edition of, uh,
+
+230
+00:12:34,153 --> 00:12:37,074
+Pivot 5. Um,
+
+231
+00:12:37,085 --> 00:12:39,707
+it contains a JSON array.
+
+232
+00:12:39,708 --> 00:12:43,651
+These are all the stories that are going to go into that newsletter edition.
+
+233
+00:12:43,652 --> 00:12:45,943
+Um, the subject line for the edition.
+
+234
+00:12:45,944 --> 00:12:48,011
+So this is like one edition of the newsletter.
+
+235
+00:12:48,012 --> 00:12:50,082
+Um, and it contains,
+
+236
+00:12:50,448 --> 00:12:52,619
+yeah. So this is one edition of the newsletter.
+
+237
+00:12:52,815 --> 00:12:55,870
+You can see under here, uh, we've added the,
+
+238
+00:12:56,727 --> 00:13:01,053
+where is the December 16th PM edition.
+
+239
+00:13:01,054 --> 00:13:03,360
+It's right here. So this is,
+
+240
+00:13:03,361 --> 00:13:06,623
+these are the stories. Or is that we just added right here.
+
+241
+00:13:09,681 --> 00:13:12,208
+Yeah. So these are the stories that we've just added.
+
+242
+00:13:12,209 --> 00:13:15,070
+Uh, and this is, you know,
+
+243
+00:13:15,071 --> 00:13:19,360
+it looks like we have all the images, which is incredible.
+
+244
+00:13:19,361 --> 00:13:23,944
+Uh. I think there's
+
+245
+00:13:23,945 --> 00:13:28,453
+any other. All this flow does is
+
+246
+00:13:28,454 --> 00:13:33,239
+determine what stories are actually going to be in the newsletter and then
+
+247
+00:13:33,431 --> 00:13:36,011
+pushes them through to this air table.
+
+248
+00:13:36,012 --> 00:13:39,038
+Umm, so that we have a record of all the stories that are in
+
+249
+00:13:39,039 --> 00:13:42,855
+the newsletter and then it actually compiles the issue and then links the issue
+
+250
+00:13:43,109 --> 00:13:46,341
+to all the stories that are in the newsletter, based on the story ID.
+
+251
+00:13:47,149 --> 00:13:49,432
+And this is what we're going to be using moving forward.
+
+252
+00:13:49,611 --> 00:13:52,000
+This is not really used moving forward.
+
+253
+00:14:08,011 --> 00:14:11,209
+Fairly self-explanatory. What is this one?
+
+254
+00:14:11,210 --> 00:14:14,326
+Yeah, selected for publications. This is just the deduplication step,
+
+255
+00:14:14,327 --> 00:14:19,243
+so this in-newsletter stories. We just have this check a box that says yes.
+
+256
+00:14:19,260 --> 00:14:21,463
+It was, in fact, selected for publication,
+
+257
+00:14:21,464 --> 00:14:24,011
+and this is the date that we're going to publish it.
+
+258
+00:14:24,012 --> 00:14:26,813
+Um, so that we don't choose the same stories over and over again.
+
+259
+00:14:26,814 --> 00:14:31,586
+Uh, that's it for assembling edition.

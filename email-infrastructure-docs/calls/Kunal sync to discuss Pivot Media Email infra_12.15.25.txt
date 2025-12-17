@@ -1,0 +1,519 @@
+Pat Simmons
+I was just watching I was just watching your your HTL uh workflow.
+
+Kunal Gupta
+Okay, okay, okay.
+
+Pat Simmons
+Good stuff. I'm glad it I'm glad it worked for the most part, but um Yeah, no, it's uh it's good to it's good to get to finally watch you go through that so I know I know all the little little little things I need to uh to tweak.
+
+Kunal Gupta
+It's really good. It's really good. It got me thinking about like I'm not gonna do this, but it's like I need to start some more blogs. And I was going through my mind afterwards, I was like, what topics though I feel I can write about on a regular basis because this makes it so easy.
+
+Pat Simmons
+Yeah, exactly. Yeah, I love the thought of just like reducing all of the friction. It's always the annoying things that don't even have to do with the writing that that just give the friction and then you just end up not doing it. But yeah, having it just everything clickable just makes the actual the most important part, just thinking about the writing, just so much easier.
+
+Kunal Gupta
+Yeah, yeah. Uh as an aside I uh this is one of the backlog projects which is like an AI book writing. Um and I'm working on the weekends like I did it in the plane rod a week ago. I did this yesterday. Um Basically we're writing a new book using mostly Claude and I'm doing this because I've these are books that I've been thinking about for actually a few years and I'm ready to write. Um but I'm doing it in a way to think through how am I prompting and I'm documenting the props in a Google Doc and keeping them so that we can eventually turn this into a pretty similar workflow to what we did.
+
+Pat Simmons
+Yeah, yeah For for others or for yourself or like everything.
+
+Kunal Gupta
+It starts with myself with the goal of then productizing it and then making it a commercial product for others.
+
+Pat Simmons
+Yeah, cool. Yeah, like just a just a book book in a box.
+
+Kunal Gupta
+Yeah, yeah.
+
+Pat Simmons
+How how is that how is that going with the the the context window and all that kind of stuff? Do you have you run into trouble or or or is it and the output too, because it can only output so many So many words.
+
+Kunal Gupta
+I've been using Opus 4. 5 just to get the highest try to get the highest quality, but I know the context window is less, right? With 4. 5, I believe. So I think that'll be some testing required to see where where do we get that balance. So for example, the book that I was working on yesterday, it has five major parts. So with one, I came up with the outline. Um and then it wrote and I I said to it your context window is not going to be long enough to write this book. So 8K came up with a pretty long markdown file that it called the Book Bible. And then I opened up five clouds actually on my screen, which is a giant screen, and then put the book Bible in each of them, and then each of them voice dictated the content like a brain-down And then follow the same sequence of prompts with each of the IN level did in three of the five, because I ran out of time. And then I mean we wrote like we wrote like 35, 40,000 words yesterday. Wow. And uh like a s uh no my my books are typically 30,000 words. Um You know, full books that are bigger are probably forty to fifty thousand words. Uh so yeah, we almost wrote a full book.
+
+Pat Simmons
+That's crazy. Did you read did you read the any any of the content?
+
+Kunal Gupta
+Well I did it chapter by chapter. So um wrote fifteen chapters yesterday, each chapter about two thousand to three thousand words. And I was able to write like 3,000 words in one go. Like, you know, my blog posts are about 900 words, so that's about four times the size even. So that was that was fine. It was coherent and good. And then I put the whole output into a ChatGPT Pro and a new Opus 4. 5 to evaluate it.
+
+Pat Simmons
+Yeah.
+
+Kunal Gupta
+And it said part one was really strong, part two was good, but a few parts were weak, and part three was pretty weak, which is interesting. So that made me think like, okay, I'm just gonna redo part three. Like instead of trying to fix it, we'll just start again from scratch. Um so you can imagine a workflow where like you have all these different you know, parts running, it takes the output and then evaluates it of the parts that aren't good enough, it just goes and redoes it. It just f feedback clip, yeah.
+
+Pat Simmons
+Yeah.
+
+Kunal Gupta
+You would never do with humans. You would never say like hey, this isn't good, go redo it.
+
+Pat Simmons
+Redo it. Yeah, exactly. Yeah. Wow, that's that's amazing.
+
+Kunal Gupta
+I think as a next year project, I think there's like I think it's possible to architect uh you know a book book writing works well. I've been thinking about this for two years actually. I'd love the input actually to be like Google's new voice-to-voice model, which is just actually a conversation. So you get interviewed. So like you want to write a book about you know the future of you know robots, whatever topic you're an expert in. And you just have these phone conversations. And you have to do like 10 hours of conversations and you could do it all at once. You could spread it out once a week, whatever pace you want. And you're just having conversations back and forth. Space that interview and that's getting everything and then we run it through this thing and then the outcome is writing a book
+
+Pat Simmons
+It's so smart. Wow. Because you don't yeah, you don't even need to there's no real human involvement. You just have That's crazy. Yeah, that's uh there's a couple publishers out, I think it's called Book in a Box, where they did something very similar where it was where it was they would have people interview interview them and they would be you know it would be like oh my I want why I want my grandparent to write a book here and then they they do the exact process and then they go and then they ghostwrite it. But yeah, that's essentially I mean essentially their process, but it's just now possible to to not have any human involvement with AI. That's so cool.
+
+Kunal Gupta
+I think it's yeah, I think it's gonna be I think it's gonna happen. I think uh I'm motivated to to take an attempt at it. Laura on the list. But tinkering you know with that as the you know potential goal.
+
+Pat Simmons
+Yeah, very cool, very cool.
+
+Kunal Gupta
+Yeah. Um so you're flying out to California today, right? I am, yeah Yeah, cool. Cool.
+
+Pat Simmons
+And then you're back next week I guess or after I'm back um I'm gonna be there for thirteen days, so I'm back uh m next the Monday after the after that.
+
+Kunal Gupta
+next got it yeah and then what are your kind of work plans over this time if there's no expectations um yeah I mean I'm I'm available to to work
+
+Pat Simmons
+Pretty much the same. I I mean when is Christmas? Is it even on a weekday? Oh it's on a Thursday. So probably th Christmas Eve, I'll be on and off and then I'll take Christmas off. Um but yeah, I mean I have I have always have work to do and my I mean my my parents are are working too so Um we'll we'll have we'll have family time in the in the evenings, but yeah I'll be I'll be working the the same uh And is this is this where you grew up?
+
+Kunal Gupta
+Is it like your childhood home or childhood town?
+
+Pat Simmons
+Yeah childhood home yeah yeah Oh, tell us that to nostalgic to go back. Yeah, exactly. It's funny. I could be working in my childhood bedroom. It's like just weird.
+
+Kunal Gupta
+And then out of curiosity, like these last few weeks, how much of your work time am I occupying versus your other projects?
+
+Pat Simmons
+Probably about ninety-five percent.
+
+Kunal Gupta
+Okay, that's an imagin. For me, it wasn't that I would be Uh so primates.
+
+Pat Simmons
+Yeah, yeah, exactly, exactly. Yeah, I'm I'm my other clients I'm just on kind of like maintenance. I'm just over overseeing projects. I also have somebody that I hired to to kind of help like with uh those others, so it's been nice of kind of uh abstracted myself away from uh for the other other client work and yeah just focus on the person you hired an AI Uh no, it's a real human, believe it or not. They they might have outsourced NAI.
+
+Kunal Gupta
+And they're worth it.
+
+Pat Simmons
+Yeah. Yeah, exactly.
+
+Kunal Gupta
+Um how are you feeling about our work together?
+
+Pat Simmons
+I'm feeling great. I'm feeling great. Yeah. Yeah, I felt I mean the same the same I felt you know a couple weeks ago. Just really Enjoying all of it. I mean I just I I I'm I've just enjoyed the the building component so much. Um and it's fun to fun to get back to that because um Yeah, I mean most of the time most of the time it's with other clients. It's digital marketing over seeing campaigns and stuff, but to just be pure AI building and being able to, as the tech progresses, actually really get into it and I mean even hearing from you all of the just kind of like visionary ideas is uh yeah it's just it's just fun to be a part of and it's cool that we It's like now really possible. Um so I mean thinking, yeah, thinking earlier like next year what what's gonna happen, I mean it's the the way that 2025 has has advanced is like what is what is gonna be in store for 2026. So it's fun to be kind of boots on the ground with you really uh really pushing the boundaries and seeing what we can what we can come up with.
+
+Kunal Gupta
+Yeah, that's awesome. That's awesome. I'm glad to hear. I'm very appreciative of of of our work together and I'm having fun too. Thank you. If I know if I mean findings I'm coming up with more ideas. Yes, exactly. Like you know, limitless versus limited.
+
+Pat Simmons
+Yes.
+
+Kunal Gupta
+Uh that's a very good place to to be in. I Yeah.
+
+Pat Simmons
+Yeah, thanks.
+
+Kunal Gupta
+I'm going to show Langan later today to understand kind of you know where his change of heart came from. It was a uh s surprise for me 'cause I asked him last week how he was feeling and you know, we were talking about him quitting his job and and things of that nature. So my guess is he either got a you know, a sweet job offer um from something or somewhere or he realized this was too scrappy uh and too too early stage. um having worked in companies with structure and teams and processes that you know uh I have very little interest in. So I guess I'll I'll chat with them later today to understand and I'll be fully transparent with you with Yeah. Yeah, perfect. Uh so it does yeah, it does shift things in terms of priorities, I believe, but just for the short term to get pivot you know media five on the email side going. I think Lang's actually done some very good work with the AI editor and the latest version I think we saw on Thursday or Friday was was was pretty close. We've got a new email infrastructure set up coming online. And we're ready kind of, you know, today, tomorrow to start sending emails through the new infrastructure. Okay. So um I'm trying to think through like maybe I can give you a bit of a debrief on the infrastructure and kind of all the key parts of the puzzle first and then we can get into the the action list.
+
+Pat Simmons
+That'd be great, yeah. Yeah.
+
+Kunal Gupta
+Uh so a bit of the history. So um the newsletter started on infrastructure wise just using Beehive. Um off-the-shelf ESP. Okay. Yes, yeah, I'm familiar. Very simple. You just upload it, send. Um I think I shared some of the details. If I haven't I'll like share it fully with you now. The way that we've grown to like hundreds of thousands, you know, close to a million Email addresses for Pivot 5 has been cold emailing contacts. So I want it started with my existing lists and lists from my previous companies And then using Apollo predominantly, which is a B2B lead gen database. So whenever a SaaS company sends outreach to customers cold, they're using Apollo usually to get contacts. But they're getting like 50 contacts for 100 contacts. Um, I got like 500,000 contacts. Yeah. Did it at scale And then the Legion was not like, hey, I have a newsletter. Do you want to subscribe to it? It just sent the newsletter. And then if somebody opens it or clicks it, then that's a signal that they like it. And if somebody doesn't, that's a signal they don't like it or didn't get it. And if after like a week of sending it, they didn't open it, then we presume that they don't want it, so then stop sending it to them.
+
+Pat Simmons
+Yeah. Nice. So that is growth hacking. I love it.
+
+Kunal Gupta
+It definitely like falls in the gray area of privacy laws.
+
+Pat Simmons
+Yeah, yeah.
+
+Kunal Gupta
+And I'm okay to take that risk.
+
+Pat Simmons
+Yeah.
+
+Kunal Gupta
+Uh because I think the risk is minimal that we're sending a newsletter to somebody and uh I don't think they're gonna come and silly for that. Yeah.
+
+Pat Simmons
+Yeah, exactly. And you're delivering value too. It's I mean it's just it's It's it's news. It's yeah.
+
+Kunal Gupta
+That's about making sure the newsletter is good.
+
+Pat Simmons
+Yeah, yeah, absolutely.
+
+Kunal Gupta
+So um that's how we scaled. And then uh that's against the rules with behive. So they caught on to that and they said, hey, you have to stop doing this. And then I took at one point we were sending 1. 4 million emails a day. And then I got conservative so took off half of the less, I parved down to 750,000 based on just engagement levels. Um And then about a month later they said, hey, like, we're gonna kick you off the platform because we don't think all these people have opted it. And they were right. So then that at that point when I was getting the warnings from Beehive, that's when I started to research to say, okay, like what is it what does Beehive use? How do I because they're arbitrarily making this decision based on the open rates? advertisers generating leads uh and sales. They had a few friends run campaigns and they got real customers and real revenue. So but okay the audience likes it, the advertisers like it, the ESP doesn't like it Let's change the ESP. So I went on this kind of week-long interview circuit to email uh interview a bunch of people in the email infrastructure space. Um And realize Beehive doesn't actually send any of the emails, they're just a UI. Oh, so they're just using API somewhere? They use a company called SendGrid. Oh And we can use SendGrid as well directly. Uh-huh. And SendGrid themselves, they also use underlying infrastructure from somebody else. So these are layers of the stacks. And then I said like how do we go like as far down the stack as possible? And uh it's called the MTAs, the software category. It's an ability transport something. Um and there's only a couple of them. They're mostly like open source because it's commoditized. So there's one called Green Arrow. So bought the open source license, which was at the $12,000, the one-time fee. We've hired this firm called Postmastery. 20-person firm for Green Arrow Experts. So uh and they're a branch of server from you know US Lease Lab, which has you know 10,000 employees. It's a server company. So in September, you know, I put all those pieces together and then set up the infrastructure. And that's our own infrastructure, our own IP addresses, our own domain, we're using it all from DI, our own server. in our own sending software and then I built a pretty complicated NAM workflow to integrate into Green Arrow. Um the volume was so high that the work the NNN workflow hooked into Superbase kept breaking. I mean like when NNN had superbassed they could only pull a thousand contacts at a time. Because there's a limit or something with Superbase API. Crazy. And the N8N to green arrow would run out of memory in N8N. So I was hitting scaling issues.
+
+Pat Simmons
+Uh-huh.
+
+Kunal Gupta
+But anyways, found a way to make it work. Had to rebuild that workflow a few times. But what I didn't understand or appreciate is that when sending emails from a new domain, it has to be done slowly, warmed up. So that you build trust with the ISPs and service providers for email, which are mainly Google and Microsoft. So then within probably two weeks, because we're sending so many emails from a new domain of nowhere, our email starts going to spam folders. So the emails were getting delivered, but then going to spam. And that's been happening since about mid-October. So for the last almost two months now. And the reason we get some analytics on that, but then the reason we could really tell is the same advertisers that have been running on paper five that said, hey, like we're seeing much fewer signups, much fewer leads, you know what's changed. So uh and then I saw it with our internal addresses well things were gonna spin. So like base one was was beehive, phase two was you know green arrow in it and um you know postmastering and me kind of running it for the first time. Um I hired a program called Mail Storm and they're saying They're an email kind of consultancy from a little higher up the stack than Postmastery. So they create did like a 40-page audit on our infrastructure and they could see very clearly all the reasons we're going to spam folders and They actually work with Morning Brew with 1440 or a few other very large scale million plus email newsletters. So that uh led to us hiring them about two weeks ago to say, okay, let's um you know redo the infrastructure uh but with the right best practices and they'll they'll be the email operations you know team for us And high trust and confidence in them. We're still using LeaseWeb as the underlying server, still using Green Arrow as the MTA, still using Postmaster to configure and manage Green Arrow But we've used a new domain now, pivot news, new IP addresses. Instead of my N8N superbase workflow, which wasn't scaling. We're using the software called Montec, which is open source as well. So we've you know downloaded it. Um MailStore has installed it for us on a lease web server. And they've set it up, so that's all working down. And I think on Friday, Langdon sent the first email internally, you know from his AI editor in A N to Montic, which is basically Montic is the behype equivalent. It's a UI, it's a CMS. subscriber management, unsubscribes, lists, analytics, all of that we get it in a Mautic. And then Mautic, you know, so N8N get sends it to Mautic, Mautic sends it to Green Arrow, Green Arrow sends it out. And then, you know, it's received in by Google and Microsoft ISPs into people's inboxes. Before I get into the go forward plan, any questions about the history and the infrastructure today?
+
+Pat Simmons
+No, I think that no, I think that all makes sense. We're um yeah I have uh I actually have quite a bit of cold e cold email experience with that with with Apollo and instantly usually campaigns. Um yes.
+
+Kunal Gupta
+And that's the thing, at small volumes instantly is and their competitors are fine.
+
+Pat Simmons
+Mm-hmm.
+
+Kunal Gupta
+Um Uh and ours we've we've outsourced ad sales to this firm um in the UK uh who do newsletter ad sales across a bunch of newsletters and they use instantly to do lead gen. And they shared everything last week. They're seeing instantly seeing some issues right now with app folders.
+
+Pat Simmons
+Yeah. There's a whole Gmail thing. Google just cracked down like three times in the uh a couple months ago on Uh with yeah, exactly with their cause they can I mean they can easily track instant lease uh like in the in the DMARCs and stuff. Um so they're yeah, they're cracking down big time on on those campaigns. Yeah.
+
+Kunal Gupta
+The the good news for us is because it's mostly a polo, we're getting people's professional, you know, email addresses. Um so there's very few actual like gmail. com, yahoo. com email addresses. It is easier to get through with professional emails The ISPs are way, way more stripped around personal emails.
+
+Pat Simmons
+Yeah Yeah, the um do you get do you do any ver double verification after Apollo? Or do you just Yeah, yeah, yeah, we did. Okay, okay, cool, yeah, yeah. Yeah, that I know that helps a lot 'cause there's quite a bit I've run into spam issues with extracting from Apollo. Um
+
+Kunal Gupta
+Yeah. I think Botic was gonna read like because I get max to base of this, so they're taking charge and moving things from Superbase into Montec. structures so they said we'll all double check with them but they're gonna run it again through uh email verification tools to to to to to to fix that.
+
+Pat Simmons
+Yeah.
+
+Kunal Gupta
+Yeah, what do you think of the strategy though, um in general, based on your experience too?
+
+Pat Simmons
+Yeah, I mean I think it's I think it's smart. I would When we're when we're ready for growth and we wanna like the infrastructure's in place again, I would love to uh I would love to put our heads together with the the cold outreach because yeah, it's um I mean when it's done right, it's it's really, really successful. Everyone says that cold email is dead, but I mean with with instantly and the instantly equivalents in AI now, I mean it's really uh in my experience, even even when the Gmail crackdown came down, it was like it's it just works really, really well still. Um and yeah, just such a kind of like smart Even though like you said it's in a gray area, it's a really kind of smart way to grow because you can just do this at scale um so easily. So yeah, but I mean that the structure as a whole, it's yeah. Yeah.
+
+Kunal Gupta
+And I mean this call-de-mailing strategy, it hasn't really been done by media publishers.
+
+Pat Simmons
+Yeah.
+
+Kunal Gupta
+Done by startups selling software, right? Um companies selling it's usually done by sales versus content. And to your earlier point, if the content is good and has value, then um like since we started going to spam folders, I can see on our LinkedIn page and a few other places, people are asking us why did you stop sending the email?
+
+Pat Simmons
+Hmm, interesting.
+
+Kunal Gupta
+Which just says as like users like it.
+
+Pat Simmons
+Yeah, exactly.
+
+Kunal Gupta
+If you're able to find where it's why it's not getting to it.
+
+Pat Simmons
+Yeah, exactly. Even um we we can talk more about growth, but I'm thinking like LinkedIn, LinkedIn with Sales Navigator works really well too. Um so you could even yeah take that approach. Yeah, because like I said, B2B does this all the time, but take that approach with with B2C with media and do a similar thing. Hey, I guess it would have to be something like, hey, do you want to subscribe? But um
+
+Kunal Gupta
+Oh, so I can just send in the newsletter. And uh and the mail store guys, I really like them. Um so this is what we're doing for the warm segment, like our existing list who like because we haven't sent a cold email in six months. Um that's not true. I have a I I I I I spun up a new ESP with a friend uh called Breaker that trying to compete with Beehive. Uh he's comfortable sending cold emails. His deliverability though hasn't been great, but at this moment it's better than having nothing. In general, we haven't been sending cold emails. So once we get the warm audience and infrastructure working reliably, then we'll start to grow. Over the summer we actually pulled two million contacts from Apollo. So I'm kind of just like itching to figure out when we can like you know really grow the pivot five list. Yeah. Um so I spoke to MailStore on Friday about hey We've got the warm infrastructure and in parallel I want to actually build the cold infrastructure. Different domain, different IP. And uh I asked them how would we do it? Um they came up with a plan that'll it'll take some money but it'll involve um Warmly, which is seed lists. Okay These are basically inboxes that get answered and all of that. So it's a way to basically fake real users. Uh that works apparently from their experience they will use it with other clients, but they do it at small scale. And they're like, hey, we'll do seed lists of you know like 40,000 Boxes per day and then send ten thousand cold emails so to the ISPs it looks like it's only twenty percent that's cold. And then Putting in logic such that like if we only to send it every day to somebody cold, like let's just send it once a week to start.
+
+Pat Simmons
+Yeah, yeah, exactly.
+
+Kunal Gupta
+And then if somebody opens the email more or engages, whatever the engagement signal is, then we send it to them more frequently. If they engage less, we send it less frequently.
+
+Pat Simmons
+Yeah I thought that was really smart. Really smart, really smart, yeah. Yeah.
+
+Kunal Gupta
+And like and then even with the one list I could see that happening too. Um where as people engage more they get more and as they engage less they get less. And they've been really, really smart. About it. So I'm excited to build that um for us to build that with them. Yeah. That's not what we've done before. Have you guys done this with anybody? And no. Like we'll we'll we'll do it
+
+Pat Simmons
+Yeah, I mean and we think you think about two, it's such such a good growth act. I think if you have the if you have the infrastructure down with one with the media, with the newsletter, you can just bring this over into the product studio, into products, into everything else and strategy, yeah.
+
+Kunal Gupta
+I wanna nail this and build a really robust infrastructure because Like like even brunch club. Yeah. Yeah. Where we could search based on like when they get people's age who live in you know the city. And they're probably in the target demographic and then they start getting a brunch pub newsletter once a week. Exactly, exactly, yeah. Uh pulse, which is the Bloomberg Terminal, the Finance app. This morning I went and bought a few domains for like Pulse as a media company. And it's like we'll start sending investing newsletters out and then that becomes the distribution for Pulse. So it's like any product we build, we'll go build a media company to get value to users and then become the advertiser ourselves.
+
+Pat Simmons
+Exactly, exactly, yeah
+
+Kunal Gupta
+But that's like phase two. And I you know, but phase one is just pivot media, which is the AI vertical. Pivot five, which is the main you know, flagship title, which is general AI news, five headlines a day, five days a week. Um then the next is to build all these verticals um you know by industry so pivot marketing, pivot PR, pivot politics, pivot you know government, pivot healthcare, retail, you know, manufacturing, you can pick fifty verticals. Pivot interior design, which is Which is just content at the intersection of that industry and AI. And then by geography, like India and Brazil, every single country. Basically outside of Europe, because GDPR rules, I probably don't want to take that risk, but like I was showing this to a friend in Vietnam and they're like, Vietnam has no privacy rules. You can cold email everybody. All professionals are already all on LinkedIn. And you can do it in Vietnamese. Yeah. Like nothing like that exists. Yeah, yeah, seriously. Um so we can go launch in like fifty countries. Um and then you can do it by rule, you can do it by themes, and that's where crypto and and all this other stuff comes in. I realize like under pivot media I could see us having like a hundred, two hundred titles. And where in twenty twenty five, you know, at peak it got it to, you know, sending to, you know, basically a million people a day can send Consistently. You know, the infrastructure got wobbly. My goal is within a year to get to 10 million people a day. Cool. If not more, if we throw on some of these big international countries. Yeah. Um and that becomes a serious, you know, media company, serious ad revenue, but more importantly, any new product we launch We've got our own distribution channel that's free.
+
+Pat Simmons
+Yes, exactly, exactly. On the distribution
+
+Kunal Gupta
+So that's kind of why this is so important. It's not about Period 5 the newsletter. It's actually the the linchpin to everything else. And even and this is like where it gets really fun, like a lot of people are gonna launch a vibe coded interesting products next year. If we have like the ultimate distribution channel, everything is solved. We can just copy people and be like, hey, they have a really good idea Let's just replicate.
+
+Pat Simmons
+I know, I know.
+
+Kunal Gupta
+And it's like maybe we're only 80% as good as theirs, but we have 10x the distribution in the role now.
+
+Pat Simmons
+I th yeah, I think about this all the time. I think about it all the time. I think just this region is always going to win. It just there's there's no there's nothing else. It's not how good the product is unfortunately because everyone can build the same thing now yeah so so owning that yeah yeah absolutely and and and that's where you know what you've done with Echo right and distribution now beyond emails
+
+Kunal Gupta
+So take everything we just talked about and now applify this across every single possible digital channel. Yeah, absolutely. Yeah. So that's that's the vision. Nice, nice. And then the the extra church on top is can we make it autonomous?
+
+Pat Simmons
+Mm-hmm. Mm-hmm.
+
+Kunal Gupta
+Um which where it runs itself. Which we're we're actually pretty close. Like I think we're pretty close to that.
+
+Pat Simmons
+Yeah.
+
+Kunal Gupta
+Because then we're not running a media company, like we're building the infrastructure, but then it's running itself. It's running itself, yeah.
+
+Pat Simmons
+Yeah. I love it. I love it. This is some I feel like I'm glancing into the future.
+
+Kunal Gupta
+Yeah
+
+Pat Simmons
+And then yeah, yeah, it's it's yeah, this is exactly uh that's exactly what the future is. And then I mean this is yeah, I just feel This feels so far ahead of what you know how people are thinking. So this is what I'm talking about. I love hearing these this this vision.
+
+Kunal Gupta
+I love being a part of it. I have trouble sleeping these days because it's just like I want to go, I want to go faster. And it's like my biggest comp is like I've been getting married in like five weeks from now. But I'm not even thinking about the wedding. I'm thinking about, you know, all these projects Yeah. And then the latest obsession, which I'm sure you can tell for me, has been uh no-to. Uh-huh. So I don't know if you've seen it lately. I have. So there's this ask no-to box at the top. Uh-huh. And it kind of reframing it from being a to-do list app to a personal assistant.
+
+Pat Simmons
+Nice.
+
+Kunal Gupta
+Um and Yeah, so many features. They worked a lot on this over the weekend. And uh it definitely needs UX work, but the functionality is growing. So I built, I added to my iPhone, like I programmed a shortcut me, so now I can literally just dictate to Noto from my phone. I just press the shortcut key and then it hits a web book and then sends it into the app and adds it instantly. Yeah. I activated with Siri too, so even yesterday in the morning I was like just doing my morning stretching and I had my phone bot by me and I was thinking of to-do items and I just kept dictating them to Siri. And they ended up in no tell. So oh you have a webhook that's hitting Replit? Yeah. Yeah. Replit created a webhook and I created a shortcut on my phone. But I'm adding right now like the ability to like send content to Noto that will then hit fire call and scrape it and summarize it for me. And it's gonna like I could see where this turns into the everything, you know, app. Yeah. As a true personal assistant.
+
+Pat Simmons
+Yeah that is cool. So you're and it the features are just working. So you you transcribe and it hits Replit and then you go in and it's just because Replit has Probably some they have just agenda capabilities where it's like confirming that or just checking that it actually works.
+
+Kunal Gupta
+In Rapplet I ended a chat GPT call now. So when I received the instruction and send it to ChatGPT to decipher what did this what did they say. Interesting. Do they want to add a project? Do they want to you know add a task, add a sub-project, delete a project? Um so these are like the common. So you can now control the to-do list with voice.
+
+Pat Simmons
+The to-do list in the in what you're building with Replit. So the to-do list has an feature adds in Noto. Wow. That's crazy.
+
+Kunal Gupta
+And then I uh I went down a rabbit hole on Saturday night, so I I actually bought will come next week, um like one of these physical wiki devices That's like the same hardware that's inside Google Home Alexa devices that have a speaker Wi-Fi to figure out how to have Notepo as a physical device. Um that's cheap, that's like 30 bucks.
+
+Pat Simmons
+Yeah.
+
+Kunal Gupta
+That's cheap hardware. And that will be listening so I can just speak out loud like hey no to And it'll receive the voice command and then send it to the Replo that and speed back to me.
+
+Pat Simmons
+That's incredible. So you're just do- this is just for the building. It's not for the actual like front end use of Noto. Like, hey, can you tell me my task? It's, hey, Noto, can you make this?
+
+Kunal Gupta
+No, no, it's not building. It's it's it's adding tasks.
+
+Pat Simmons
+It is adding task. Okay, okay. Yeah.
+
+Kunal Gupta
+For the consumer experience.
+
+Pat Simmons
+Okay, okay. That is cool.
+
+Kunal Gupta
+But then and then I started thinking about how do I actually prompt Replit through NoTel. So what you're saying, how do I build?
+
+Pat Simmons
+Yeah.
+
+Kunal Gupta
+And that's the idea is like like right now North started as a to-do list tracker. It's evolved now to a personal assistant and then where we want to take it is actually having it go do things for you.
+
+Pat Simmons
+Yeah.
+
+Kunal Gupta
+So what we're doing with Brunch Club where we have a voice agent that will make a reservation for you So what we can embed that type of capability inside Noto, like go make a reservation for me or go look this up, or go call this person. So Nato becomes that assistant and set up a Gmail integration so you can ask Noto to send somebody an email on their behalf. So a WhatsApp integration. And just like a proper personal assistant. That's AI first.
+
+Pat Simmons
+That is so cool. That is so cool. Yeah, I I've thought about the voice stuff a lot because um Because I love for example, Claude is really good at this. Claude Desktop is really good at, hey, send an email to this person or can you check my Gmail? Uh open chat GPT isn't quite there. But Yeah, because I I have the this I have Siri two and I'm like, oh I cannot wait till there's some kind of hardware launch from one of these LLMs that actually works really well and I can just be like, hey Clock, can you check my emails and tell me what you know, who said what or just check my WhatsApp. Just be the everything app for all these different things. It just it just seems so archaic and antiquated that we're using screens like we are still. We're op opening up applications and we're Even the fact that we're telling LLMs to do this now, it just feels like there's too much friction of clicking a few buttons. Like it really should just be so embedded in the in our surroundings with some kind of voice.
+
+Kunal Gupta
+Completely. Yeah.
+
+Pat Simmons
+Yeah, yeah. Cool. I love it. Tell me how that goes. Is it a Raspberry Pi or what's the what's the hardware?
+
+Kunal Gupta
+That's that's where we eventually have to go. That one felt a little too technical for me where I'm at right now so I bought some other system that has the mic, the speaker, the for it has everything already hooked together. Raspberry Pi you have to still hook a few five pieces of hardware together. Um so yeah, that's the no-toe project where it becomes, you know, like it has a physical manifestation too.
+
+Pat Simmons
+Cool, cool, yeah. Gotta send me all those demos. I'm s I'm so curious.
+
+Kunal Gupta
+Yeah. Um But so yeah, there's so much to work on, but I would definitely want to, you know, laser focus on on pivot media. Sure. Um so I'll I'll put this in in no to. Um but I think there's kind of like Actually I already made the I already made the list, so why don't we share this with you? Yeah. So you can see this. So I'll put this. This isn't a new project I just created, but I'll add this to the main pivot media project.
+
+Pat Simmons
+Okay.
+
+Kunal Gupta
+Um Let's call it um so I'll just call it priority. I'll just put this at the top. So I think like number one is uh is for you to do a handoff uh from Langdon. I'll chat with him today. I'll ask him to create uh you know a few detailed boot videos of what he's done. Yes, please. You know 99% of what he's done isn't in a dent, it's in the shared account So you could even just go in there and start to to try to understand it. But I suspect by you know, tonight or tomorrow. Actually probably today you won't work too much, which is fine. But by tomorrow you should have little videos from him and then maybe you jump on a you know a call each day for the next few days. Perfect Yeah. And I'll ask him to kind of stay on for at least this week. Yeah, please. Um and then if you could get into cadence of chatting with him each day so that by the end of the week, uh latest, you understand all of his workflows. Perfect. Um the key workflow for us to get going on warming up um on Wautic is the API integration. He told me on Friday it's working, so he's able to I'll set up a Mautic account for you today.
+
+Pat Simmons
+Okay.
+
+Kunal Gupta
+You can log in and play with it. I do think you should learn how to send an email manually in Montic, which is just copying the HTML out of Airtable or NN. doing it there in case the API integration breaks because we will need the ability to still send an email every day. So That's kind of let's say second priority is just like testing that integration, making sure you're comfortable with it. Um the third here is uh his editor which is an AI editor there's no human component to it um just understanding how it works so that if it breaks as we start sending emails you can fix it. Perfect I I did uh say to him we do need a manual editor so that if it breaks or we don't like the stories we can intervene. Um he hasn't built that yet. So I'll put this here as you know manual AI editor. Let's you and I chat. I'll show you the current one on the old infrastructure. Because it works pretty good. And once you understand his, then we can talk about okay what's the how do we introduce a manual workflow on you know Langdon's workflow. Got it. As a backup. And then we need a I'll put this over here actually. We need a uh a sign-up. So on the pivot news website Uh, we just need a sign up box. To sign up for the newsletter.
+
+Pat Simmons
+Okay.
+
+Kunal Gupta
+And that form should go into Moffic. Got it. Because that's where our audience is being tracked Cool. So once you get access to Montic, you should be able to. And then I've uh sent Pierre the email from Friday and he might have some feedback for us on the HTML template or headers on the email. So this is kind of the the critical, you know, path uh To basically be able to send emails from the new infrastructure, which I'm hoping in the next couple of days we get to.
+
+Pat Simmons
+Yeah
+
+Kunal Gupta
+Yeah, we'll take given the size of our list, like MailStore thinks about two months to slowly warm up the audience. And just to give you a sense, like our revenue basically is zero right now on pivot five because We basically pushed off all the advertisers till January because we've seen in the last month in November we probably made 35, 40k. But advertiser satisfaction was low because my else were ending up in spam. So uh I've said to the Excel agency, hey wanna come out or anything in December Um so I'm really motivated to get this critical path going and get it start running ads again and start monetizing. Absolutely So that's the critical path. There's a lot more, but that's what I would say you can kind of dig into over the next couple days. Perfect. On it. Uh and if you have any any questions at all, just let me let me know. Okay, perfect.
+
+Pat Simmons
+Yeah, I mean it seems seems relatively straightforward and like you said I I think. I've been watching Lang and Slim videos, but yeah, I will need I will need like a detailed breakdown, but it seems like it's um a lot of it's a lot of it's in place.
+
+Kunal Gupta
+Yeah, so the way to think of the kind of um the email infrastructure, I have this pilot C capability here where I could just take a note now uh and the ask another box. Nice is you have the AI editor. um which is the main thing that Lyington has worked on. And then we have the sending uh actually you have the You have the research step, which is to source content. Right, which is source contents and kind of filter. The editor is basically the select content. um you know and subject line and then the send the send infrastructure is um you know construct you know the email HTML with the right format and structure and whatnot. And then delivery is uh you know, send the HTML to to Mautic. Got it.
+
+Pat Simmons
+Cool, okay. So those are kind of the the steps. And this is Has this or will it replace in the next what few days your your manual workflow that you're you're doing? Or are you still doing manual?
+
+Kunal Gupta
+It's to another project. It's annoying. Okay. No, so this this is so we have like 600,000 contacts in Superbase. sending through um the legacy infrastructure. Got it. MailSore is going to take like hundreds of contacts per day from Superbase and put them into Mautic. Every day they're gonna slowly add people and it'll get to hundreds a day this week and then thousands a day and then tens of thousands a day, but it may take two months So we're going to emails. Got it. Um they'll make sure we're not sending the same like somebody twice in a day.
+
+Pat Simmons
+Mm-hmm
+
+Kunal Gupta
+Uh so we have to maintain both infrastructures for for a bit. Um got it.
+
+Pat Simmons
+Okay, that's what you mean by warm-up, got it. Yeah. Cool.
+
+Kunal Gupta
+And then I'll I could send you a loom some point this week to show you how I do the how the old infrastructure works because it'll give you some some insight.
+
+Pat Simmons
+I've seen it. Um I think you've sent me the full this is what you built in lovable. It's like the yeah the little cards. Yeah. Yeah yeah I've seen it.
+
+Kunal Gupta
+Yeah, I'm gonna give you access to that as well. So um you know if you need to take inspiration from that and whatnot, you you can. We probably will want to create a front end and stuff. off the new infrastructure so we can see all the stories that can and basically that talks to every table.
+
+Pat Simmons
+Yeah, exactly. Yeah, and I was even gonna suggest that Because I just like I don't know how you feel about it, but I just like the what we're doing with Echo with the CMS. I like the front end component the f full stack component because it's much easier to view rather than an end and end. You're looking at executions, you don't know what the heck happened. So you can have we can just have like a l a running logs and then we can make it as like user friendly as possible for us to be like, okay. to to add in the manual com editing component, for example, and we can see all the stories that the AI editor is sequenced and just yeah a a more user-friendly view.
+
+Kunal Gupta
+Yeah. That's exactly that's exactly it. Okay. Yeah, I'll clean up the rest of the the backlog, but right now the critical path is the focus.
+
+Pat Simmons
+Okay, cool. And is quite I was just gonna say the So what it Langdon's uh uh workflow is doing right now, it's it's finding the stories, it's it's the AI editor is choosing the stories. Are these stories, so you're saying they're that HTML is being sent into Mautic, are these stories the same? I'm guessing they're different. Okay. So the are the what are we sending in MaTech right now? Or are these just like is it just tests or is it a new new store different stories to that?
+
+Kunal Gupta
+It's thinking it's a different version of pivot five.
+
+Pat Simmons
+So So we you're you're taking a a person's email out of one putting it into Mautic and they're getting it technically a different email? Got it.
+
+Kunal Gupta
+Yeah. So um So this was the version of Pivot 5 sent through you know Pivot News, which is Mautic, on Friday. And you can see it looks it looks good. Like the formatting is fine.
+
+Speaker 3
+Yeah.
+
+Kunal Gupta
+The story selection isn't perfect. Like there's a lot of improvements we can make on that. But because the warm-up would be just to a few hundred people a day, it doesn't matter.
+
+Pat Simmons
+Got it.
+
+Kunal Gupta
+I'd rather like have uh you know, four out of five quality product that we can start sending emails sooner and then we'll start to improve the you know um editor selection Got it. And and and make us a higher quality product. Perfect. So um related is like pivot news. So these stories um are going to click through to pivotnews. com. So pivotnews. com probably will have to change so it's powered off of the AI editor stories. versus you know the old stack.
+
+Pat Simmons
+Got it.
+
+Kunal Gupta
+So I'll add that to the to the list.
+
+Pat Simmons
+Oh, I think ch does that link work? That one worked. Okay. Cause I did I I was working with Langdon last week on changing some of this. But yeah, some of these are broken. Images are broken.
+
+Kunal Gupta
+Some of these images are broken. Okay, so this looks like it is coming from the basically from the AI editor versus Um the old irritable.
+
+Pat Simmons
+The old got yeah. Yes, that should be changed. Um Okay. Yeah, so I I can just uh I don't know why those images are broken, yeah, and that the actual story isn't being written. But yeah, when I talked to Langan this week, I'll Definitely make sure we get that working at ASAP.
+
+Kunal Gupta
+Yeah, I'll just add here kind of um you know QA uh website You're gonna be fine today, so you probably won't have as much work time today. So imagine tomorrow you'll dig into this.
+
+Pat Simmons
+Yeah. I'm gonna be I'm gonna be doing a little work on the I'm I'll probably do a little uh and the uh little vibe coding on the on the on the flight. Okay. Well you have Wi-Fi? Yeah it's uh it's Alaska so that you can just buy Wi-Fi.
+
+Kunal Gupta
+Okay.
+
+Pat Simmons
+But yeah, I mean now that we've got these capabilities it's like why why wouldn't we?
+
+Kunal Gupta
+Yeah, yeah, yeah.
+
+Pat Simmons
+It's just cool to say it. It's like It's just insane. Um yeah, so I'll I'll work on uh I'll work on just like yeah, some thoughts around this too and then sync up with LinkedIn and make sure we're um I'm completely onboarded and yeah, just Send updates as as usual.
+
+Kunal Gupta
+Yeah. Um maybe we should do a call uh tomorrow, if that sounds good. We could do it later or so 'Cause the time zone's pretty you know different, but I'm I'm flexible too, Canal.
+
+Pat Simmons
+I'm gonna be I'm gonna be working East Coast hours. Um so if we want to do yeah a similar time time frame uh Uh tomorrow.
+
+Kunal Gupta
+We can do later. We can do later.
+
+Pat Simmons
+Like maybe like uh Oh yeah, never never yeah, not maybe not five in the morning, but yeah, our usual times before that. So if we want to do yeah, whatever.
+
+Kunal Gupta
+Oh, Pacific? Yeah, okay. Yeah. I just want to give you time to dig in as well.
+
+Pat Simmons
+Alright, fair, fair, fair. Yeah. Okay.
+
+Kunal Gupta
+I could troubleshoot or support support you as needed. And then I would say whatever whatever access time you have or if you're blocked on anything. Then it's out. I think there's probably a few things from last week too, like, that are still wrapping up. Yeah. Um around Pivot 5 and how to live. Um The email stuff much more higher priority, so you can just do that email um in the background slowly.
+
+Pat Simmons
+Perfect. Perfect. Alright. Sounds great. Excited to dive in. Real I gotta say I'm really excited about the uh about the growth too about like getting back to the cold email stuff because that that just excites that just excites me. The the The tan there is insane. It's basically everyone. So it's like we so much opportunity
+
+Kunal Gupta
+Yeah, so that's why this case we may we may not touch full stat until January. Okay. And it'll be it'll be worth it. So even if Uh because a few weeks late, it'll reach a lot more people once we have this infrastructure working.
+
+Pat Simmons
+Yeah, yeah, absolutely. Yeah. Okay. Alright, awesome. Okay, thanks, can all talk to you soon. Bye.
+
+Speaker 3
+Headline missing for story one. Headline missing for story two.
+
+Pat Simmons
+Why is it doing that?
+

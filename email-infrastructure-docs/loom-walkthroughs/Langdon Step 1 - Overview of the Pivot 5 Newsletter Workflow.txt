@@ -1,0 +1,1335 @@
+1
+00:00:00,011 --> 00:00:02,164
+Okay,
+
+2
+00:00:02,165 --> 00:00:07,078
+uhm, so the first of what is likely a few looms
+
+3
+00:00:07,079 --> 00:00:09,923
+to describe the current setup.
+
+4
+00:00:12,547 --> 00:00:18,351
+So describing
+
+5
+00:00:20,407 --> 00:00:25,082
+how we get to this Pivot 5
+
+6
+00:00:25,083 --> 00:00:27,864
+newsletter. The Pivot 5 newsletter,
+
+7
+00:00:27,865 --> 00:00:30,460
+uhm, Pivot, there are,
+
+8
+00:00:30,598 --> 00:00:35,651
+yeah, start at the beginning. So there are three newsletters that are being handled
+
+9
+00:00:35,652 --> 00:00:37,879
+right now and assembled automatically.
+
+10
+00:00:37,880 --> 00:00:42,824
+And, uh, two of them are being sent via Gmail nodes
+
+11
+00:00:42,837 --> 00:00:47,542
+in, uhm, in N8N and the other is
+
+12
+00:00:47,543 --> 00:00:49,686
+being sent automatically via Mautic.
+
+13
+00:00:51,026 --> 00:00:53,308
+I'll go through the way that this works,
+
+14
+00:00:53,309 --> 00:00:55,355
+uhm,
+
+15
+00:00:55,366 --> 00:00:57,498
+I don't think it's super complicated, but I also built it,
+
+16
+00:00:57,499 --> 00:00:59,853
+so it doesn't seem complicated to me,
+
+17
+00:00:59,854 --> 00:01:03,169
+but obviously, uh, I anticipate questions,
+
+18
+00:01:03,170 --> 00:01:05,663
+uhm, so look forward and let me know what those are,
+
+19
+00:01:05,664 --> 00:01:07,688
+and I'm more than happy to, uh,
+
+20
+00:01:07,699 --> 00:01:13,417
+answer them. So,
+
+21
+00:01:13,418 --> 00:01:17,500
+there are, there are six workflows in N8N.
+
+22
+00:01:20,005 --> 00:01:25,070
+them, four of these workflows,
+
+23
+00:01:27,391 --> 00:01:29,945
+they're all in Langdon's workflows folder,
+
+24
+00:01:29,946 --> 00:01:32,120
+currently, uhm,
+
+25
+00:01:32,131 --> 00:01:35,041
+four of these workflows are main flows,
+
+26
+00:01:35,042 --> 00:01:38,408
+and they're agnostic. to the newsletter, so they handle PivotInvest,
+
+27
+00:01:38,409 --> 00:01:42,364
+Pivot5, which in my system is called PivotAI,
+
+28
+00:01:42,365 --> 00:01:44,677
+uhm, as well as,
+
+29
+00:01:44,678 --> 00:01:49,650
+uh, PivotBuild. These two sub-workflows
+
+30
+00:01:49,651 --> 00:01:52,016
+only handle PivotInvest.
+
+31
+00:01:52,017 --> 00:01:55,241
+So, I'll get to those later,
+
+32
+00:01:55,242 --> 00:01:57,541
+uhm, so,
+
+33
+00:01:57,960 --> 00:02:00,121
+start with Airtable, PivotMediaMaster,
+
+34
+00:02:00,199 --> 00:02:03,617
+this is the agnostic Airtable for the three newsletters.
+
+35
+00:02:04,036 --> 00:02:08,011
+It starts with ingestion, so the flow kind of goes from articles to newsletters.
+
+36
+00:02:08,012 --> 00:02:10,159
+NewsletterStories, NewsletterIssuesStories, NewsletterIssues,
+
+37
+00:02:10,160 --> 00:02:14,640
+and then the NewsletterIssuesArchive.
+
+38
+00:02:14,641 --> 00:02:16,720
+We'll start with the articles table.
+
+39
+00:02:16,721 --> 00:02:18,105
+This table is being filled by one workflow, uh, called IngestionEngineAndScore.
+
+40
+00:02:24,011 --> 00:02:28,680
+Uh, I'll actually change the name to just the IngestionEngine,
+
+41
+00:02:28,681 --> 00:02:33,327
+since the scoring mechanism has been pushed into another workflow that I'll go through
+
+42
+00:02:33,328 --> 00:02:36,578
+later. Basically what this does,
+
+43
+00:02:36,579 --> 00:02:38,625
+this is pretty simple. Um,
+
+44
+00:02:38,636 --> 00:02:43,241
+these are a bunch of RSS images. These RSS feeds are being
+
+45
+00:02:43,242 --> 00:02:46,851
+compiled in most cases by rss.app,
+
+46
+00:02:46,852 --> 00:02:48,980
+which is here.
+
+47
+00:02:48,981 --> 00:02:56,016
+Um, rss.app allows you to make, uhm,
+
+48
+00:02:56,017 --> 00:03:00,392
+various pages. Like, this one is being generated for the finance page on CNBC.
+
+49
+00:03:00,393 --> 00:03:02,795
+Uhm, this is the DeepView.
+
+50
+00:03:02,796 --> 00:03:05,610
+This is being generated from the website that pushes through,
+
+51
+00:03:05,611 --> 00:03:08,610
+you know, that produces the DeepView newsletter.
+
+52
+00:03:08,611 --> 00:03:12,011
+Uhm, so, I use this because it's standardized.
+
+53
+00:03:12,012 --> 00:03:14,484
+Like, the format is standardized.
+
+54
+00:03:14,485 --> 00:03:19,558
+Uhm, every single one of these RSS
+
+55
+00:03:19,559 --> 00:03:22,445
+feeds, the output looks the same,
+
+56
+00:03:23,066 --> 00:03:27,808
+and that is important because there are a lot of,
+
+57
+00:03:27,809 --> 00:03:32,211
+uhm. Like, every single RSS feed produces this format,
+
+58
+00:03:32,212 --> 00:03:36,709
+uhm, with these fields. A lot of RSS feeds,
+
+59
+00:03:36,710 --> 00:03:38,995
+uh, don't produce the same fields,
+
+60
+00:03:38,996 --> 00:03:41,175
+they produce different fields, the, uh,
+
+61
+00:03:41,186 --> 00:03:43,574
+date is called something different, uhm,
+
+62
+00:03:43,584 --> 00:03:46,217
+etc. RSS does have, like, a standardized format,
+
+63
+00:03:46,218 --> 00:03:48,528
+but some of them deviate from the format, sometimes,
+
+64
+00:03:49,823 --> 00:03:54,519
+for example, uhm, I can't remember what the news source
+
+65
+00:03:54,523 --> 00:03:57,532
+was, I think it might have been Google News,
+
+66
+00:03:57,533 --> 00:04:02,260
+actually, their standard RSS feed contains
+
+67
+00:04:02,261 --> 00:04:04,433
+a bunch of links that kind of need to,
+
+68
+00:04:04,574 --> 00:04:07,579
+you would have to crawl the links and then to,
+
+69
+00:04:07,580 --> 00:04:10,829
+to extract all the links and then crawl each of those individual links.
+
+70
+00:04:11,844 --> 00:04:16,704
+All this is to say the using RSS.app standardizes the format
+
+71
+00:04:16,705 --> 00:04:20,354
+of the RSS feeds. I would recommend continuing to use it just because,
+
+72
+00:04:20,845 --> 00:04:23,888
+yeah, it's, it's easier. Uhm,
+
+73
+00:04:23,899 --> 00:04:26,089
+these are all different sources, Yahoo Finance,
+
+74
+00:04:26,090 --> 00:04:28,370
+TechCrunch, TechRepublic, etc, etc, you know,
+
+75
+00:04:28,371 --> 00:04:31,568
+blah, blah, blah, blah, blah. There's also Google News in here.
+
+76
+00:04:31,739 --> 00:04:36,641
+These are just filtered by keywords. So this is like Google News Artificial Intelligence,
+
+77
+00:04:36,782 --> 00:04:39,558
+for example. Uhm, Google News Finance,
+
+78
+00:04:39,559 --> 00:04:43,352
+you know, filtering for keywords like market or stocks or earnings.
+
+79
+00:04:43,353 --> 00:04:46,337
+Uhm, so, or S&P 500.
+
+80
+00:04:46,338 --> 00:04:49,311
+So that's. That's how we have this set up.
+
+81
+00:04:49,599 --> 00:04:54,502
+We start with a bunch of RSS feeds. This slice basically just slices
+
+82
+00:04:54,503 --> 00:04:58,404
+by its sorts, new to old based on the ISO date,
+
+83
+00:04:58,405 --> 00:05:00,450
+which is like the published date, like when,
+
+84
+00:05:00,451 --> 00:05:03,750
+how fresh the news is. It's sorts by new to old,
+
+85
+00:05:03,751 --> 00:05:05,883
+and then cuts off the bottom,
+
+86
+00:05:06,136 --> 00:05:09,486
+like the old articles. This is so we can avoid,
+
+87
+00:05:10,560 --> 00:05:13,748
+for instance, these newsletters do not produce very many,
+
+88
+00:05:13,749 --> 00:05:17,378
+you know, we got 50 items when I just ran this for AI Valley,
+
+89
+00:05:17,379 --> 00:05:20,011
+but, you know, there's only every one of these stories.
+
+90
+00:05:20,012 --> 00:05:22,771
+It's just produced every day. So,
+
+91
+00:05:22,772 --> 00:05:26,997
+like, we obviously don't want to pull in continuously and upload to air table,
+
+92
+00:05:27,468 --> 00:05:29,615
+you know, articles from the Thursday of, you know,
+
+93
+00:05:29,616 --> 00:05:34,364
+September 11th, basically. So this is just this slice mechanism just
+
+94
+00:05:34,365 --> 00:05:38,366
+slices. So I only pull the first, the first two by new to old.
+
+95
+00:05:38,367 --> 00:05:40,440
+Um, yeah,
+
+96
+00:05:40,482 --> 00:05:43,185
+it's, it's not a perfect solution to do that.
+
+97
+00:05:43,186 --> 00:05:45,205
+Um, but it's,
+
+98
+00:05:45,705 --> 00:05:48,237
+you know, reasonable. Um,
+
+99
+00:05:48,248 --> 00:05:51,376
+other sources like Yahoo Finance, we pull in the first 10,
+
+100
+00:05:51,377 --> 00:05:54,948
+because I want the first, you know, the newest 10 articles from Yahoo Finance.
+
+101
+00:05:55,352 --> 00:05:59,867
+This runs every hour, so if we get the newest 10 from Yahoo Finance,
+
+102
+00:05:59,868 --> 00:06:02,425
+we're going to get everything that, that we need. Um,
+
+103
+00:06:02,436 --> 00:06:05,372
+there's also later in this flow, there is a date,
+
+104
+00:06:05,373 --> 00:06:07,856
+there's like a way, uhm, just pulls the,
+
+105
+00:06:07,857 --> 00:06:12,599
+the, We don't let anything older than 24 hours into Airtable anyway,
+
+106
+00:06:12,888 --> 00:06:16,378
+but this is just to reduce the amount of things that are being scraped
+
+107
+00:06:16,379 --> 00:06:18,856
+by firecrawl. Because every firecrawl,
+
+108
+00:06:19,050 --> 00:06:22,593
+you know, crawl, it's a credit, and although we have a lot of credits
+
+109
+00:06:22,594 --> 00:06:24,921
+available, it just seems to inefficient.
+
+110
+00:06:25,925 --> 00:06:28,973
+So once it goes through Slice, it goes through a series of merges,
+
+111
+00:06:28,974 --> 00:06:33,135
+and we get to merge29. Um,
+
+112
+00:06:33,136 --> 00:06:35,507
+merge29, the name of this node,
+
+113
+00:06:35,508 --> 00:06:37,644
+is used by, uh,
+
+114
+00:06:37,655 --> 00:06:41,487
+downstream nodes, so if you do add new sources,
+
+115
+00:06:41,498 --> 00:06:44,658
+keep merge29, uhm,
+
+116
+00:06:44,669 --> 00:06:47,035
+just add merges over here,
+
+117
+00:06:47,036 --> 00:06:50,340
+and don't, I wouldn't change merge29,
+
+118
+00:06:50,341 --> 00:06:52,397
+because it is used by other, other,
+
+119
+00:06:52,398 --> 00:06:55,654
+there are dependencies within this flow downstream for merge29,
+
+120
+00:06:55,655 --> 00:06:59,379
+so I would just add them over here, uhm,
+
+121
+00:06:59,390 --> 00:07:03,744
+there are, kind of like, it's, there's two different ways this goes,
+
+122
+00:07:03,745 --> 00:07:07,416
+there are premium sources, which are these sources here,
+
+123
+00:07:07,417 --> 00:07:10,039
+uhm, and then there's less premium sources,
+
+124
+00:07:10,040 --> 00:07:12,597
+like the, you know, Google News, and all these other sources. Our SES feeds
+
+125
+00:07:12,598 --> 00:07:17,378
+on the left. The premium sources are
+
+126
+00:07:17,379 --> 00:07:22,009
+being crawled. So we're basically crawling,
+
+127
+00:07:22,010 --> 00:07:25,825
+we're pinging, uhm, uh, uh,
+
+128
+00:07:25,836 --> 00:07:28,011
+a specific, uh, URL.
+
+129
+00:07:28,012 --> 00:07:30,350
+Basically, this is the subsection,
+
+130
+00:07:30,351 --> 00:07:32,637
+like the, this is the Wall Street Journal,
+
+131
+00:07:33,383 --> 00:07:37,125
+this is the AI page for the Wall Street Journal,
+
+132
+00:07:37,126 --> 00:07:39,491
+uhm,
+
+133
+00:07:39,502 --> 00:07:44,011
+all of these sources, we crawl that page to get a list of URLs,
+
+134
+00:07:44,012 --> 00:07:46,377
+and then the list of URLs, uh,
+
+135
+00:07:46,388 --> 00:07:48,413
+basically gets normalized,
+
+136
+00:07:48,414 --> 00:07:50,955
+uhm, and the bad ones scraped out,
+
+137
+00:07:50,956 --> 00:07:53,562
+because there's a lot of URLs, images, all kinds of stuff,
+
+138
+00:07:53,563 --> 00:07:56,700
+so we want just the article URLs, which is what these do,
+
+139
+00:07:56,968 --> 00:07:59,531
+so these nodes just strip out,
+
+140
+00:07:59,532 --> 00:08:02,494
+like, the basic stuff. Basic article URLs, uhm,
+
+141
+00:08:02,505 --> 00:08:06,327
+and then, I actually don't remember what this does,
+
+142
+00:08:07,051 --> 00:08:10,148
+but probably something very similar. Yeah,
+
+143
+00:08:10,149 --> 00:08:14,444
+I think the first node normalizes, and then the second node actually just keeps
+
+144
+00:08:14,445 --> 00:08:20,264
+the, the legitimate URLs. And the based
+
+145
+00:08:20,265 --> 00:08:22,108
+on a series of, uhm, uh, based on a series of, of, of characteristics.
+
+146
+00:08:22,109 --> 00:08:24,309
+Like drop, you know, URL includes video,
+
+147
+00:08:24,310 --> 00:08:27,438
+URL includes news, author, cause we don't want to link to an author page.
+
+148
+00:08:27,439 --> 00:08:29,555
+We don't want to crawl market data,
+
+149
+00:08:30,447 --> 00:08:34,388
+quotes. these nodes are specific to this source,
+
+150
+00:08:34,389 --> 00:08:38,087
+uhm, because the path of the URL and the way that they're structured changes.
+
+151
+00:08:38,088 --> 00:08:40,895
+So these are all unique to the specific source,
+
+152
+00:08:40,896 --> 00:08:43,107
+like Bloomberg, Financial Times, uh,
+
+153
+00:08:43,118 --> 00:08:46,103
+Wall Street Journal, et cetera. From there,
+
+154
+00:08:46,104 --> 00:08:49,243
+we feed that list of URLs in to Firecrawl,
+
+155
+00:08:50,072 --> 00:08:53,127
+to get the full markdown for the individual articles,
+
+156
+00:08:53,128 --> 00:08:56,453
+um, and then we add some set fields,
+
+157
+00:08:56,454 --> 00:08:58,564
+basically just adding ISO date back in,
+
+158
+00:08:58,565 --> 00:09:01,960
+in some cases. Sometimes it's stripped or like,
+
+159
+00:09:03,578 --> 00:09:07,616
+not matte. All formed, but sometimes it doesn't exist after we crawl the markdown,
+
+160
+00:09:07,921 --> 00:09:10,161
+and we want to make sure that we, that it persists,
+
+161
+00:09:10,162 --> 00:09:12,869
+um, which is why you'll see in this flow,
+
+162
+00:09:12,870 --> 00:09:15,855
+there's a bunch of nodes to append ISO date.
+
+163
+00:09:16,374 --> 00:09:20,011
+This is because I had a lot of trouble getting ISO date to,
+
+164
+00:09:19,659 --> 00:09:21,727
+to persist all the way through,
+
+165
+00:09:21,728 --> 00:09:23,765
+because it's specific to the source.
+
+166
+00:09:23,782 --> 00:09:26,438
+After it goes through Firecrawl, um,
+
+167
+00:09:26,449 --> 00:09:30,153
+ISO date, Firecrawl attempts to extract the published date,
+
+168
+00:09:30,154 --> 00:09:32,168
+and they're called different things.
+
+169
+00:09:32,169 --> 00:09:34,454
+Sometimes it's pub date, sometimes created date,
+
+170
+00:09:34,455 --> 00:09:36,693
+sometimes ISO date, sometimes, whatever.
+
+171
+00:09:36,694 --> 00:09:40,141
+Umm, so that's why there's so many appendisodate,
+
+172
+00:09:40,142 --> 00:09:42,795
+appendisodate, right, appendisodate too.
+
+173
+00:09:42,796 --> 00:09:45,598
+This is to catch multiple different sources,
+
+174
+00:09:45,706 --> 00:09:48,125
+like multiple different formats of producing the date,
+
+175
+00:09:48,414 --> 00:09:50,529
+and then umm,
+
+176
+00:09:50,540 --> 00:09:54,478
+add it back into the flow, so. that persists if the article is,
+
+177
+00:09:54,692 --> 00:09:57,650
+you know, makes it all the way through, and there's no duplicates,
+
+178
+00:09:57,651 --> 00:10:01,311
+um, and it needs to be pushed to air table.
+
+179
+00:10:02,089 --> 00:10:05,388
+So that's what that's about. Um,
+
+180
+00:10:05,399 --> 00:10:08,011
+so we do that for for the premium sources.
+
+181
+00:10:08,012 --> 00:10:13,377
+The non-premium sources all just get lumped into a big file in merge 29.
+
+182
+00:10:13,378 --> 00:10:17,338
+Isodate is appended if there is none available. Um,
+
+183
+00:10:17,348 --> 00:10:19,785
+and then it goes to the URL gets cleaned.
+
+184
+00:10:20,199 --> 00:10:24,011
+So, fire crawl won't crawl certain types of URLs.
+
+185
+00:10:24,012 --> 00:10:26,745
+So it just makes sure so that there is a valid URL and that
+
+186
+00:10:26,746 --> 00:10:29,468
+it's clean. Um, and then it goes to fire crawl.
+
+187
+00:10:29,469 --> 00:10:33,444
+Uh, I use loop over items for all of these because if we have,
+
+188
+00:10:33,445 --> 00:10:36,786
+especially for the premium sources, we can't just send,
+
+189
+00:10:36,787 --> 00:10:39,446
+you know, 900 articles into fire crawl.
+
+190
+00:10:39,447 --> 00:10:42,099
+Um. and, you know, expect it to,
+
+191
+00:10:42,740 --> 00:10:44,999
+it'll, uh, it'll hit a rate limit in Firecrawl.
+
+192
+00:10:45,330 --> 00:10:48,165
+Also, the, these sources have,
+
+193
+00:10:48,219 --> 00:10:51,331
+like, datadome and mechanism, particularly the premium sources,
+
+194
+00:10:51,332 --> 00:10:53,921
+have mechanisms to, uh,
+
+195
+00:10:53,932 --> 00:10:56,021
+ensure that,
+
+196
+00:10:56,022 --> 00:10:58,025
+Um,
+
+197
+00:10:58,036 --> 00:11:02,369
+they have mechanisms to basically stop you from crawling.
+
+198
+00:11:02,370 --> 00:11:05,114
+They don't, these sources don't want to be crawled,
+
+199
+00:11:05,115 --> 00:11:10,028
+um, and they'll rate
+
+200
+00:11:10,029 --> 00:11:12,394
+limits come into play on the Firecrawl. Side,
+
+201
+00:11:12,395 --> 00:11:15,896
+but also on the publisher site side as well.
+
+202
+00:11:15,897 --> 00:11:19,824
+So it is in our best interest to just be patient with them,
+
+203
+00:11:19,825 --> 00:11:22,313
+um, and run, you know, a few at a time.
+
+204
+00:11:22,420 --> 00:11:25,947
+Basically script a few articles at a time instead of hammering their IP addresses.
+
+205
+00:11:27,334 --> 00:11:29,774
+So Firec- All, we get this out, we get so,
+
+206
+00:11:30,138 --> 00:11:32,733
+you know, we go through all the premium sources, we get the markdown,
+
+207
+00:11:32,734 --> 00:11:35,558
+uhh, a pivot ID is created,
+
+208
+00:11:35,559 --> 00:11:37,875
+pivot ID is based on the URL.
+
+209
+00:11:38,197 --> 00:11:40,647
+So, pivot ID is calculated on,
+
+210
+00:11:41,373 --> 00:11:43,499
+yeah, it's basically, it's just a calculation.
+
+211
+00:11:43,500 --> 00:11:48,312
+Umm. That creates a unique identifier based on the
+
+212
+00:11:48,313 --> 00:11:50,693
+actual normalized URL.
+
+213
+00:11:50,972 --> 00:11:54,180
+And the purpose of that is to make sure that there are no duplicates.
+
+214
+00:11:54,181 --> 00:11:56,354
+So, we, umm,
+
+215
+00:11:56,365 --> 00:11:59,797
+determine if there are duplicates based on pivot ID and pivot ID is based
+
+216
+00:11:59,798 --> 00:12:03,390
+on the- URL that was crawled, like the core URL,
+
+217
+00:12:03,391 --> 00:12:05,412
+um, that's relevant to the publisher.
+
+218
+00:12:05,876 --> 00:12:08,258
+So, that's how we determine if there's duplicates here.
+
+219
+00:12:09,031 --> 00:12:11,598
+And what we do is, after we've crawled these things,
+
+220
+00:12:11,599 --> 00:12:15,648
+we've appended ISO date, we've created the pivot IDs for the non-premium sources,
+
+221
+00:12:15,649 --> 00:12:19,390
+pivot ID. Um,
+
+222
+00:12:19,400 --> 00:12:24,040
+what we do is compare, we get current articles from Airtable,
+
+223
+00:12:24,323 --> 00:12:27,491
+so we get a list of all the articles that are in the articles,
+
+224
+00:12:27,492 --> 00:12:30,886
+uh, in the, you know, we get a list of every single one of
+
+225
+00:12:30,887 --> 00:12:33,823
+these articles in their pivot IDs. ID, um,
+
+226
+00:12:33,833 --> 00:12:38,081
+which again is related to their URL. We then compare it to all of
+
+227
+00:12:38,082 --> 00:12:40,421
+the articles that are currently, um,
+
+228
+00:12:40,432 --> 00:12:43,043
+in existence and we merge, uh,
+
+229
+00:12:43,054 --> 00:12:46,318
+we basically just only keep the non-matches,
+
+230
+00:12:46,633 --> 00:12:49,570
+right so this merge just keeps everything that doesn't match.
+
+231
+00:12:49,969 --> 00:12:53,490
+So if the pivot IDs match, we discard it because we already have it
+
+232
+00:12:53,491 --> 00:12:57,554
+in air table. Then we slice the markdown.
+
+233
+00:12:57,921 --> 00:13:00,594
+So this is just as odd.
+
+234
+00:13:00,595 --> 00:13:03,044
+We slice the markdown to 10,000 characters,
+
+235
+00:13:03,272 --> 00:13:07,912
+that's just an and then sanitize it because air table will not upload certain
+
+236
+00:13:07,913 --> 00:13:11,707
+type, there are certain characters that exist in markdown that we don't want to,
+
+237
+00:13:11,708 --> 00:13:14,692
+the air table will not upload. Umm,
+
+238
+00:13:14,702 --> 00:13:17,042
+if something is formatted in JSON, for example,
+
+239
+00:13:17,043 --> 00:13:20,011
+or an array, it will freak out. So.
+
+240
+00:13:20,012 --> 00:13:24,326
+Basically, just, so we sanitize it and then the,
+
+241
+00:13:24,404 --> 00:13:26,470
+the slicing is just about,
+
+242
+00:13:26,471 --> 00:13:31,086
+umm, when we later go through and push all
+
+243
+00:13:31,087 --> 00:13:33,792
+of this to, first of all, it just uploads faster,
+
+244
+00:13:33,987 --> 00:13:36,011
+we don't need for this purpose, we don't.
+
+245
+00:13:36,012 --> 00:13:38,035
+Need to upload the entire markdown.
+
+246
+00:13:38,090 --> 00:13:40,413
+The majority of the markdown is not useful anyway.
+
+247
+00:13:40,414 --> 00:13:43,360
+Umm, it's only certain components that are useful,
+
+248
+00:13:43,361 --> 00:13:46,958
+and I figured out that about the first 10,000 characters is all that's needed
+
+249
+00:13:46,959 --> 00:13:50,060
+to create headline, bullets, understand the context,
+
+250
+00:13:50,061 --> 00:13:52,943
+umm, and create like a full article. article. You can do all of that
+
+251
+00:13:52,944 --> 00:13:55,433
+with the first 10,000 characters. You don't need the full,
+
+252
+00:13:55,656 --> 00:13:58,662
+you know, 35, 40,000 character markdown.
+
+253
+00:13:58,663 --> 00:14:03,097
+Umm, at least not for any of the sources we have in your currently.
+
+254
+00:14:04,535 --> 00:14:08,335
+So yeah, slice the markdown, and then those new articles that are not- that
+
+255
+00:14:08,336 --> 00:14:12,109
+are not duplicated, end up in getting posted as new articles in the air
+
+256
+00:14:12,110 --> 00:14:15,600
+table. Umm.
+
+257
+00:14:15,611 --> 00:14:18,254
+Yeah, I think that is most of it.
+
+258
+00:14:18,255 --> 00:14:20,744
+Uh, I would recommend, like right now,
+
+259
+00:14:20,745 --> 00:14:25,553
+there's 4,500 articles. I would recommend- putting in some flow to
+
+260
+00:14:26,092 --> 00:14:30,492
+remove articles that are- remove articles that,
+
+261
+00:14:30,493 --> 00:14:33,279
+uh, are old. Basically,
+
+262
+00:14:33,280 --> 00:14:35,363
+like, based on, perhaps, date published.
+
+263
+00:14:35,364 --> 00:14:39,062
+Um, I mean, there's probably articles in here that- I know there are articles
+
+264
+00:14:39,063 --> 00:14:41,178
+in here that are old. like from, you know,
+
+265
+00:14:41,179 --> 00:14:44,183
+12-7. Like, we don't need articles from 12-5,
+
+266
+00:14:44,184 --> 00:14:46,769
+12-7, banging around in the articles page,
+
+267
+00:14:46,770 --> 00:14:49,722
+so maybe running a flow once a day or once a week,
+
+268
+00:14:49,723 --> 00:14:53,831
+whatever it is, to just remove the articles that are more than two days
+
+269
+00:14:53,832 --> 00:14:56,418
+old, um, would probably be a- Okay,
+
+270
+00:14:56,819 --> 00:15:00,189
+I didn't do that because for QA purposes, I think it's interesting to understand
+
+271
+00:15:00,190 --> 00:15:04,128
+what how things are being scored and what is and isn't making it into
+
+272
+00:15:04,129 --> 00:15:07,715
+the newsletters, but, you know, when this flow is sustainable and durable,
+
+273
+00:15:07,716 --> 00:15:10,060
+you probably don't need those articles anymore.
+
+274
+00:15:10,061 --> 00:15:12,991
+Um. Uh. Uh. So,
+
+275
+00:15:13,727 --> 00:15:16,184
+yeah, so we have Pivot ID, we have the original URL,
+
+276
+00:15:16,185 --> 00:15:21,391
+which I think is self-explanatory, this is what Firecrawl believes the original URL,
+
+277
+00:15:21,392 --> 00:15:24,184
+it's a publisher URL. Um.
+
+278
+00:15:24,195 --> 00:15:26,742
+So, like, what the URL is that the publisher is saying.
+
+279
+00:15:26,743 --> 00:15:29,732
+Um. This This is the URL that was crawled by Firecrawl,
+
+280
+00:15:29,786 --> 00:15:33,207
+basically. The source ID, which is self-explanatory,
+
+281
+00:15:33,218 --> 00:15:36,176
+some sources, mostly semaphore.
+
+282
+00:15:36,177 --> 00:15:39,971
+Umm, the source ID is dropped for reasons that I have not QA'd yet.
+
+283
+00:15:39,972 --> 00:15:44,346
+Umm, I just happened to know that, like, semaphore, if uuuh, uuuh, the source
+
+284
+00:15:44,347 --> 00:15:46,558
+ID is blank, it's likely semaphore.
+
+285
+00:15:47,156 --> 00:15:49,671
+Source ID isn't used anywhere. Umm, it's for my,
+
+286
+00:15:49,672 --> 00:15:52,362
+it's for our own, sort of, like, QA purposes,
+
+287
+00:15:52,363 --> 00:15:55,592
+just to understand what sources are making it all the way through into the
+
+288
+00:15:55,593 --> 00:15:57,948
+newsletter. Umm, but there's other ways to do that.
+
+289
+00:15:57,949 --> 00:16:00,016
+I mean, you can also just look at the core, the, like, the original-
+
+290
+00:16:00,017 --> 00:16:02,100
+URL, um, or the core URL.
+
+291
+00:16:02,101 --> 00:16:04,648
+Um,
+
+292
+00:16:04,658 --> 00:16:06,797
+speaking of core URL, so this is the,
+
+293
+00:16:06,858 --> 00:16:09,972
+this is also not used anywhere. It used to be used when we had
+
+294
+00:16:09,973 --> 00:16:12,877
+the articles clicking through, like in the newsletter,
+
+295
+00:16:12,878 --> 00:16:16,464
+when the articles would click through, and we wanted them to- I actually go
+
+296
+00:16:16,465 --> 00:16:18,835
+through to the original article, as opposed to,
+
+297
+00:16:18,836 --> 00:16:20,903
+like, a Google News article, for example.
+
+298
+00:16:20,904 --> 00:16:23,483
+Um, we wanted to extract the,
+
+299
+00:16:23,484 --> 00:16:25,807
+uh, or like for these newsletters,
+
+300
+00:16:25,808 --> 00:16:29,091
+right? The newsletters were often just linking to their own blog.
+
+301
+00:16:29,387 --> 00:16:32,917
+We wanted to extract the actual URL where the- the news kitless source of
+
+302
+00:16:32,918 --> 00:16:35,342
+the news, basically. So that's what core URL is,
+
+303
+00:16:35,343 --> 00:16:37,751
+but like I said, we don't use it anymore. Um,
+
+304
+00:16:37,752 --> 00:16:40,826
+uh,
+
+305
+00:16:40,837 --> 00:16:43,234
+fit score, interest score, sentiment,
+
+306
+00:16:43,237 --> 00:16:45,905
+tags, newsletter,
+
+307
+00:16:45,906 --> 00:16:48,011
+topic, all of these are computed.
+
+308
+00:16:48,012 --> 00:16:52,282
+In a separate flow, they're just updating the article's table,
+
+309
+00:16:52,565 --> 00:16:54,769
+as well as reason for fit score. That's also,
+
+310
+00:16:54,770 --> 00:16:59,118
+um, used. Uh,
+
+311
+00:16:59,129 --> 00:17:02,273
+yeah, I'll talk about this later. Created by Privet Studio.
+
+312
+00:17:02,274 --> 00:17:07,283
+That's just an air table field. Needs AI in newsletter stories
+
+313
+00:17:07,284 --> 00:17:09,987
+in primary image. Primary image is not used.
+
+314
+00:17:10,314 --> 00:17:15,179
+I'll hide that. Hide.
+
+315
+00:17:16,390 --> 00:17:19,003
+In newsletter stories. I don't think we,
+
+316
+00:17:19,004 --> 00:17:21,785
+you know, we don't- use that one either.
+
+317
+00:17:21,786 --> 00:17:26,374
+That's a relic. Believe we do use AI to
+
+318
+00:17:26,375 --> 00:17:30,383
+determine what has or hasn't been.
+
+319
+00:17:32,301 --> 00:17:35,201
+Oh, we do not. We use decoration status.
+
+320
+00:17:35,202 --> 00:17:38,166
+So it needs a- AI is also no longer relevant.
+
+321
+00:17:38,684 --> 00:17:42,696
+Decoration status is used.
+
+322
+00:17:43,684 --> 00:17:47,470
+I think I might just end this loom here and keep this as- that's
+
+323
+00:17:47,471 --> 00:17:52,021
+the ingestion flow. So that explains how these are being ingested.
+
+324
+00:17:52,022 --> 00:17:54,580
+Umm,
+
+325
+00:17:54,590 --> 00:17:57,815
+again, I-I think this one is- is fairly self-explanatory.
+
+326
+00:17:58,092 --> 00:18:00,394
+The only hiccup you may encounter is if you add new sources,
+
+327
+00:18:00,395 --> 00:18:02,899
+there's some QA when adding new sources because like I said,
+
+328
+00:18:02,900 --> 00:18:08,245
+they all have different- they have different- when they come up out
+
+329
+00:18:08,246 --> 00:18:12,108
+of Firecrawl, they have different characteristics. Certain information is available on the page.
+
+330
+00:18:12,463 --> 00:18:14,907
+It's sometimes called different things, um,
+
+331
+00:18:14,918 --> 00:18:18,345
+these fields, so that is the ingestion flow.
+
+332
+00:18:18,346 --> 00:18:21,915
+So I'll end this one here and then we'll move on to the decoration
+
+333
+00:18:22,163 --> 00:18:24,547
+flow. Okay.
+
+334
+00:18:24,011 --> 00:18:24,547
+Okay.

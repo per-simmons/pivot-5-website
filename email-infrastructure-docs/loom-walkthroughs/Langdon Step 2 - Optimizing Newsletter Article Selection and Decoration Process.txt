@@ -1,0 +1,1611 @@
+1
+00:00:00,011 --> 00:00:02,207
+Okay,
+
+2
+00:00:02,515 --> 00:00:04,861
+so we now have the articles.
+
+3
+00:00:05,169 --> 00:00:08,293
+They exist in Airtable. We know that they're not duplicated.
+
+4
+00:00:08,294 --> 00:00:12,989
+We know that they're also fresh. We understand that we now
+
+5
+00:00:12,990 --> 00:00:16,005
+need to figure out the topic that they're on.
+
+6
+00:00:16,006 --> 00:00:18,297
+We newsletter in,
+
+7
+00:00:18,298 --> 00:00:22,330
+which will be used, uh, for segmentation later on in the newsletter.
+
+8
+00:00:22,355 --> 00:00:25,208
+So that's like what this is. This is the topic.
+
+9
+00:00:25,724 --> 00:00:28,376
+This is also the topic, uhm.
+
+10
+00:00:28,386 --> 00:00:31,931
+So that has to do with topic. We changed the way that we changed
+
+11
+00:00:31,932 --> 00:00:35,626
+the characteristic of topic, so now it's just one word.
+
+12
+00:00:37,009 --> 00:00:39,728
+So we need to figure out the topic. We need to figure out what
+
+13
+00:00:39,729 --> 00:00:41,766
+newsletter it belongs in.
+
+14
+00:00:41,837 --> 00:00:45,090
+We need to understand how well it fits to that newsletter.
+
+15
+00:00:45,091 --> 00:00:47,947
+Uhm, fitscore is,
+
+16
+00:00:47,948 --> 00:00:52,807
+uhm, is not being used right now. My ambition was to use fitscore
+
+17
+00:00:52,808 --> 00:00:58,206
+to have a lot of these articles fit into multiple
+
+18
+00:00:58,655 --> 00:01:01,180
+newsletters. They don't just fit into one.
+
+19
+00:01:01,373 --> 00:01:06,452
+And the benefit of having multiple newsletters and multiple stories per newsletter,
+
+20
+00:01:06,453 --> 00:01:08,546
+uhm, sorry,
+
+21
+00:01:08,547 --> 00:01:10,901
+multiple stories per article is,
+
+22
+00:01:11,298 --> 00:01:13,732
+I think the quality of news will improve.
+
+23
+00:01:13,733 --> 00:01:18,192
+Uhm, my perception is that,
+
+24
+00:01:19,026 --> 00:01:22,910
+yeah. Just, these articles are,
+
+25
+00:01:22,911 --> 00:01:24,924
+uhm, you know, like,
+
+26
+00:01:25,874 --> 00:01:28,219
+Gemini Live, now live on Vertex AI,
+
+27
+00:01:28,220 --> 00:01:32,179
+this could be an interesting, depending on how it was written in our blog,
+
+28
+00:01:32,180 --> 00:01:34,977
+this could be an interesting post for Pivot AI,
+
+29
+00:01:34,978 --> 00:01:37,855
+uhm, it's also probably native,
+
+30
+00:01:37,856 --> 00:01:41,948
+it natively belongs, the fit score is probably highest for Pivot Build,
+
+31
+00:01:41,949 --> 00:01:45,237
+uhm, actually put this into Pivot AI,
+
+32
+00:01:45,238 --> 00:01:47,310
+which is really interesting, and I think, uhm,
+
+33
+00:01:47,311 --> 00:01:49,405
+eh,
+
+34
+00:01:49,406 --> 00:01:51,925
+I think that wrestling with how to improve,
+
+35
+00:01:51,926 --> 00:01:55,545
+uhm, improve the fidelity of the newsletter selection process,
+
+36
+00:01:56,119 --> 00:01:59,099
+I think one of the first things to do is to make it such
+
+37
+00:01:59,100 --> 00:02:02,937
+that there are mul- multiple stories can be created from a single article,
+
+38
+00:02:02,938 --> 00:02:05,031
+uhm, as opposed to asking it,
+
+39
+00:02:05,032 --> 00:02:07,356
+asking AI to, you know,
+
+40
+00:02:07,567 --> 00:02:11,869
+divine, you know, divine exactly what newsletters should belong in and expect that it's
+
+41
+00:02:11,870 --> 00:02:14,294
+going to get it right 100% of the time.
+
+42
+00:02:14,551 --> 00:02:17,348
+Because it is a, it's a subjective,
+
+43
+00:02:17,349 --> 00:02:19,427
+like, even two humans, you know,
+
+44
+00:02:19,428 --> 00:02:24,330
+will determine, will have different, uhm, uh, will have draw
+
+45
+00:02:24,331 --> 00:02:28,871
+the line between PivotBuild and PivotAI and PivotInvest will draw the
+
+46
+00:02:28,872 --> 00:02:31,933
+line differently. Uh, and I think that,
+
+47
+00:02:32,590 --> 00:02:37,133
+I think that, yeah, so I think that that will help basically,
+
+48
+00:02:37,134 --> 00:02:40,016
+uhm, so that multi-, it's not being forced.
+
+49
+00:02:40,017 --> 00:02:42,226
+It's not a binary thing.
+
+50
+00:02:42,475 --> 00:02:44,605
+I think that's one of the issues with the current flow, is that it's
+
+51
+00:02:44,606 --> 00:02:46,758
+very binary. It has to pick only one.
+
+52
+00:02:46,759 --> 00:02:51,342
+Uhm, it is worth noting that the flow actually does not just pick
+
+53
+00:02:51,343 --> 00:02:54,836
+only one currently, but only one gets uploaded to Airtable.
+
+54
+00:02:55,245 --> 00:02:57,437
+So, there is an a way to, if you,
+
+55
+00:02:57,878 --> 00:03:00,802
+it doesn't scale, but if you added another column for,
+
+56
+00:03:00,803 --> 00:03:03,153
+you know, newsletter underscore two, or like, second,
+
+57
+00:03:03,154 --> 00:03:05,871
+or newsletter underscore three, even, uhm,
+
+58
+00:03:05,881 --> 00:03:08,312
+it would, it would, we have,
+
+59
+00:03:08,313 --> 00:03:11,179
+the data does exist in the decoration flow to produce,
+
+60
+00:03:11,180 --> 00:03:15,175
+uhm, Thank you. It already chooses multiple newsletters based on fit score.
+
+61
+00:03:15,424 --> 00:03:19,787
+It just only uploads the newsletter with the highest fit score into Airtable,
+
+62
+00:03:19,788 --> 00:03:24,280
+and then it gets segmented from there. So we have to fill out these
+
+63
+00:03:24,281 --> 00:03:26,620
+fields, uh, as well as tags.
+
+64
+00:03:26,621 --> 00:03:31,674
+Okay. Uh, that is done by decoration status.
+
+65
+00:03:32,107 --> 00:03:35,909
+There are three types of decoration status that are being used.
+
+66
+00:03:35,910 --> 00:03:38,031
+Um, error is not really used.
+
+67
+00:03:38,032 --> 00:03:40,067
+Um, it could be, but it isn't.
+
+68
+00:03:40,068 --> 00:03:42,177
+Uh, there's pending,
+
+69
+00:03:42,178 --> 00:03:45,233
+which means that decorate, like decoration status. has not happened yet.
+
+70
+00:03:45,390 --> 00:03:47,864
+There's completed, which is pretty self-explanatory.
+
+71
+00:03:47,865 --> 00:03:52,364
+And there's skipped low score. So let's go into the decoration flow.
+
+72
+00:03:53,939 --> 00:03:56,191
+So the decoration flow looks like this.
+
+73
+00:03:56,220 --> 00:04:00,016
+There are sticky notes to describe what that is.
+
+74
+00:04:00,017 --> 00:04:04,589
+The purpose of the flow is the decoration flow contains multiple
+
+75
+00:04:04,590 --> 00:04:09,114
+flows. Uh, this is the image flow here creates and uploads the image.
+
+76
+00:04:09,115 --> 00:04:11,576
+Uh, this is the headline flow.
+
+77
+00:04:11,577 --> 00:04:13,792
+So this creates headlines, bullets, and image prompts.
+
+78
+00:04:14,296 --> 00:04:16,810
+This one is the, uh, broad,
+
+79
+00:04:16,811 --> 00:04:20,243
+like, scoring and categorization engine. And this is what we'll focus on for the
+
+80
+00:04:20,244 --> 00:04:22,556
+moment. And then this is fill,
+
+81
+00:04:22,557 --> 00:04:25,423
+you know, the field that, you know, will not decorate essentially.
+
+82
+00:04:26,116 --> 00:04:28,642
+So this runs every hour, uh,
+
+83
+00:04:28,653 --> 00:04:32,016
+oh, every 20 minutes actually. It's like I changed that.
+
+84
+00:04:32,017 --> 00:04:36,691
+So this runs every 20 minutes,
+
+85
+00:04:36,934 --> 00:04:39,813
+as it were, basically what it does is in Airtable,
+
+86
+00:04:39,814 --> 00:04:42,350
+there's a filter field that pulls by,
+
+87
+00:04:42,351 --> 00:04:53,794
+uh, needs AI. Yeah.
+
+88
+00:04:53,795 --> 00:04:56,048
+So we actually do use the needs AI field.
+
+89
+00:04:56,049 --> 00:04:58,899
+I thought we used decoration status, but apparently not.
+
+90
+00:04:59,038 --> 00:05:01,287
+There is no news here that currently needs AI.
+
+91
+00:05:01,288 --> 00:05:04,011
+It's, oh, there is at the top. So pulls by needs.
+
+92
+00:05:04,012 --> 00:05:06,580
+And if it's lie or if it,
+
+93
+00:05:06,581 --> 00:05:10,417
+you know, if we've already completed decoration and done scoring and everything that that
+
+94
+00:05:10,418 --> 00:05:12,760
+is automatically checked and that happens at the end here,
+
+95
+00:05:13,681 --> 00:05:18,529
+pull by needs AI. So these are new articles that do need artificial intelligence,
+
+96
+00:05:18,530 --> 00:05:22,033
+like needs scoring, uh, it creates a prerecord,
+
+97
+00:05:22,060 --> 00:05:25,559
+and this is just a way to, uhm, it's just a way to preserve
+
+98
+00:05:25,560 --> 00:05:28,802
+the air table record, basically, for what goes through here,
+
+99
+00:05:29,405 --> 00:05:32,557
+it's used a little bit later. This slice is no longer,
+
+100
+00:05:32,558 --> 00:05:34,561
+uh, no longer needed, uhm,
+
+101
+00:05:34,572 --> 00:05:37,823
+it was just used for QA purposes. To reduce the amount of content going
+
+102
+00:05:37,824 --> 00:05:42,449
+through here, this is the anthropic prompt that we use
+
+103
+00:05:42,450 --> 00:05:46,206
+to determine, you know, your job is for each article,
+
+104
+00:05:46,847 --> 00:05:49,186
+decide which newsletter the article best belongs in,
+
+105
+00:05:49,187 --> 00:05:52,011
+this is probably the most important step, uhm,
+
+106
+00:05:52,012 --> 00:05:54,020
+generate the topic, a bunch of tags,
+
+107
+00:05:54,021 --> 00:05:56,946
+identify the, you know, the core URL, again,
+
+108
+00:05:56,947 --> 00:06:00,325
+this is no longer super necessary because we link out to our own blog
+
+109
+00:06:00,326 --> 00:06:03,196
+now, and then determine the sentiment of the news,
+
+110
+00:06:03,455 --> 00:06:05,755
+positive or negative, you know, based on,
+
+111
+00:06:06,760 --> 00:06:10,644
+there's a scale, positive or negative, and then determine how interesting it is,
+
+112
+00:06:10,645 --> 00:06:13,383
+uh, the interest score, and this, this one is very important,
+
+113
+00:06:13,384 --> 00:06:15,753
+uhm, and then return a JSON object.
+
+114
+00:06:16,130 --> 00:06:18,340
+So, right now, there are three prompts, right?
+
+115
+00:06:18,341 --> 00:06:21,010
+You must choose from only three of these newsletters. I'll let you go through
+
+116
+00:06:21,011 --> 00:06:23,044
+this, but that is,
+
+117
+00:06:23,112 --> 00:06:25,706
+that's essentially what we are asking, uh,
+
+118
+00:06:25,716 --> 00:06:30,044
+asking this to do. Once it has that,
+
+119
+00:06:30,045 --> 00:06:33,966
+the response is normalized, the best fit is picked,
+
+120
+00:06:34,159 --> 00:06:38,135
+so this is the step where we strip out the fit score,
+
+121
+00:06:38,136 --> 00:06:41,077
+uh, we basically just keep the bet,
+
+122
+00:06:41,078 --> 00:06:43,507
+the highest fit score per article,
+
+123
+00:06:43,508 --> 00:06:46,511
+uhm, per newsletter. So we drop the other recommendations.
+
+124
+00:06:46,845 --> 00:06:49,869
+So if the AI believe Anthropic comes out and says that,
+
+125
+00:06:50,182 --> 00:06:52,674
+you know, this article could fit into two newsletters,
+
+126
+00:06:52,675 --> 00:06:55,412
+and, you know, the fit score for Pivot AI is,
+
+127
+00:06:55,597 --> 00:06:58,990
+for Pivot Fit is, Pivot 5 is, is 18 and Pivot Build,
+
+128
+00:06:58,991 --> 00:07:02,993
+the fit score is 12. It will drop Pivot Build and only recommend Pivot
+
+129
+00:07:02,994 --> 00:07:05,540
+AI, uhm,
+
+130
+00:07:05,551 --> 00:07:10,337
+AKA Pivot 5. And then that goes into Airtable and it gets mapped,
+
+131
+00:07:10,338 --> 00:07:12,890
+uh, in the, uh, these fields.
+
+132
+00:07:12,891 --> 00:07:15,235
+The reason for the fit score, the tags, the sentiment,
+
+133
+00:07:15,236 --> 00:07:17,607
+all that gets filled out.
+
+134
+00:07:19,333 --> 00:07:22,276
+Some articles, uh,
+
+135
+00:07:22,286 --> 00:07:24,818
+yeah. And then we mark AI steps as done so that it doesn't do
+
+136
+00:07:24,819 --> 00:07:27,643
+it again. And that's, that's pretty much it for this flow,
+
+137
+00:07:27,644 --> 00:07:29,929
+this Rosebud. Pretty simple. This flow,
+
+138
+00:07:29,930 --> 00:07:32,003
+uh, checks for, will not decorate,
+
+139
+00:07:32,004 --> 00:07:34,486
+will not decorate. Basically, I think it's what?
+
+140
+00:07:34,487 --> 00:07:36,554
+15. Yeah. Interest scores.
+
+141
+00:07:36,555 --> 00:07:40,260
+If an interest score is determined to be below 15,
+
+142
+00:07:40,611 --> 00:07:43,819
+then we won't decorate it. This is out of 25.
+
+143
+00:07:43,820 --> 00:07:47,140
+So. The fit score and the interest score are out of 25.
+
+144
+00:07:47,400 --> 00:07:51,797
+Um, so if the interest score is too low,
+
+145
+00:07:51,798 --> 00:07:54,370
+then we won't end up putting it into a newsletter anyway,
+
+146
+00:07:54,534 --> 00:07:56,738
+so we're not going to decorate it, uh,
+
+147
+00:07:56,749 --> 00:08:00,016
+and we will not end up passing it on to newsletter stories.
+
+148
+00:08:00,017 --> 00:08:03,624
+Everything that has a fit score or a,
+
+149
+00:08:03,625 --> 00:08:08,450
+uh, an interest score of above 15 does get passed on to newsletter stories.
+
+150
+00:08:09,383 --> 00:08:13,186
+So that's what this pool is. These are articles that have a,
+
+151
+00:08:13,187 --> 00:08:17,706
+uh, interest score above 15. So that integer to whatever you wanted,
+
+152
+00:08:17,707 --> 00:08:20,030
+uhm, yeah.
+
+153
+00:08:20,466 --> 00:08:23,483
+And then, so, WillNotDecorate,
+
+154
+00:08:23,484 --> 00:08:25,956
+it's like we're only looking for interest score above 15,
+
+155
+00:08:25,957 --> 00:08:28,898
+uh, and it does not have an interest score,
+
+156
+00:08:28,899 --> 00:08:32,203
+uhm, or sorry, it does have an interest score that is either below either
+
+157
+00:08:32,204 --> 00:08:34,404
+blank or pending. AKA,
+
+158
+00:08:34,405 --> 00:08:38,598
+it does not have an interest score that is already complete because if the,
+
+159
+00:08:38,599 --> 00:08:41,482
+uhm, sorry, the decoration status.
+
+160
+00:08:42,014 --> 00:08:45,761
+So, if the score is under 15,
+
+161
+00:08:45,762 --> 00:08:48,704
+uh, or it's, you know, coming through as,
+
+162
+00:08:48,705 --> 00:08:51,177
+uhm,
+
+163
+00:08:51,187 --> 00:08:55,845
+it's really annoying because this and designates
+
+164
+00:08:55,846 --> 00:08:58,445
+that it has to be both of these things.
+
+165
+00:08:58,693 --> 00:09:00,728
+So, uhm,
+
+166
+00:09:00,738 --> 00:09:05,295
+this filter is just designed to, uh, make sure that we haven't already complete,
+
+167
+00:09:05,296 --> 00:09:07,699
+like, we're not going to change a completed,
+
+168
+00:09:07,700 --> 00:09:11,057
+uh, decoration status to skipped low score ever.
+
+169
+00:09:11,058 --> 00:09:15,054
+It's kind of a double, it's just to make extra sure that we aren't
+
+170
+00:09:15,055 --> 00:09:18,646
+excluding articles that should go into newsletter stories into,
+
+171
+00:09:18,647 --> 00:09:22,239
+uhm, you know, that we are decorating them and we're not decorating anything else.
+
+172
+00:09:22,240 --> 00:09:25,255
+So we're not going back and like modifying any of these fields.
+
+173
+00:09:25,256 --> 00:09:28,826
+Um, yeah. So that's what skipped low score is.
+
+174
+00:09:28,827 --> 00:09:33,554
+Basically it just recognizes that we're not going to decorate articles with a
+
+175
+00:09:33,660 --> 00:09:36,738
+interest score under 15. And again, you can change it to whatever you wanted.
+
+176
+00:09:37,970 --> 00:09:40,594
+So that is, and that's,
+
+177
+00:09:40,595 --> 00:09:45,274
+that's basically it for this air table table.
+
+178
+00:09:45,275 --> 00:09:47,757
+This, uh,
+
+179
+00:09:47,768 --> 00:09:52,021
+this particular, the articles space there after this,
+
+180
+00:09:52,022 --> 00:09:55,294
+um, articles is not being used. The main purpose is just to pull in
+
+181
+00:09:55,295 --> 00:09:57,516
+news, score it, determine where it fits,
+
+182
+00:09:57,517 --> 00:10:00,666
+and then push it into newsletter stories if it's above a certain,
+
+183
+00:10:00,667 --> 00:10:03,025
+uhm, above a certain threshold.
+
+184
+00:10:03,200 --> 00:10:08,021
+The pushing into, uh, newsletter stories happens in a different flow.
+
+185
+00:10:08,022 --> 00:10:11,729
+Uhm, this has been only going on for 10 minutes.
+
+186
+00:10:12,489 --> 00:10:15,823
+I can just jump into that flow now.
+
+187
+00:10:16,177 --> 00:10:18,873
+It's the flow right above it. Create headlines,
+
+188
+00:10:18,874 --> 00:10:22,625
+bullets, and image prompts. So these are stories that could conceivably go into the
+
+189
+00:10:22,626 --> 00:10:27,113
+newsletter. They have a newsletter story. We've determined that they are,
+
+190
+00:10:27,219 --> 00:10:30,875
+and that's what newsletter stories is, so this is the pool of potential stories
+
+191
+00:10:30,876 --> 00:10:35,033
+that are deemed by Anthropic to have fairly good,
+
+192
+00:10:35,034 --> 00:10:39,845
+uhm, relevance for a specific newsletter and are interesting enough
+
+193
+00:10:39,846 --> 00:10:42,708
+to go into a newsletter. So we want to decorate these,
+
+194
+00:10:42,709 --> 00:10:44,973
+uhm, we want to add bullets,
+
+195
+00:10:44,974 --> 00:10:47,696
+we want to create a headline, uhm,
+
+196
+00:10:47,707 --> 00:10:52,477
+you know, all of that, right? So what we do is pull
+
+197
+00:10:52,478 --> 00:10:55,180
+by, oh, cool.
+
+198
+00:10:55,181 --> 00:10:58,494
+Any other questions? We pull by interest score,
+
+199
+00:10:58,495 --> 00:11:02,481
+uh, so this interest score is,
+
+200
+00:11:02,482 --> 00:11:07,043
+so we're basically just pulling equal to or over 15 and
+
+201
+00:11:07,044 --> 00:11:10,310
+it, uh, needs to be, uhm,
+
+202
+00:11:10,311 --> 00:11:13,271
+uh, isn't pending or blank.
+
+203
+00:11:13,373 --> 00:11:16,628
+So as long as the decoration status is complete,
+
+204
+00:11:17,114 --> 00:11:19,995
+the initial decoration status, uhm,
+
+205
+00:11:20,005 --> 00:11:22,899
+so as long as this is complete, it means that we actually do in
+
+206
+00:11:22,900 --> 00:11:24,925
+fact have all of these fields.
+
+207
+00:11:24,926 --> 00:11:27,483
+We have an interest score and all of that. Again, it's kind of a,
+
+208
+00:11:27,484 --> 00:11:31,107
+just an extra, uh, extra step because if we're only pulling articles that have
+
+209
+00:11:31,108 --> 00:11:34,774
+an interest score equal to 15 and it's already been computed,
+
+210
+00:11:34,775 --> 00:11:37,892
+that means that the decoration step has already happened.
+
+211
+00:11:37,893 --> 00:11:41,623
+Uhm, but it's just another way to make sure that we're only getting articles
+
+212
+00:11:41,624 --> 00:11:44,011
+that have data attached so that we don't have blank air tables.
+
+213
+00:11:44,012 --> 00:11:46,449
+fields, uhm, once we get into newsletter stories.
+
+214
+00:11:47,020 --> 00:11:50,222
+So we pull by, pull by that from articles,
+
+215
+00:11:51,731 --> 00:11:53,844
+then, uh, build user content.
+
+216
+00:11:53,845 --> 00:11:58,881
+This is a JS node that builds the payload for,
+
+217
+00:11:58,882 --> 00:12:01,147
+uhm, Anthropic.
+
+218
+00:12:01,251 --> 00:12:03,358
+So this is,
+
+219
+00:12:03,359 --> 00:12:08,161
+uh, marked it, this ends up creating like a markdown format prompt
+
+220
+00:12:08,510 --> 00:12:13,559
+specifically for Anthropic. So I'll execute this just so you can see what
+
+221
+00:12:13,560 --> 00:12:16,011
+it builds.
+
+222
+00:12:16,012 --> 00:12:21,095
+Not that,
+
+223
+00:12:21,096 --> 00:12:21,801
+this.
+
+224
+00:12:26,124 --> 00:12:28,280
+So what it ends up building is user content.
+
+225
+00:12:28,281 --> 00:12:30,412
+It's a, it's a markdown. Uh,
+
+226
+00:12:30,422 --> 00:12:34,334
+so it's a markdown format. It uses far less credits for,
+
+227
+00:12:34,335 --> 00:12:37,452
+uhm, it uses less credits than if we were to just have,
+
+228
+00:12:37,453 --> 00:12:42,063
+like, a completely, if we were to put all of that information into the,
+
+229
+00:12:42,064 --> 00:12:45,139
+uh, content creator, like the, the Anthropic node.
+
+230
+00:12:45,617 --> 00:12:48,011
+It also allows us to be agnostic for the nodes.
+
+231
+00:12:48,012 --> 00:12:54,573
+So if the, How
+
+232
+00:12:54,574 --> 00:12:59,454
+do I explain
+
+233
+00:12:59,455 --> 00:12:59,694
+this?
+
+234
+00:13:04,011 --> 00:13:07,115
+There are, depending on the newsletter,
+
+235
+00:13:07,281 --> 00:13:10,710
+so there are three newsletters that we're building user content for here.
+
+236
+00:13:10,711 --> 00:13:13,361
+So this, I wanted this step to be agnostic.
+
+237
+00:13:13,837 --> 00:13:15,856
+You would have, if you added new newsletters,
+
+238
+00:13:15,947 --> 00:13:17,953
+you would have to add new,
+
+239
+00:13:17,954 --> 00:13:20,869
+uh, sort of descriptions of the way that you,
+
+240
+00:13:20,870 --> 00:13:23,539
+like the style, a style guide, right? Like who the audience is,
+
+241
+00:13:23,540 --> 00:13:25,743
+what the focus is, and what the tone looks like.
+
+242
+00:13:26,153 --> 00:13:31,299
+There are global rules, but there's also rules for each individual newsletter,
+
+243
+00:13:31,300 --> 00:13:33,301
+right? Mostly to describe the,
+
+244
+00:13:33,508 --> 00:13:36,011
+the audience. Uhm,
+
+245
+00:13:36,012 --> 00:13:40,530
+so that's important, and that's a big reason that we're
+
+246
+00:13:40,531 --> 00:13:45,487
+also using this system to feed the prompt into Anthropic.
+
+247
+00:13:45,488 --> 00:13:47,675
+So we pass through this, like, broad,
+
+248
+00:13:48,053 --> 00:13:52,011
+sort of, uhm, description of what each newsletter Later.
+
+249
+00:13:52,012 --> 00:13:56,461
+Uh, what they're looking for, and then we also pass through the newsletter per
+
+250
+00:13:56,462 --> 00:13:58,907
+article. So this one, for example,
+
+251
+00:13:58,908 --> 00:14:01,519
+uhm, where is the newsletter?
+
+252
+00:14:01,520 --> 00:14:06,519
+Oh,
+
+253
+00:14:11,323 --> 00:14:12,501
+come on.
+
+254
+00:14:18,454 --> 00:14:20,514
+So the newsletter here is, uh,
+
+255
+00:14:20,525 --> 00:14:25,205
+Pivot AI, aka Pivot 5. We
+
+256
+00:14:25,206 --> 00:14:28,647
+build user content, and then we pass this whole thing,
+
+257
+00:14:29,170 --> 00:14:32,091
+pass this whole thing which describes how we want the headlines written,
+
+258
+00:14:32,092 --> 00:14:34,532
+uh, how we, what we want the bullets to look like,
+
+259
+00:14:34,533 --> 00:14:37,068
+you know, the number of sentences, all that sort of stuff,
+
+260
+00:14:37,410 --> 00:14:39,616
+and then the potential audiences.
+
+261
+00:14:39,723 --> 00:14:41,942
+So, uh, there's three audiences, PivotInvest,
+
+262
+00:14:42,002 --> 00:14:46,803
+PivotBuild, PivotAI. We pass all that information through to Anthropic.
+
+263
+00:14:47,779 --> 00:14:51,898
+And then we also give Anthropic the newsletter ID.
+
+264
+00:14:52,128 --> 00:14:54,766
+So, independent of what we've built,
+
+265
+00:14:55,166 --> 00:14:58,153
+so what we build, uh, build goes into here,
+
+266
+00:14:58,335 --> 00:15:00,701
+article markdown start, JSON user content.
+
+267
+00:15:00,702 --> 00:15:02,949
+Contains the markdown and everything,
+
+268
+00:15:02,951 --> 00:15:07,342
+all the context that Anthropic needs to be able to write the bullets and
+
+269
+00:15:07,343 --> 00:15:10,188
+headlines and do the bolding, or, it's actually not the bolding,
+
+270
+00:15:10,189 --> 00:15:13,669
+but to write the headlines and bullets. We pass all that through here,
+
+271
+00:15:14,168 --> 00:15:17,773
+and we also pass it the newsletter ID, so that it can select what
+
+272
+00:15:18,304 --> 00:15:20,720
+audience to use. For example,
+
+273
+00:15:20,721 --> 00:15:25,138
+if we pass through Pivot.ai here, it's going to use the pit in user
+
+274
+00:15:25,139 --> 00:15:28,842
+content, there are, there's a description of what the audience is for the Pivot.ai,
+
+275
+00:15:28,843 --> 00:15:31,486
+uhm, and that is the system that we used,
+
+276
+00:15:31,487 --> 00:15:33,980
+so that's how it knows what, uh,
+
+277
+00:15:33,991 --> 00:15:37,218
+what the, uh, what sort of context we,
+
+278
+00:15:39,280 --> 00:15:43,893
+sorry, uh, what sort of context to use to write the bullets
+
+279
+00:15:43,894 --> 00:15:47,443
+and how to write the headline, basically. We also pass through the URL,
+
+280
+00:15:47,444 --> 00:15:50,001
+uh, and we pass through the tags as well.
+
+281
+00:15:50,002 --> 00:15:53,087
+Uhm, yeah, the tags aren't super useful,
+
+282
+00:15:53,088 --> 00:15:55,891
+but they're, you know, probably useful for social,
+
+283
+00:15:55,892 --> 00:15:58,023
+actually. So, yeah,
+
+284
+00:15:58,024 --> 00:16:00,725
+you know, please, uh, go create,
+
+285
+00:16:00,726 --> 00:16:04,568
+uh, you know, follow the rules of Build User Content based on what we
+
+286
+00:16:04,569 --> 00:16:06,732
+have written in Build User Content and,
+
+287
+00:16:06,733 --> 00:16:09,200
+you know, make sure that you're using this particular newsletter,
+
+288
+00:16:09,497 --> 00:16:13,314
+right? Once we get that, uh,
+
+289
+00:16:13,324 --> 00:16:16,011
+so that's the content creator, then it goes to bolding.
+
+290
+00:16:16,012 --> 00:16:19,859
+Uh,
+
+291
+00:16:19,869 --> 00:16:23,803
+bolding is a separate, uh, task, as we figured out with the original Pivot5,
+
+292
+00:16:23,804 --> 00:16:28,472
+uh, it really is much better if there is a separate anthropic node
+
+293
+00:16:28,716 --> 00:16:31,750
+that, uh, does the bolding as opposed to having it written in Build User
+
+294
+00:16:31,751 --> 00:16:35,832
+content. So the output looks like this.
+
+295
+00:16:35,833 --> 00:16:39,110
+It is just, you know, it's like, we just get everything we need,
+
+296
+00:16:39,111 --> 00:16:41,668
+um, as well as, uh,
+
+297
+00:16:41,679 --> 00:16:43,749
+yeah. So we, we get everything we need here.
+
+298
+00:16:44,139 --> 00:16:46,945
+Important note, uh,
+
+299
+00:16:46,955 --> 00:16:49,567
+we use news, uh,
+
+300
+00:16:49,578 --> 00:16:53,308
+we use story, we start using story ID in this flow.
+
+301
+00:16:53,309 --> 00:16:56,288
+So once we hit newsletter stories,
+
+302
+00:16:56,289 --> 00:17:00,809
+we start using story ID as opposed to the pivot ID,
+
+303
+00:17:01,104 --> 00:17:04,011
+pivot ID is still in here, but pivot ID.
+
+304
+00:17:04,012 --> 00:17:07,720
+is specific to the article. It's like a record that describes it's a unique
+
+305
+00:17:07,721 --> 00:17:12,293
+identifier for the article story ID
+
+306
+00:17:12,294 --> 00:17:16,296
+is, you know, because there could be multiple stories in the future per article,
+
+307
+00:17:16,297 --> 00:17:20,011
+we created story ID to be able to track all of that.
+
+308
+00:17:20,012 --> 00:17:22,286
+Uhm, so if there, you know,
+
+309
+00:17:22,287 --> 00:17:26,502
+there could be multiple story IDs per pivot ID in the future,
+
+310
+00:17:26,503 --> 00:17:28,549
+not currently, but in the future.
+
+311
+00:17:28,550 --> 00:17:33,719
+Uhm, I can't remember where story ID
+
+312
+00:17:33,720 --> 00:17:36,011
+is actually.
+
+313
+00:17:43,328 --> 00:17:47,022
+Calculated. I think it might actually be calculated in this, in this build user
+
+314
+00:17:47,023 --> 00:17:49,787
+ID. Yeah,
+
+315
+00:17:49,788 --> 00:17:52,016
+I don't think we have,
+
+316
+00:17:52,017 --> 00:17:54,548
+Dory ID.
+
+317
+00:17:54,549 --> 00:17:56,927
+It would make sense that it's calculated here.
+
+318
+00:18:02,700 --> 00:18:05,740
+So I think it's actually calculated somewhere in build user content.
+
+319
+00:18:08,011 --> 00:18:10,068
+Yeah,
+
+320
+00:18:10,069 --> 00:18:15,472
+build story ID, uhm,
+
+321
+00:18:15,504 --> 00:18:16,354
+fallback
+
+322
+00:18:22,703 --> 00:18:25,993
+to record ID. Yeah, so the reason,
+
+323
+00:18:25,994 --> 00:18:29,095
+so the story ID is the same, and this is a little bit confusing,
+
+324
+00:18:29,096 --> 00:18:34,121
+uh, I'll admit, but the story ID is the same as the record ID
+
+325
+00:18:34,122 --> 00:18:37,015
+in newsletter stories. Uhm,
+
+326
+00:18:37,026 --> 00:18:39,134
+I would actually, I think one way to,
+
+327
+00:18:39,544 --> 00:18:43,901
+it's not necessarily the That's not necessarily a problem, they're not inextricably tied together,
+
+328
+00:18:43,902 --> 00:18:48,208
+it's just that, uh, it is literally compiled in this flow,
+
+329
+00:18:48,209 --> 00:18:50,405
+and we just made it the same as the record ID,
+
+330
+00:18:50,914 --> 00:18:53,063
+I think that could get confusing in the future,
+
+331
+00:18:53,064 --> 00:18:55,931
+if you wanted to, you could come up with a new formula to calculate
+
+332
+00:18:55,932 --> 00:18:59,383
+it to calculate story ID so that it just, it wasn't a record ID,
+
+333
+00:18:59,780 --> 00:19:01,825
+you could also just, you know,
+
+334
+00:19:01,826 --> 00:19:06,649
+recognize that the record ID is different than the story ID in future flows,
+
+335
+00:19:06,650 --> 00:19:10,071
+uhm, that, like, the record ID for a story in this,
+
+336
+00:19:10,072 --> 00:19:13,119
+uh, uhm, in this flow,
+
+337
+00:19:13,120 --> 00:19:15,592
+the record ID is going to be different than the story ID,
+
+338
+00:19:15,593 --> 00:19:19,376
+uhm, yeah. So it's not necessarily an issue,
+
+339
+00:19:19,377 --> 00:19:22,115
+but it is a little bit confusing, I'll, I'll grant.
+
+340
+00:19:26,945 --> 00:19:28,959
+So, we move forward with story, we do the bolding, Blah, blah, blah, blah,
+
+341
+00:19:28,960 --> 00:19:31,099
+blah. I won't wait for this to complete.
+
+342
+00:19:31,318 --> 00:19:33,799
+We've done the bolding, it produces this, we normalize it,
+
+343
+00:19:33,800 --> 00:19:36,640
+uhm, we then enrich with AI data.
+
+344
+00:19:36,641 --> 00:19:39,626
+I believe that this is for, yeah,
+
+345
+00:19:39,846 --> 00:19:43,560
+so this is just enriching the existing newsletter story record.
+
+346
+00:19:43,683 --> 00:19:45,785
+We enrich it with this data.
+
+347
+00:19:45,786 --> 00:19:49,650
+So that's where these columns come from. So we update Airtable,
+
+348
+00:19:49,651 --> 00:19:54,052
+uhm, we mark that the AI has been done.
+
+349
+00:19:54,053 --> 00:19:56,227
+Uh, so we just want,
+
+350
+00:19:56,228 --> 00:19:58,737
+you know, AI processed, AI is complete,
+
+351
+00:19:58,738 --> 00:20:01,390
+and then we write the date, that it was processed at,
+
+352
+00:20:02,298 --> 00:20:04,568
+and then, uh, decorations data,
+
+353
+00:20:04,569 --> 00:20:06,795
+yeah. So this is then back on the article table,
+
+354
+00:20:06,796 --> 00:20:11,821
+decoration status is complete. So that is what this is
+
+355
+00:20:11,822 --> 00:20:14,108
+here. Decoration status is complete.
+
+356
+00:20:14,109 --> 00:20:18,062
+So we've finished, uh, with, uh, with that decoration step,
+
+357
+00:20:18,117 --> 00:20:20,514
+basically. So we know, you know, when we go through articles,
+
+358
+00:20:20,515 --> 00:20:24,330
+we know that certain articles are going to be in newsletter stories,
+
+359
+00:20:24,331 --> 00:20:26,899
+certain, you know, some are not going to be, and this is the field
+
+360
+00:20:26,900 --> 00:20:31,515
+that we use to determine that. Yeah.
+
+361
+00:20:31,516 --> 00:20:35,027
+So that is, that's this step. Uhm,
+
+362
+00:20:35,038 --> 00:20:38,758
+Kriha, yeah, I don't think there's anything else about this step that is,
+
+363
+00:20:38,759 --> 00:20:41,775
+uhm,
+
+364
+00:20:41,785 --> 00:20:46,141
+that is unique. Again, if you wanted to add new newsletters,
+
+365
+00:20:46,405 --> 00:20:48,870
+you would need to update this node.
+
+366
+00:20:48,995 --> 00:20:51,603
+This node describes the, what the audience is.
+
+367
+00:20:51,604 --> 00:20:54,321
+Uhm,
+
+368
+00:20:54,332 --> 00:20:56,428
+so if you added new newsletters, you'd need to update.
+
+369
+00:20:56,649 --> 00:20:59,315
+You'd need to add an audience. This is where you would add an audience
+
+370
+00:20:59,316 --> 00:21:01,996
+profile, right? Like what exactly the site,
+
+371
+00:21:01,997 --> 00:21:04,048
+you know, what, outside of all the global rules, you know,
+
+372
+00:21:04,049 --> 00:21:06,079
+rules, like what is the audience for this new newsletter.
+
+373
+00:21:06,080 --> 00:21:08,083
+Uhm, yeah.
+
+374
+00:21:10,256 --> 00:21:13,567
+I think that is it. We also have loop over items for this because
+
+375
+00:21:13,568 --> 00:21:16,504
+we don't want to hammer, we don't want to hit Anthropic's rate limits.
+
+376
+00:21:20,011 --> 00:21:24,835
+Just trying to make sure that there's nothing in this flow that
+
+377
+00:21:25,399 --> 00:21:28,192
+is convoluted and needs explanation.
+
+378
+00:21:34,683 --> 00:21:37,948
+Yeah. Yeah. So that is it. It, AI deck is not really used.
+
+379
+00:21:38,124 --> 00:21:40,285
+It's kind of like a short summary. Um,
+
+380
+00:21:40,296 --> 00:21:42,566
+I don't use it for anything right now. Um,
+
+381
+00:21:42,577 --> 00:21:45,441
+it's by story. So it's, it can't be used for like,
+
+382
+00:21:46,375 --> 00:21:49,634
+it can't be news not used on like the newsletter issue level,
+
+383
+00:21:49,635 --> 00:21:52,016
+uh, later. So I just don't really.
+
+384
+00:21:52,017 --> 00:21:54,540
+I don't really do anything with this. I, there is,
+
+385
+00:21:54,609 --> 00:21:56,941
+there are summaries that are created with, you know,
+
+386
+00:21:56,942 --> 00:21:59,051
+news that's been selected for a specific newsletter,
+
+387
+00:21:59,052 --> 00:22:01,849
+but that happens a little bit later and we actually don't have that in
+
+388
+00:22:01,850 --> 00:22:08,995
+the current version of the newsletter anyway. So
+
+389
+00:22:08,996 --> 00:22:11,571
+that's it for this stage of the decoration flow.
+
+390
+00:22:11,572 --> 00:22:14,893
+Um, we will now move on to,
+
+391
+00:22:15,497 --> 00:22:19,171
+we'll move on to images, the rest of these fields,
+
+392
+00:22:19,172 --> 00:22:21,580
+basically. Yeah.
+
+393
+00:22:21,581 --> 00:22:24,011
+Everything past, you know, selected for publication.
+
+394
+00:22:24,012 --> 00:22:26,537
+The date that it was published, image URL,
+
+395
+00:22:26,538 --> 00:22:28,604
+all that is created in a later flow.
+
+396
+00:22:28,894 --> 00:22:30,907
+The purpose of the flow that I just showed you,
+
+397
+00:22:30,908 --> 00:22:34,462
+uh, this flow is just to create the bullets, headlines in the building for
+
+398
+00:22:34,463 --> 00:22:38,721
+eligible stories, uh, and also to populate the newsletter stories,
+
+399
+00:22:38,722 --> 00:22:40,949
+uh, table. That is what this does.
+
+400
+00:22:40,950 --> 00:22:44,583
+Uh, this populates the newsletter stories table from the articles table.
+
+401
+00:22:44,584 --> 00:22:46,823
+Um, that's, that's how that happens.
+
+402
+00:22:46,915 --> 00:22:50,541
+So, I'll end this one here and then move on to,
+
+403
+00:22:50,542 --> 00:22:52,129
+uh, the next flow.
