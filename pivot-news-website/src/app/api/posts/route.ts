@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
-// New Airtable configuration for Pivot AI stories
-const AIRTABLE_BASE_ID = "appwSozYTkrsQWUXB";
-const AIRTABLE_TABLE_ID = "tblaHcFFG6Iw3w7lL";
+// AI Editor 2.0 - Decoration table (switched Dec 21, 2025)
+// Previously: Newsletter Issue Stories (appwSozYTkrsQWUXB/tblaHcFFG6Iw3w7lL)
+const AIRTABLE_BASE_ID = "appglKSJZxmA9iHpl";
+const AIRTABLE_TABLE_ID = "tbla16LJCf5Z6cRn3";
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
 
 interface AirtableRecord {

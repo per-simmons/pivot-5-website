@@ -3,19 +3,14 @@
  *
  * This endpoint generates blog-style articles from newsletter source material using Gemini AI.
  *
- * SUPPORTED NEWSLETTERS:
- * - Pivot AI ✅ (working)
- * - Pivot Build ✅ (working)
- * - Pivot Invest ✅ (working)
- *
- * The filter uses FIND("Pivot", {issue_id}) to match ALL Pivot newsletter variants.
+ * SOURCE: AI Editor 2.0 - Decoration table (NEW as of Dec 21, 2025)
+ * Previously used Newsletter Issue Stories table - now switched to AI Editor pipeline
  *
  * FLOW:
- * 1. Fetches records from Newsletter Issue Stories table where:
- *    - issue_id contains "Pivot"
- *    - date_og_published is set
+ * 1. Fetches records from AI Editor - Decoration table where:
+ *    - image_status = 'generated' (has image ready)
  *    - blog_post_raw is empty
- * 2. Sends ai_headline + markdown + bullet points to Gemini
+ * 2. Sends headline + raw content + bullet points to Gemini
  * 3. Gemini writes 500-800 word blog post
  * 4. Saves to blog_post_raw field in Airtable
  *
@@ -24,15 +19,16 @@
  * - 1 second delay between Gemini API calls
  * - Run cron multiple times to process backlog
  *
- * VERIFIED: Dec 16, 2025 - All three newsletters (AI, Build, Invest) confirmed working
+ * UPDATED: Dec 21, 2025 - Switched from Newsletter Issue Stories to AI Editor - Decoration
  */
 
 import { NextRequest, NextResponse } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
-const AIRTABLE_BASE_ID = "appwSozYTkrsQWUXB";
-const AIRTABLE_TABLE_ID = "tblaHcFFG6Iw3w7lL";
+// AI Editor 2.0 base and Decoration table
+const AIRTABLE_BASE_ID = "appglKSJZxmA9iHpl";
+const AIRTABLE_TABLE_ID = "tbla16LJCf5Z6cRn3";
 const GENERATED_STORY_FIELD = "blog_post_raw";
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -67,24 +63,25 @@ Write as flowing prose paragraphs only. Remember: minimum 500 words.`;
 interface AirtableRecord {
   id: string;
   fields: {
-    // New Airtable field names
-    ai_headline?: string;
-    ai_dek?: string;
-    "markdown (from story_link)"?: string;
-    bullet_1?: string;
-    bullet_2?: string;
-    bullet_3?: string;
+    // AI Editor - Decoration table field names
+    headline?: string;
+    raw?: string;
+    b1?: string;
+    b2?: string;
+    b3?: string;
     blog_post_raw?: string;
-    date_og_published?: string;
-    issue_id?: string;
+    image_status?: string;
+    story_id?: string;
+    pivotnews_url?: string;
   };
 }
 
 async function fetchPendingRecords(): Promise<AirtableRecord[]> {
-  // Fetch all Pivot newsletter records where date_og_published is set and blog_post_raw is empty
-  // Includes: Pivot AI, Pivot Build, Pivot Invest, etc.
+  // Fetch records from AI Editor - Decoration where:
+  // - image_status = 'generated' (image is ready)
+  // - blog_post_raw is empty (not yet generated)
   const filterFormula = encodeURIComponent(
-    `AND(FIND("Pivot", {issue_id}) > 0, {date_og_published} != "", OR({blog_post_raw}="", {blog_post_raw}=BLANK()))`
+    `AND({image_status}="generated", OR({blog_post_raw}="", {blog_post_raw}=BLANK()))`
   );
 
   const response = await fetch(
@@ -232,15 +229,15 @@ export async function GET(request: NextRequest) {
 
     // Process each record
     for (const record of pendingRecords) {
-      // Use new Airtable field names
-      const headline = record.fields.ai_headline;
-      const rawText = record.fields["markdown (from story_link)"];
+      // Use AI Editor - Decoration field names
+      const headline = record.fields.headline;
+      const rawText = record.fields.raw;
 
-      // Combine bullet points from bullet_1, bullet_2, bullet_3
+      // Combine bullet points from b1, b2, b3
       const bulletParts: string[] = [];
-      if (record.fields.bullet_1) bulletParts.push(record.fields.bullet_1);
-      if (record.fields.bullet_2) bulletParts.push(record.fields.bullet_2);
-      if (record.fields.bullet_3) bulletParts.push(record.fields.bullet_3);
+      if (record.fields.b1) bulletParts.push(record.fields.b1);
+      if (record.fields.b2) bulletParts.push(record.fields.b2);
+      if (record.fields.b3) bulletParts.push(record.fields.b3);
       const bullets = bulletParts.length > 0 ? bulletParts.join("\n") : null;
 
       if (!headline || !rawText) {

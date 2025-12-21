@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// New Airtable configuration for Pivot AI stories
-const AIRTABLE_BASE_ID = "appwSozYTkrsQWUXB";
-const AIRTABLE_TABLE_ID = "tblaHcFFG6Iw3w7lL";
+// AI Editor 2.0 - Decoration table (switched Dec 21, 2025)
+// Previously: Newsletter Issue Stories (appwSozYTkrsQWUXB/tblaHcFFG6Iw3w7lL)
+const AIRTABLE_BASE_ID = "appglKSJZxmA9iHpl";
+const AIRTABLE_TABLE_ID = "tbla16LJCf5Z6cRn3";
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
 
 interface AirtableRecord {
@@ -34,7 +35,8 @@ export async function GET(
 
     // Use Airtable filter formula to search directly instead of fetching all records
     // This avoids the 100-record pagination limit
-    const filterFormula = `OR(SEARCH("${storyid}",{pivotnews_url}),{StoryID}="${storyid}",RECORD_ID()="${storyid}")`;
+    // Fields: pivotnews_url (formula field), story_id (from AI Editor - Decoration)
+    const filterFormula = `OR(SEARCH("${storyid}",{pivotnews_url}),{story_id}="${storyid}",RECORD_ID()="${storyid}")`;
     const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula=${encodeURIComponent(filterFormula)}`;
 
     const response = await fetch(airtableUrl, {
