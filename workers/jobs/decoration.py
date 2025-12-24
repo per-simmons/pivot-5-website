@@ -11,9 +11,9 @@ import os
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 
-from ..utils.airtable import AirtableClient
-from ..utils.gemini import GeminiClient
-from ..utils.claude import ClaudeClient
+from utils.airtable import AirtableClient
+from utils.gemini import GeminiClient
+from utils.claude import ClaudeClient
 
 
 def decorate_stories() -> dict:
@@ -180,7 +180,7 @@ def decorate_stories() -> dict:
         if results["decorated"] > 0:
             print("[Step 3] Updating issue status to 'decorated'...")
             try:
-                from ..utils.airtable import AirtableClient
+                from utils.airtable import AirtableClient
                 airtable_client = AirtableClient()
                 # Use the selected slots table to update status
                 table = airtable_client._get_table(
