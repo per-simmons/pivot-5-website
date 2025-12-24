@@ -156,7 +156,6 @@ function PreFilterTable() {
           <TableHead className="w-24">Story ID</TableHead>
           <TableHead>Headline</TableHead>
           <TableHead className="w-16 text-center">Slot</TableHead>
-          <TableHead className="w-20 text-right">Score</TableHead>
           <TableHead className="w-24">Date</TableHead>
         </TableRow>
       </TableHeader>
@@ -172,7 +171,6 @@ function PreFilterTable() {
                 {row.slot}
               </Badge>
             </TableCell>
-            <TableCell className="text-right font-mono">{row.score}</TableCell>
             <TableCell className="text-muted-foreground">{row.date}</TableCell>
           </TableRow>
         ))}

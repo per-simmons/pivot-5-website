@@ -1,0 +1,5 @@
+# Root-level requirements.txt for Render deployment
+# The actual requirements are in workers/requirements.txt
+# This file is here because Render's Python builds look for it in rootDir
+
+-r workers/requirements.txt
