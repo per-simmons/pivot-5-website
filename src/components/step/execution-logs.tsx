@@ -74,95 +74,42 @@ const mockLogLines: LogLine[] = [
 ];
 
 export function ExecutionLogs({ stepId, stepName }: ExecutionLogsProps) {
-  const [selectedExecution, setSelectedExecution] = useState<string | null>("1");
+  // Get the most recent execution for display
+  const latestExecution = mockExecutions[0];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* Execution History */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Execution History</CardTitle>
-          <CardAction>
+    <Card>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-base">
+          Latest Execution Logs
+          <span className="font-normal text-muted-foreground ml-2">
+            {latestExecution.timestamp} • {latestExecution.duration}
+          </span>
+          <StatusBadge status={latestExecution.status} />
+        </CardTitle>
+        <CardAction>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-2">
+              <MaterialIcon name="content_copy" className="text-base" />
+              Copy
+            </Button>
             <Button variant="outline" size="sm" className="gap-2">
               <MaterialIcon name="download" className="text-base" />
-              Export CSV
+              Download
             </Button>
-          </CardAction>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead className="text-right">In</TableHead>
-                <TableHead className="text-right">Out</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockExecutions.map((execution) => (
-                <TableRow
-                  key={execution.id}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedExecution === execution.id && "bg-muted/50"
-                  )}
-                  onClick={() => setSelectedExecution(execution.id)}
-                >
-                  <TableCell className="font-medium">{execution.timestamp}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={execution.status} />
-                  </TableCell>
-                  <TableCell className="font-mono text-muted-foreground">
-                    {execution.duration}
-                  </TableCell>
-                  <TableCell className="text-right">{execution.storiesIn}</TableCell>
-                  <TableCell className="text-right">
-                    {execution.storiesOut ?? "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Log Detail */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">
-            Execution Detail
-            {selectedExecution && (
-              <span className="font-normal text-muted-foreground ml-2">
-                {mockExecutions.find((e) => e.id === selectedExecution)?.timestamp}
-              </span>
-            )}
-          </CardTitle>
-          <CardAction>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="gap-2">
-                <MaterialIcon name="content_copy" className="text-base" />
-                Copy
-              </Button>
-              <Button variant="outline" size="sm" className="gap-2">
-                <MaterialIcon name="download" className="text-base" />
-                Download
-              </Button>
-            </div>
-          </CardAction>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <ScrollArea className="h-[400px] rounded-md border bg-muted/30">
-            <div className="p-4 font-mono text-xs space-y-1">
-              {mockLogLines.map((line, index) => (
-                <LogLineEntry key={index} line={line} />
-              ))}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <ScrollArea className="h-[500px] rounded-md border bg-muted/30">
+          <div className="p-4 font-mono text-xs space-y-1">
+            {mockLogLines.map((line, index) => (
+              <LogLineEntry key={index} line={line} />
+            ))}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
   );
 }
 

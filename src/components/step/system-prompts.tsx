@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { PromptConfig } from "@/lib/step-config";
+import { getPromptContent, type PromptContent } from "@/lib/prompts-content";
 
 // Lazy load Monaco editor to avoid SSR issues
 const PromptEditor = lazy(() =>
@@ -25,74 +26,54 @@ interface SystemPromptsProps {
   prompts: PromptConfig[];
 }
 
-interface PromptData {
-  id: string;
-  prompt_key: string;
-  content: string;
-  version: number;
-  updated_at: string;
-  updated_by: string;
-}
-
 export function SystemPrompts({ stepId, prompts }: SystemPromptsProps) {
   const [expandedPrompts, setExpandedPrompts] = useState<Set<string>>(
     new Set([prompts[0]?.id])
   );
   const [editingPrompt, setEditingPrompt] = useState<string | null>(null);
 
-  // Track original content from API
+  // Track original content from static file
   const [originalContent, setOriginalContent] = useState<Record<string, string>>({});
   // Track current edited content
   const [editedContent, setEditedContent] = useState<Record<string, string>>({});
   // Track which prompts have unsaved changes
   const [hasChanges, setHasChanges] = useState<Set<string>>(new Set());
 
-  // Loading states
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Metadata from static file
+  const [promptMeta, setPromptMeta] = useState<Record<string, { version: number; lastModified: string }>>({});
 
-  // Metadata from API
-  const [promptMeta, setPromptMeta] = useState<Record<string, { version: number; updatedAt: string; updatedBy: string }>>({});
-
-  // Fetch prompts from API on mount
+  // Load prompts from static file on mount
   useEffect(() => {
-    const fetchPrompts = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`/api/prompts?stepId=${stepId}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch prompts");
-        }
-        const data = await response.json();
-        const promptsData: PromptData[] = data.prompts || [];
+    const contentMap: Record<string, string> = {};
+    const metaMap: Record<string, { version: number; lastModified: string }> = {};
 
-        const contentMap: Record<string, string> = {};
-        const metaMap: Record<string, { version: number; updatedAt: string; updatedBy: string }> = {};
+    prompts.forEach((p) => {
+      const promptData = getPromptContent(p.id);
+      if (promptData) {
+        contentMap[p.id] = promptData.content;
+        metaMap[p.id] = {
+          version: promptData.version,
+          lastModified: promptData.lastModified,
+        };
+      } else {
+        // Fallback for prompts not in static file
+        contentMap[p.id] = `You are an AI assistant for the Pivot 5 newsletter pipeline.
 
-        promptsData.forEach((p) => {
-          contentMap[p.prompt_key] = p.content || "";
-          metaMap[p.prompt_key] = {
-            version: p.version,
-            updatedAt: p.updated_at,
-            updatedBy: p.updated_by || "system",
-          };
-        });
+Task: ${p.description}
 
-        setOriginalContent(contentMap);
-        setEditedContent(contentMap);
-        setPromptMeta(metaMap);
-      } catch (err) {
-        console.error("Error fetching prompts:", err);
-        setError("Failed to load prompts from database");
-      } finally {
-        setLoading(false);
+Model: ${p.model}
+Temperature: ${p.temperature}`;
+        metaMap[p.id] = {
+          version: 1,
+          lastModified: new Date().toISOString().split('T')[0],
+        };
       }
-    };
+    });
 
-    fetchPrompts();
-  }, [stepId]);
+    setOriginalContent(contentMap);
+    setEditedContent(contentMap);
+    setPromptMeta(metaMap);
+  }, [prompts]);
 
   const toggleExpand = (promptId: string) => {
     setExpandedPrompts((prev) => {
@@ -129,63 +110,6 @@ export function SystemPrompts({ stepId, prompts }: SystemPromptsProps) {
     }
   }, [originalContent]);
 
-  const handleSave = async (promptId: string) => {
-    setSaving(promptId);
-    setError(null);
-
-    try {
-      const content = editedContent[promptId] || "";
-
-      const response = await fetch("/api/prompts", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          promptKey: promptId,
-          content,
-          userEmail: "dashboard@pivotstudio.ai",
-          changeSummary: "Updated via AI Editor dashboard",
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save prompt");
-      }
-
-      const data = await response.json();
-
-      // Update original content to match saved content
-      setOriginalContent((prev) => ({ ...prev, [promptId]: content }));
-
-      // Update metadata
-      if (data.prompt) {
-        setPromptMeta((prev) => ({
-          ...prev,
-          [promptId]: {
-            version: data.prompt.version,
-            updatedAt: new Date().toISOString(),
-            updatedBy: "dashboard@pivotstudio.ai",
-          },
-        }));
-      }
-
-      // Clear changes flag
-      setHasChanges((prev) => {
-        const next = new Set(prev);
-        next.delete(promptId);
-        return next;
-      });
-
-      // Exit editing mode
-      setEditingPrompt(null);
-    } catch (err) {
-      console.error("Error saving prompt:", err);
-      setError(err instanceof Error ? err.message : "Failed to save prompt");
-    } finally {
-      setSaving(null);
-    }
-  };
-
   const handleRevert = (promptId: string) => {
     // Restore to original content
     setEditedContent((prev) => ({
@@ -209,44 +133,26 @@ export function SystemPrompts({ stepId, prompts }: SystemPromptsProps) {
         year: "numeric",
       });
     } catch {
-      return "Unknown";
+      return dateStr;
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        {prompts.map((prompt) => (
-          <Card key={prompt.id}>
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="h-5 w-5 bg-muted rounded animate-pulse" />
-                <div className="space-y-2">
-                  <div className="h-4 w-32 bg-muted rounded animate-pulse" />
-                  <div className="h-3 w-48 bg-muted rounded animate-pulse" />
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 p-4 text-red-700 text-sm">
-          {error}
+      {/* Info banner */}
+      <div className="rounded-md bg-blue-50 border border-blue-200 p-4 text-blue-800 text-sm flex items-center gap-2">
+        <MaterialIcon name="info" className="text-blue-600" />
+        <div>
+          Prompts are loaded from <code className="bg-blue-100 px-1 rounded">src/lib/prompts-content.ts</code>.
+          Edit this file to update the prompts used by the pipeline.
         </div>
-      )}
+      </div>
 
       {/* Prompt Cards */}
       {prompts.map((prompt) => {
         const isExpanded = expandedPrompts.has(prompt.id);
         const isEditing = editingPrompt === prompt.id;
         const promptHasChanges = hasChanges.has(prompt.id);
-        const isSaving = saving === prompt.id;
         const content = editedContent[prompt.id] ?? "";
         const meta = promptMeta[prompt.id];
 
@@ -269,7 +175,7 @@ export function SystemPrompts({ stepId, prompts }: SystemPromptsProps) {
                       )}
                       {promptHasChanges && (
                         <Badge className="bg-amber-100 text-amber-700 border-amber-200">
-                          Unsaved
+                          Modified
                         </Badge>
                       )}
                     </div>
@@ -316,34 +222,24 @@ export function SystemPrompts({ stepId, prompts }: SystemPromptsProps) {
                     </Suspense>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
-                        {meta ? `v${meta.version} • Last modified: ${formatDate(meta.updatedAt)} by ${meta.updatedBy}` : "Loading..."}
+                        {meta ? `v${meta.version} • Last modified: ${formatDate(meta.lastModified)}` : ""}
                       </span>
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleRevert(prompt.id)}
-                          disabled={isSaving}
                         >
                           Revert
                         </Button>
                         <Button
                           size="sm"
-                          onClick={() => handleSave(prompt.id)}
-                          disabled={!promptHasChanges || isSaving}
-                          className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-600/50"
+                          disabled={true}
+                          className="bg-muted text-muted-foreground cursor-not-allowed"
+                          title="Edit prompts-content.ts to save changes"
                         >
-                          {isSaving ? (
-                            <>
-                              <MaterialIcon name="sync" className="text-base mr-1 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            <>
-                              <MaterialIcon name="save" className="text-base mr-1" />
-                              Save Changes
-                            </>
-                          )}
+                          <MaterialIcon name="code" className="text-base mr-1" />
+                          Edit in Code
                         </Button>
                       </div>
                     </div>
@@ -358,7 +254,7 @@ export function SystemPrompts({ stepId, prompts }: SystemPromptsProps) {
                       }
                     >
                       <PromptEditor
-                        value={content || "(No prompt content - click Edit to add)"}
+                        value={content || "(No prompt content)"}
                         onChange={() => {}}
                         readOnly
                         minHeight={200}
@@ -366,7 +262,7 @@ export function SystemPrompts({ stepId, prompts }: SystemPromptsProps) {
                       />
                     </Suspense>
                     <span className="text-xs text-muted-foreground">
-                      {meta ? `v${meta.version} • Last modified: ${formatDate(meta.updatedAt)} by ${meta.updatedBy}` : ""}
+                      {meta ? `v${meta.version} • Last modified: ${formatDate(meta.lastModified)}` : ""}
                     </span>
                   </div>
                 )}

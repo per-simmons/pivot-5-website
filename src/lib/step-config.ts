@@ -47,7 +47,7 @@ export const stepConfigs: StepConfig[] = [
     id: 2,
     name: "Slot Selection",
     description: "5 sequential Claude agents select the best story for each slot",
-    schedule: "11:55 PM ET Monday-Friday",
+    schedule: "9:15 PM ET Monday-Friday",
     icon: "checklist",
     prompts: [
       { id: "slot_1_agent", name: "Slot 1 Agent", model: "claude-sonnet-4-5-20250929", temperature: 0.7, description: "Select lead story for macro AI impact", slotNumber: 1 },

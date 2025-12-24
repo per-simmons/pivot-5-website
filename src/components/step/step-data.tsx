@@ -50,6 +50,8 @@ export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) 
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50; // Show 50 records per page
 
   // Fetch pre-filter data from API
   const fetchData = async () => {
@@ -104,6 +106,20 @@ export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) 
 
     return data;
   }, [preFilterData, selectedSlot, searchQuery]);
+
+  // Paginate filtered data
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredData.slice(startIndex, endIndex);
+  }, [filteredData, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedSlot, searchQuery]);
 
   const formatLastSync = () => {
     if (!lastSync) return "Never";
@@ -198,7 +214,7 @@ export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) 
         )}
 
         {/* Data Table - varies by step */}
-        {stepId === 1 && <PreFilterTable data={filteredData} loading={loading} />}
+        {stepId === 1 && <PreFilterTable data={paginatedData} loading={loading} />}
         {stepId === 2 && <SelectedSlotsTable />}
         {stepId === 3 && <DecorationTable />}
         {stepId === 4 && <IssuesTable />}
@@ -207,14 +223,28 @@ export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) 
         {/* Pagination */}
         <div className="flex items-center justify-between mt-4 pt-4 border-t">
           <span className="text-sm text-muted-foreground">
-            Showing {filteredData.length} of {preFilterData.length} records
+            Showing {paginatedData.length > 0 ? ((currentPage - 1) * pageSize + 1) : 0}
+            -{Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} records
+            {selectedSlot !== null && ` (filtered from ${preFilterData.length})`}
           </span>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
               <MaterialIcon name="chevron_left" className="text-lg" />
             </Button>
-            <span className="text-sm font-medium px-2">1</span>
-            <Button variant="outline" size="sm" disabled>
+            <span className="text-sm font-medium px-2">
+              Page {currentPage} of {Math.max(1, totalPages)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
               <MaterialIcon name="chevron_right" className="text-lg" />
             </Button>
           </div>

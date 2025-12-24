@@ -64,9 +64,9 @@ const initialSteps: PipelineStep[] = [
     id: 2,
     name: "Slot Selection",
     description: "5 sequential Claude agents select best story for each slot, enforcing diversity rules",
-    schedule: "11:55 PM EST",
+    schedule: "9:15 PM EST",
     status: "completed",
-    lastRun: "2024-12-23 23:55:42",
+    lastRun: "2024-12-23 21:15:42",
     storiesProcessed: 5,
   },
   {
@@ -235,6 +235,64 @@ export default function PipelinePage() {
         </Button>
       </div>
 
+      {/* Today's Issue Preview - TOP */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Today's Issue Preview</CardTitle>
+          <CardDescription>
+            {selectedSlots?.issueDate || "Loading..."}
+            {selectedSlots?.subjectLine && (
+              <span className="ml-2 text-primary">— {selectedSlots.subjectLine}</span>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-muted-foreground text-center py-8">Loading issue data...</div>
+          ) : selectedSlots ? (
+            <div className="grid grid-cols-5 gap-4">
+              {selectedSlots.slots.map((slotData) => {
+                // Find decoration for this slot - match by storyId or slot order
+                const decoration = decorations.find(d =>
+                  d.storyId === slotData.storyId || d.slotOrder === slotData.slot
+                );
+                const slotLabels: Record<number, string> = {
+                  1: "Jobs/Economy",
+                  2: "Tier 1 AI",
+                  3: "Industry",
+                  4: "Emerging",
+                  5: "Consumer",
+                };
+                return (
+                  <div
+                    key={slotData.slot}
+                    className="p-4 rounded-lg bg-muted border border-border"
+                  >
+                    <div className="text-xs text-primary font-medium mb-2">
+                      Slot {slotData.slot}: {slotLabels[slotData.slot]}
+                    </div>
+                    <div className="text-sm text-foreground font-medium line-clamp-2 mb-2">
+                      {slotData.headline || "Not selected"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {!slotData.headline ? (
+                        "Pending selection"
+                      ) : decoration?.imageStatus === "generated" ? (
+                        <span className="text-green-500">✓ Ready to send</span>
+                      ) : (
+                        <span className="text-yellow-500">Image pending</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-muted-foreground text-center py-8">No issue data available</div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Quick Stats */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         <Card>
@@ -354,61 +412,6 @@ export default function PipelinePage() {
         ))}
       </div>
 
-      {/* Today's Issue Preview */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>Today's Issue Preview</CardTitle>
-          <CardDescription>
-            {selectedSlots?.issueDate || "Loading..."}
-            {selectedSlots?.subjectLine && (
-              <span className="ml-2 text-primary">— {selectedSlots.subjectLine}</span>
-            )}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-muted-foreground text-center py-8">Loading issue data...</div>
-          ) : selectedSlots ? (
-            <div className="grid grid-cols-5 gap-4">
-              {selectedSlots.slots.map((slotData) => {
-                // Find decoration for this slot to get image status
-                const decoration = decorations.find(d => d.storyId === slotData.storyId);
-                const slotLabels: Record<number, string> = {
-                  1: "Jobs/Economy",
-                  2: "Tier 1 AI",
-                  3: "Industry",
-                  4: "Emerging",
-                  5: "Consumer",
-                };
-                return (
-                  <div
-                    key={slotData.slot}
-                    className="p-4 rounded-lg bg-muted border border-border"
-                  >
-                    <div className="text-xs text-primary font-medium mb-2">
-                      Slot {slotData.slot}: {slotLabels[slotData.slot]}
-                    </div>
-                    <div className="text-sm text-foreground font-medium line-clamp-2 mb-2">
-                      {slotData.headline || "Not selected"}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {!slotData.headline ? (
-                        "Pending selection"
-                      ) : decoration?.imageStatus === "generated" ? (
-                        <span className="text-green-500">Ready to send</span>
-                      ) : (
-                        <span className="text-yellow-500">Image pending</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-muted-foreground text-center py-8">No issue data available</div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
