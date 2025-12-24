@@ -6,6 +6,9 @@ redis==5.0.1
 rq==1.16.0
 rq-scheduler==0.13.1
 
+# PostgreSQL database
+psycopg2-binary==2.9.9
+
 # Airtable API
 pyairtable==2.3.3
 

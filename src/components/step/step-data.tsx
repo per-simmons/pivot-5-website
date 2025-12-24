@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,15 +32,25 @@ interface StepDataProps {
 
 // Mock data for different step tables
 const mockPreFilterData = [
-  { id: "rec_abc123", storyID: "p_abc123", headline: "OpenAI's $6.6B Raise Signals New AI Arms Race", slot: 1, score: 9.2, date: "Dec 23" },
-  { id: "rec_def456", storyID: "p_def456", headline: "Google Unveils Gemini 3 Flash Preview", slot: 2, score: 8.8, date: "Dec 23" },
-  { id: "rec_ghi789", storyID: "p_ghi789", headline: "Microsoft Copilot Expands to Enterprise", slot: 2, score: 8.5, date: "Dec 22" },
-  { id: "rec_jkl012", storyID: "p_jkl012", headline: "Healthcare AI Adoption Hits 70% Milestone", slot: 3, score: 8.9, date: "Dec 23" },
-  { id: "rec_mno345", storyID: "p_mno345", headline: "Startup Raises $50M for AI Developer Tools", slot: 4, score: 7.8, date: "Dec 23" },
-  { id: "rec_pqr678", storyID: "p_pqr678", headline: "The Ethics of AI Dating Apps Spark Debate", slot: 5, score: 7.5, date: "Dec 23" },
-  { id: "rec_stu901", storyID: "p_stu901", headline: "NVIDIA Stock Hits New All-Time High", slot: 1, score: 9.0, date: "Dec 22" },
-  { id: "rec_vwx234", storyID: "p_vwx234", headline: "Meta Releases Llama 4 Open Source Model", slot: 2, score: 8.7, date: "Dec 22" },
+  { id: "rec_abc123", storyID: "p_abc123", headline: "OpenAI's $6.6B Raise Signals New AI Arms Race", slot: 1, date: "2024-12-23", dateDisplay: "Dec 23" },
+  { id: "rec_def456", storyID: "p_def456", headline: "Google Unveils Gemini 3 Flash Preview", slot: 2, date: "2024-12-23", dateDisplay: "Dec 23" },
+  { id: "rec_ghi789", storyID: "p_ghi789", headline: "Microsoft Copilot Expands to Enterprise", slot: 2, date: "2024-12-22", dateDisplay: "Dec 22" },
+  { id: "rec_jkl012", storyID: "p_jkl012", headline: "Healthcare AI Adoption Hits 70% Milestone", slot: 3, date: "2024-12-23", dateDisplay: "Dec 23" },
+  { id: "rec_mno345", storyID: "p_mno345", headline: "Startup Raises $50M for AI Developer Tools", slot: 4, date: "2024-12-23", dateDisplay: "Dec 23" },
+  { id: "rec_pqr678", storyID: "p_pqr678", headline: "The Ethics of AI Dating Apps Spark Debate", slot: 5, date: "2024-12-23", dateDisplay: "Dec 23" },
+  { id: "rec_stu901", storyID: "p_stu901", headline: "NVIDIA Stock Hits New All-Time High", slot: 1, date: "2024-12-22", dateDisplay: "Dec 22" },
+  { id: "rec_vwx234", storyID: "p_vwx234", headline: "Meta Releases Llama 4 Open Source Model", slot: 2, date: "2024-12-22", dateDisplay: "Dec 22" },
+  { id: "rec_xyz567", storyID: "p_xyz567", headline: "AI Job Market Shifts as Automation Expands", slot: 1, date: "2024-12-21", dateDisplay: "Dec 21" },
+  { id: "rec_123abc", storyID: "p_123abc", headline: "Anthropic Announces Claude 4 Release Date", slot: 2, date: "2024-12-21", dateDisplay: "Dec 21" },
+  { id: "rec_456def", storyID: "p_456def", headline: "AI in Legal Industry Sees 300% Growth", slot: 3, date: "2024-12-22", dateDisplay: "Dec 22" },
+  { id: "rec_789ghi", storyID: "p_789ghi", headline: "New AI Startup Unicorn in Biotech Space", slot: 4, date: "2024-12-22", dateDisplay: "Dec 22" },
+  { id: "rec_012jkl", storyID: "p_012jkl", headline: "AI Companions: The Future of Digital Pets", slot: 5, date: "2024-12-22", dateDisplay: "Dec 22" },
+  { id: "rec_345mno", storyID: "p_345mno", headline: "Manufacturing Giants Embrace AI Automation", slot: 3, date: "2024-12-21", dateDisplay: "Dec 21" },
+  { id: "rec_678pqr", storyID: "p_678pqr", headline: "Seed-Stage AI Investments Break Records", slot: 4, date: "2024-12-21", dateDisplay: "Dec 21" },
 ];
+
+type SortDirection = "asc" | "desc" | null;
+type SortColumn = "slot" | "date" | null;
 
 const mockSelectedSlotsData = [
   { issue_date: "Pivot 5 - Dec 23", subject: "OpenAI's $6.6B Raise Signals New AI Arms Race", status: "decorated" },

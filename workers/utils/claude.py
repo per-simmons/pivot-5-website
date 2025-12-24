@@ -1,12 +1,19 @@
 """
 Claude API Client for AI Editor 2.0 Workers
 Used for: Slot Selection (Step 2), Decoration (Step 3), Summaries (Step 4)
+
+Prompts are loaded from PostgreSQL database via utils.prompts
 """
 
 import os
 import json
+import logging
 from typing import Dict, Any, List, Optional
 from anthropic import Anthropic
+
+from .prompts import get_prompt, get_prompt_with_metadata
+
+logger = logging.getLogger(__name__)
 
 
 class ClaudeClient:
@@ -19,8 +26,8 @@ class ClaudeClient:
 
         self.client = Anthropic(api_key=self.api_key)
 
-        # Model configuration
-        self.model = "claude-sonnet-4-5-20250929"
+        # Default model (can be overridden by prompt metadata)
+        self.default_model = "claude-sonnet-4-5-20250929"
 
     # =========================================================================
     # STEP 2: SLOT SELECTION
@@ -49,7 +56,7 @@ class ClaudeClient:
         user_prompt = self._build_slot_user_prompt(candidates)
 
         response = self.client.messages.create(
-            model=self.model,
+            model=self.default_model,
             max_tokens=2000,
             temperature=0.5,
             system=system_prompt,
@@ -63,28 +70,35 @@ class ClaudeClient:
             return self._parse_slot_response(response.content[0].text, candidates)
 
     def _build_slot_system_prompt(self, slot: int, yesterday_data: dict, cumulative_state: dict) -> str:
-        """Build slot-specific system prompt"""
+        """Build slot-specific system prompt from database"""
 
-        slot_focus = {
-            1: "Jobs, economy, stock market, broad societal impact. Must be FRESH (0-24 hours).",
-            2: "Tier 1 AI companies (OpenAI, Google, Meta, NVIDIA, Microsoft, Anthropic, xAI, Amazon), economic themes, research breakthroughs.",
-            3: "Industry verticals: Healthcare, Government, Education, Legal, Accounting, Retail, Security, Transportation, Manufacturing, Real Estate, Agriculture, Energy.",
-            4: "Emerging companies: product launches, fundraising, acquisitions, new AI tools. Must be FRESH (0-48 hours).",
-            5: "Consumer AI, human interest, ethics, entertainment, societal impact, fun/quirky uses."
-        }
+        # Load the base prompt from database
+        prompt_key = f"slot_{slot}_agent"
+        base_prompt = get_prompt(prompt_key)
 
+        if not base_prompt:
+            logger.warning(f"Prompt {prompt_key} not found in database, using fallback")
+            # Fallback to hardcoded if database unavailable
+            slot_focus = {
+                1: "Jobs, economy, stock market, broad societal impact. Must be FRESH (0-24 hours).",
+                2: "Tier 1 AI companies (OpenAI, Google, Meta, NVIDIA, Microsoft, Anthropic, xAI, Amazon), economic themes, research breakthroughs.",
+                3: "Industry verticals: Healthcare, Government, Education, Legal, Accounting, Retail, Security, Transportation, Manufacturing, Real Estate, Agriculture, Energy.",
+                4: "Emerging companies: product launches, fundraising, acquisitions, new AI tools. Must be FRESH (0-48 hours).",
+                5: "Consumer AI, human interest, ethics, entertainment, societal impact, fun/quirky uses."
+            }
+            base_prompt = f"You are a senior editor for Pivot 5. SLOT {slot} FOCUS: {slot_focus.get(slot, '')}"
+
+        # Build dynamic context to inject
         yesterday_headlines = yesterday_data.get('headlines', [])
         selected_today = cumulative_state.get('selectedToday', [])
         selected_companies = cumulative_state.get('selectedCompanies', [])
         selected_sources = cumulative_state.get('selectedSources', [])
 
-        prompt = f"""You are a senior editor for Pivot 5, a daily AI industry newsletter with professional subscribers.
+        context = f"""
 
-SLOT {slot} FOCUS: {slot_focus.get(slot, '')}
-
-EDITORIAL RULES:
+CURRENT CONTEXT:
 1. YESTERDAY'S HEADLINES - Do NOT select stories covering same topics:
-{chr(10).join(f"   - {h}" for h in yesterday_headlines)}
+{chr(10).join(f"   - {h}" for h in yesterday_headlines) if yesterday_headlines else '   (none)'}
 
 2. ALREADY SELECTED TODAY - Do NOT select these storyIDs:
    {selected_today if selected_today else '(none yet)'}
@@ -98,18 +112,12 @@ EDITORIAL RULES:
 
         # Slot 1 has special two-day rotation rule
         if slot == 1 and yesterday_data.get('slot1Company'):
-            prompt += f"""
+            context += f"""
 5. TWO-DAY ROTATION (Slot 1 only) - Do NOT feature this company:
    Yesterday's Slot 1 company: {yesterday_data['slot1Company']}
 """
 
-        prompt += """
-
-SELECTION CRITERIA:
-- High news value and relevance to AI professionals
-- Strong source credibility
-- Appropriate freshness for this slot
-- Diverse from other selected stories
+        context += """
 
 Return JSON with:
 - selected_storyId: the chosen story's storyID
@@ -119,7 +127,7 @@ Return JSON with:
 - source_id: the story's source
 - reasoning: 1-2 sentence explanation"""
 
-        return prompt
+        return base_prompt + context
 
     def _build_slot_user_prompt(self, candidates: List[dict]) -> str:
         """Build user prompt with candidate stories"""
@@ -168,7 +176,16 @@ Return JSON with:
         """
         Step 2, Node 29: Generate email subject line from 5 headlines
         """
-        prompt = f"""Generate a compelling email subject line for this daily AI newsletter.
+        # Load base prompt from database
+        base_prompt = get_prompt('subject_line')
+
+        if base_prompt:
+            # Inject today's headlines into the prompt
+            headlines_text = "\n".join([f"{i+1}. {h}" for i, h in enumerate(headlines[:5])])
+            prompt = base_prompt + f"\n\nTODAY'S HEADLINES:\n{headlines_text}\n\nReturn ONLY the subject line, no quotes or explanation."
+        else:
+            logger.warning("subject_line prompt not found in database, using fallback")
+            prompt = f"""Generate a compelling email subject line for this daily AI newsletter.
 
 TODAY'S HEADLINES:
 1. {headlines[0] if len(headlines) > 0 else ''}
@@ -186,10 +203,15 @@ REQUIREMENTS:
 
 Return ONLY the subject line, no quotes or explanation."""
 
+        # Get model/temperature from database if available
+        prompt_meta = get_prompt_with_metadata('subject_line')
+        model = prompt_meta.get('model', self.default_model) if prompt_meta else self.default_model
+        temperature = prompt_meta.get('temperature', 0.7) if prompt_meta else 0.7
+
         response = self.client.messages.create(
-            model=self.model,
+            model=model,
             max_tokens=100,
-            temperature=0.7,
+            temperature=float(temperature),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -210,14 +232,37 @@ Return ONLY the subject line, no quotes or explanation."""
         Returns:
             {ai_headline, ai_dek, b1, b2, b3, image_prompt, label}
         """
-        prompt = f"""You are decorating a story for Pivot 5, a professional AI newsletter.
+        # Load prompts from database - combine headline, bullet, and image prompts
+        headline_prompt = get_prompt('headline_generator')
+        bullet_prompt = get_prompt('bullet_generator')
+        image_prompt_template = get_prompt('image_prompt')
 
-ORIGINAL HEADLINE: {story_data.get('headline', '')}
+        # Build combined prompt with story context
+        story_context = f"""ORIGINAL HEADLINE: {story_data.get('headline', '')}
 SOURCE: {story_data.get('source', '')}
 TOPIC: {story_data.get('topic', '')}
 
 ARTICLE CONTENT:
-{cleaned_content[:6000]}
+{cleaned_content[:6000]}"""
+
+        if headline_prompt and bullet_prompt and image_prompt_template:
+            # Use database prompts
+            prompt = f"""{headline_prompt}
+
+{bullet_prompt}
+
+{image_prompt_template}
+
+{story_context}
+
+Generate all of the above in JSON format with keys: ai_headline, ai_dek, b1, b2, b3, label, image_prompt
+
+Return JSON only."""
+        else:
+            logger.warning("Decoration prompts not found in database, using fallback")
+            prompt = f"""You are decorating a story for Pivot 5, a professional AI newsletter.
+
+{story_context}
 
 Generate the following in JSON format:
 
@@ -237,10 +282,15 @@ Generate the following in JSON format:
 
 Return JSON only."""
 
+        # Get model/temperature from headline_generator prompt metadata
+        prompt_meta = get_prompt_with_metadata('headline_generator')
+        model = prompt_meta.get('model', self.default_model) if prompt_meta else self.default_model
+        temperature = prompt_meta.get('temperature', 0.5) if prompt_meta else 0.5
+
         response = self.client.messages.create(
-            model=self.model,
+            model=model,
             max_tokens=1500,
-            temperature=0.5,
+            temperature=float(temperature),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -253,20 +303,38 @@ Return JSON only."""
         """
         Step 3: Apply markdown bold to key phrases in bullets
         """
-        prompt = f"""Apply markdown bold (**text**) to 1-2 key phrases in each bullet point.
+        # Load bold_formatter prompt from database
+        base_prompt = get_prompt('bold_formatter')
+
+        bullets_text = f"""Bullet 1: {bullets[0] if len(bullets) > 0 else ''}
+Bullet 2: {bullets[1] if len(bullets) > 1 else ''}
+Bullet 3: {bullets[2] if len(bullets) > 2 else ''}"""
+
+        if base_prompt:
+            prompt = f"""{base_prompt}
+
+{bullets_text}
+
+Return JSON array with the 3 bolded bullets."""
+        else:
+            logger.warning("bold_formatter prompt not found in database, using fallback")
+            prompt = f"""Apply markdown bold (**text**) to 1-2 key phrases in each bullet point.
 Bold the most impactful/newsworthy phrases.
 
-Bullet 1: {bullets[0] if len(bullets) > 0 else ''}
-Bullet 2: {bullets[1] if len(bullets) > 1 else ''}
-Bullet 3: {bullets[2] if len(bullets) > 2 else ''}
+{bullets_text}
 
 Return JSON array with the 3 bolded bullets. Example:
 ["**Key phrase** rest of bullet one.", "Bullet two with **important part**.", "Third bullet **highlight** here."]"""
 
+        # Get model/temperature from database
+        prompt_meta = get_prompt_with_metadata('bold_formatter')
+        model = prompt_meta.get('model', self.default_model) if prompt_meta else self.default_model
+        temperature = prompt_meta.get('temperature', 0.3) if prompt_meta else 0.3
+
         response = self.client.messages.create(
-            model=self.model,
+            model=model,
             max_tokens=500,
-            temperature=0.3,
+            temperature=float(temperature),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -305,22 +373,39 @@ Return JSON array with the 3 bolded bullets. Example:
         """
         Step 4: Generate newsletter summary (15-word or 20-word)
         """
-        prompt = f"""Summarize today's AI newsletter in exactly {max_words} words or fewer.
+        # Load summary_generator prompt from database
+        base_prompt = get_prompt('summary_generator')
+
+        headlines_text = "\n".join([f"{i+1}. {h}" for i, h in enumerate(headlines[:5])])
+
+        if base_prompt:
+            prompt = f"""{base_prompt}
+
+Max words: {max_words}
 
 HEADLINES:
-1. {headlines[0] if len(headlines) > 0 else ''}
-2. {headlines[1] if len(headlines) > 1 else ''}
-3. {headlines[2] if len(headlines) > 2 else ''}
-4. {headlines[3] if len(headlines) > 3 else ''}
-5. {headlines[4] if len(headlines) > 4 else ''}
+{headlines_text}
+
+Return ONLY the summary, no explanation."""
+        else:
+            logger.warning("summary_generator prompt not found in database, using fallback")
+            prompt = f"""Summarize today's AI newsletter in exactly {max_words} words or fewer.
+
+HEADLINES:
+{headlines_text}
 
 Write a single sentence summarizing the key themes. Professional tone.
 Return ONLY the summary, no explanation."""
 
+        # Get model/temperature from database
+        prompt_meta = get_prompt_with_metadata('summary_generator')
+        model = prompt_meta.get('model', self.default_model) if prompt_meta else self.default_model
+        temperature = prompt_meta.get('temperature', 0.5) if prompt_meta else 0.5
+
         response = self.client.messages.create(
-            model=self.model,
+            model=model,
             max_tokens=100,
-            temperature=0.5,
+            temperature=float(temperature),
             messages=[{"role": "user", "content": prompt}]
         )
 
