@@ -1,5 +1,29 @@
 # AI Editor 2.0 - Project Notes
 
+## ⚠️ CRITICAL: Git Repository Structure
+
+**This `app/` folder is its OWN git repository, separate from the parent folder.**
+
+```
+pivot-5-website_11.19.25/              ← Parent repo (DO NOT use for this project)
+└── ai-editor-2.0-full-stack-application/
+    └── app/                           ← THIS is the git repo for AI Editor 2.0
+        └── .git/                      ← Git repo root is HERE
+```
+
+**Git commands MUST be run from within `/app/`:**
+```bash
+cd /Users/patsimmons/client-coding/pivot-5-website_11.19.25/ai-editor-2.0-full-stack-application/app
+git status
+git add .
+git commit -m "message"
+git push
+```
+
+**Remote:** `https://github.com/pat-pivot/ai-editor-2.0.git`
+
+---
+
 ## CRITICAL: This App REPLACES n8n Workflows
 
 This full-stack application is designed to **completely replace** the n8n workflows for the Pivot 5 newsletter pipeline. The Python workers with Redis Queue run the actual newsletter generation pipeline. Prompts are stored in PostgreSQL and editable from the dashboard UI.
