@@ -211,15 +211,15 @@ export default function PipelinePage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Newsletter Pipeline</h1>
-          <p className="text-zinc-400 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Newsletter Pipeline</h1>
+          <p className="text-muted-foreground mt-1">
             Monitor and control the 5-step AI Editor workflow
           </p>
         </div>
         <Button
           onClick={runAllSteps}
           disabled={isRunningAll}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
         >
           {isRunningAll ? (
             <>
@@ -237,39 +237,39 @@ export default function PipelinePage() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-4 gap-4 mb-8">
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-foreground">
               {loading ? "..." : prefilterCount}
             </div>
-            <div className="text-sm text-zinc-400">Stories Pre-Filtered</div>
+            <div className="text-sm text-muted-foreground">Stories Pre-Filtered</div>
           </CardContent>
         </Card>
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-foreground">
               {loading ? "..." : slotsSelected}
             </div>
-            <div className="text-sm text-zinc-400">Slots Selected</div>
+            <div className="text-sm text-muted-foreground">Slots Selected</div>
           </CardContent>
         </Card>
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-foreground">
               {loading ? "..." : imagesGenerated}
             </div>
-            <div className="text-sm text-zinc-400">Images Generated</div>
+            <div className="text-sm text-muted-foreground">Images Generated</div>
           </CardContent>
         </Card>
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card>
           <CardContent className="p-4">
             <div className={`text-2xl font-bold ${
-              newsletterStatus === "sent" ? "text-green-400" :
-              newsletterStatus === "pending" ? "text-yellow-400" : "text-zinc-400"
+              newsletterStatus === "sent" ? "text-green-500" :
+              newsletterStatus === "pending" ? "text-yellow-500" : "text-muted-foreground"
             }`}>
               {loading ? "..." : newsletterStatus.charAt(0).toUpperCase() + newsletterStatus.slice(1)}
             </div>
-            <div className="text-sm text-zinc-400">Newsletter Status</div>
+            <div className="text-sm text-muted-foreground">Newsletter Status</div>
           </CardContent>
         </Card>
       </div>
@@ -277,7 +277,7 @@ export default function PipelinePage() {
       {/* Pipeline Steps */}
       <div className="space-y-4">
         {steps.map((step, index) => (
-          <Card key={step.id} className="bg-zinc-900 border-zinc-800">
+          <Card key={step.id}>
             <CardContent className="p-6">
               <div className="flex items-start gap-6">
                 {/* Step Number */}
@@ -288,28 +288,28 @@ export default function PipelinePage() {
                     {step.id}
                   </div>
                   {index < steps.length - 1 && (
-                    <div className="w-0.5 h-8 bg-zinc-700 mx-auto mt-2" />
+                    <div className="w-0.5 h-8 bg-border mx-auto mt-2" />
                   )}
                 </div>
 
                 {/* Step Details */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold text-white">
+                    <h3 className="text-lg font-semibold text-foreground">
                       Step {step.id}: {step.name}
                     </h3>
                     {getStatusBadge(step.status)}
                   </div>
-                  <p className="text-zinc-400 text-sm mb-3">{step.description}</p>
+                  <p className="text-muted-foreground text-sm mb-3">{step.description}</p>
                   <div className="flex items-center gap-6 text-sm">
-                    <div className="flex items-center gap-2 text-zinc-500">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <span>Scheduled: {step.schedule}</span>
                     </div>
                     {step.lastRun && (
-                      <div className="flex items-center gap-2 text-zinc-500">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -317,7 +317,7 @@ export default function PipelinePage() {
                       </div>
                     )}
                     {step.storiesProcessed !== undefined && (
-                      <div className="flex items-center gap-2 text-zinc-500">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                         </svg>
@@ -334,7 +334,6 @@ export default function PipelinePage() {
                     size="sm"
                     onClick={() => runStep(step.id)}
                     disabled={step.status === "running"}
-                    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
                   >
                     {step.status === "running" ? (
                       <>
@@ -356,19 +355,19 @@ export default function PipelinePage() {
       </div>
 
       {/* Today's Issue Preview */}
-      <Card className="bg-zinc-900 border-zinc-800 mt-8">
+      <Card className="mt-8">
         <CardHeader>
-          <CardTitle className="text-white">Today's Issue Preview</CardTitle>
-          <CardDescription className="text-zinc-400">
+          <CardTitle>Today's Issue Preview</CardTitle>
+          <CardDescription>
             {selectedSlots?.issueDate || "Loading..."}
             {selectedSlots?.subjectLine && (
-              <span className="ml-2 text-orange-400">— {selectedSlots.subjectLine}</span>
+              <span className="ml-2 text-primary">— {selectedSlots.subjectLine}</span>
             )}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-zinc-500 text-center py-8">Loading issue data...</div>
+            <div className="text-muted-foreground text-center py-8">Loading issue data...</div>
           ) : selectedSlots ? (
             <div className="grid grid-cols-5 gap-4">
               {selectedSlots.slots.map((slotData) => {
@@ -384,21 +383,21 @@ export default function PipelinePage() {
                 return (
                   <div
                     key={slotData.slot}
-                    className="p-4 rounded-lg bg-zinc-800 border border-zinc-700"
+                    className="p-4 rounded-lg bg-muted border border-border"
                   >
-                    <div className="text-xs text-orange-400 font-medium mb-2">
+                    <div className="text-xs text-primary font-medium mb-2">
                       Slot {slotData.slot}: {slotLabels[slotData.slot]}
                     </div>
-                    <div className="text-sm text-white font-medium line-clamp-2 mb-2">
+                    <div className="text-sm text-foreground font-medium line-clamp-2 mb-2">
                       {slotData.headline || "Not selected"}
                     </div>
-                    <div className="text-xs text-zinc-500">
+                    <div className="text-xs text-muted-foreground">
                       {!slotData.headline ? (
                         "Pending selection"
                       ) : decoration?.imageStatus === "generated" ? (
-                        <span className="text-green-400">Ready to send</span>
+                        <span className="text-green-500">Ready to send</span>
                       ) : (
-                        <span className="text-yellow-400">Image pending</span>
+                        <span className="text-yellow-500">Image pending</span>
                       )}
                     </div>
                   </div>
@@ -406,7 +405,7 @@ export default function PipelinePage() {
               })}
             </div>
           ) : (
-            <div className="text-zinc-500 text-center py-8">No issue data available</div>
+            <div className="text-muted-foreground text-center py-8">No issue data available</div>
           )}
         </CardContent>
       </Card>

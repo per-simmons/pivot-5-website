@@ -31,11 +31,11 @@ export const stepConfigs: StepConfig[] = [
     schedule: "9:00 PM ET Monday-Friday",
     icon: "filter_alt",
     prompts: [
-      { id: "slot_1_prefilter", name: "Slot 1 Pre-Filter", model: "gemini-2.0-flash", temperature: 0.3, description: "Macro AI impact - jobs, economy, markets", slotNumber: 1 },
-      { id: "slot_2_prefilter", name: "Slot 2 Pre-Filter", model: "gemini-2.0-flash", temperature: 0.3, description: "Tier 1 AI companies + research", slotNumber: 2 },
-      { id: "slot_3_prefilter", name: "Slot 3 Pre-Filter", model: "gemini-2.0-flash", temperature: 0.3, description: "Industry-specific AI applications", slotNumber: 3 },
-      { id: "slot_4_prefilter", name: "Slot 4 Pre-Filter", model: "gemini-2.0-flash", temperature: 0.3, description: "Emerging companies and startups", slotNumber: 4 },
-      { id: "slot_5_prefilter", name: "Slot 5 Pre-Filter", model: "gemini-2.0-flash", temperature: 0.3, description: "Consumer AI and human interest", slotNumber: 5 },
+      { id: "slot_1_prefilter", name: "Slot 1 Pre-Filter", model: "gemini-3-flash-preview", temperature: 0.3, description: "Macro AI impact - jobs, economy, markets", slotNumber: 1 },
+      { id: "slot_2_prefilter", name: "Slot 2 Pre-Filter", model: "gemini-3-flash-preview", temperature: 0.3, description: "Tier 1 AI companies + research", slotNumber: 2 },
+      { id: "slot_3_prefilter", name: "Slot 3 Pre-Filter", model: "gemini-3-flash-preview", temperature: 0.3, description: "Industry-specific AI applications", slotNumber: 3 },
+      { id: "slot_4_prefilter", name: "Slot 4 Pre-Filter", model: "gemini-3-flash-preview", temperature: 0.3, description: "Emerging companies and startups", slotNumber: 4 },
+      { id: "slot_5_prefilter", name: "Slot 5 Pre-Filter", model: "gemini-3-flash-preview", temperature: 0.3, description: "Consumer AI and human interest", slotNumber: 5 },
     ],
     dataTable: {
       name: "Pre-Filter Log",
@@ -70,12 +70,12 @@ export const stepConfigs: StepConfig[] = [
     schedule: "9:25 PM & 9:30 PM ET Monday-Friday",
     icon: "edit_note",
     prompts: [
-      { id: "content_cleaner", name: "Content Cleaner", model: "gemini-2.0-flash", temperature: 0.1, description: "Remove ads, navigation, and formatting artifacts" },
+      { id: "content_cleaner", name: "Content Cleaner", model: "gemini-3-flash-preview", temperature: 0.1, description: "Remove ads, navigation, and formatting artifacts" },
       { id: "headline_generator", name: "Headline Generator", model: "claude-sonnet-4-5-20250929", temperature: 0.7, description: "Generate punchy Title Case headlines" },
       { id: "bullet_generator", name: "Bullet Generator", model: "claude-sonnet-4-5-20250929", temperature: 0.5, description: "Generate 3 informative bullet points" },
       { id: "bold_formatter", name: "Bold Formatter", model: "claude-sonnet-4-5-20250929", temperature: 0.3, description: "Apply markdown bold to key phrases" },
       { id: "image_prompt", name: "Image Prompt Generator", model: "claude-sonnet-4-5-20250929", temperature: 0.8, description: "Generate descriptive image prompts" },
-      { id: "image_generator", name: "Image Generator", model: "gemini-2.0-flash-imagen-3", temperature: 0.7, description: "Generate newsletter images" },
+      { id: "image_generator", name: "Image Generator", model: "gemini-3-pro-image-preview", temperature: 0.7, description: "Generate newsletter images" },
     ],
     dataTable: {
       name: "Decoration",

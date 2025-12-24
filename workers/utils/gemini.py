@@ -27,7 +27,7 @@ class GeminiClient:
         genai.configure(api_key=self.api_key)
 
         # Model for pre-filtering (fast, cheap)
-        self.flash_model = genai.GenerativeModel('gemini-2.0-flash')
+        self.flash_model = genai.GenerativeModel('gemini-3-flash-preview')
 
     def prefilter_story(self, story_data: dict, yesterday_headlines: list, source_score: int) -> dict:
         """

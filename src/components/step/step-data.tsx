@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,45 +30,88 @@ interface StepDataProps {
   baseId: string;
 }
 
-// Mock data for different step tables
-const mockPreFilterData = [
-  { id: "rec_abc123", storyID: "p_abc123", headline: "OpenAI's $6.6B Raise Signals New AI Arms Race", slot: 1, date: "2024-12-23", dateDisplay: "Dec 23" },
-  { id: "rec_def456", storyID: "p_def456", headline: "Google Unveils Gemini 3 Flash Preview", slot: 2, date: "2024-12-23", dateDisplay: "Dec 23" },
-  { id: "rec_ghi789", storyID: "p_ghi789", headline: "Microsoft Copilot Expands to Enterprise", slot: 2, date: "2024-12-22", dateDisplay: "Dec 22" },
-  { id: "rec_jkl012", storyID: "p_jkl012", headline: "Healthcare AI Adoption Hits 70% Milestone", slot: 3, date: "2024-12-23", dateDisplay: "Dec 23" },
-  { id: "rec_mno345", storyID: "p_mno345", headline: "Startup Raises $50M for AI Developer Tools", slot: 4, date: "2024-12-23", dateDisplay: "Dec 23" },
-  { id: "rec_pqr678", storyID: "p_pqr678", headline: "The Ethics of AI Dating Apps Spark Debate", slot: 5, date: "2024-12-23", dateDisplay: "Dec 23" },
-  { id: "rec_stu901", storyID: "p_stu901", headline: "NVIDIA Stock Hits New All-Time High", slot: 1, date: "2024-12-22", dateDisplay: "Dec 22" },
-  { id: "rec_vwx234", storyID: "p_vwx234", headline: "Meta Releases Llama 4 Open Source Model", slot: 2, date: "2024-12-22", dateDisplay: "Dec 22" },
-  { id: "rec_xyz567", storyID: "p_xyz567", headline: "AI Job Market Shifts as Automation Expands", slot: 1, date: "2024-12-21", dateDisplay: "Dec 21" },
-  { id: "rec_123abc", storyID: "p_123abc", headline: "Anthropic Announces Claude 4 Release Date", slot: 2, date: "2024-12-21", dateDisplay: "Dec 21" },
-  { id: "rec_456def", storyID: "p_456def", headline: "AI in Legal Industry Sees 300% Growth", slot: 3, date: "2024-12-22", dateDisplay: "Dec 22" },
-  { id: "rec_789ghi", storyID: "p_789ghi", headline: "New AI Startup Unicorn in Biotech Space", slot: 4, date: "2024-12-22", dateDisplay: "Dec 22" },
-  { id: "rec_012jkl", storyID: "p_012jkl", headline: "AI Companions: The Future of Digital Pets", slot: 5, date: "2024-12-22", dateDisplay: "Dec 22" },
-  { id: "rec_345mno", storyID: "p_345mno", headline: "Manufacturing Giants Embrace AI Automation", slot: 3, date: "2024-12-21", dateDisplay: "Dec 21" },
-  { id: "rec_678pqr", storyID: "p_678pqr", headline: "Seed-Stage AI Investments Break Records", slot: 4, date: "2024-12-21", dateDisplay: "Dec 21" },
-];
-
-type SortDirection = "asc" | "desc" | null;
-type SortColumn = "slot" | "date" | null;
-
-const mockSelectedSlotsData = [
-  { issue_date: "Pivot 5 - Dec 23", subject: "OpenAI's $6.6B Raise Signals New AI Arms Race", status: "decorated" },
-  { issue_date: "Pivot 5 - Dec 22", subject: "Google Drops Gemini 3 Flash Preview", status: "sent" },
-  { issue_date: "Pivot 5 - Dec 21", subject: "Meta's AI Ambitions Take Shape with Llama 4", status: "sent" },
-  { issue_date: "Pivot 5 - Dec 20", subject: "NVIDIA Stock Hits New High on AI Demand", status: "sent" },
-];
-
-const mockDecorationData = [
-  { id: "rec_dec1", headline: "OpenAI's $6.6B Raise Signals New AI Arms Race", slot: 1, image_status: "generated", decorated: true },
-  { id: "rec_dec2", headline: "Google Unveils Gemini 3 Flash Preview", slot: 2, image_status: "generated", decorated: true },
-  { id: "rec_dec3", headline: "Healthcare AI Adoption Hits 70%", slot: 3, image_status: "pending", decorated: false },
-  { id: "rec_dec4", headline: "Startup Raises $50M for AI Tools", slot: 4, image_status: "pending", decorated: false },
-  { id: "rec_dec5", headline: "The Ethics of AI Dating Apps", slot: 5, image_status: "pending", decorated: false },
-];
+interface PreFilterEntry {
+  id: string;
+  storyId: string;
+  pivotId: string;
+  headline: string;
+  originalUrl: string;
+  sourceId: string;
+  datePublished: string;
+  datePrefiltered: string;
+  slot: number;
+}
 
 export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) {
   const airtableUrl = `https://airtable.com/${baseId}/${tableId}`;
+  const [preFilterData, setPreFilterData] = useState<PreFilterEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Fetch pre-filter data from API
+  const fetchData = async () => {
+    if (stepId !== 1) return; // Only fetch for pre-filter step
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/stories?type=prefilter");
+      if (!response.ok) throw new Error("Failed to fetch data");
+      const data = await response.json();
+      setPreFilterData(data.stories || []);
+      setLastSync(new Date());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [stepId]);
+
+  // Calculate slot counts
+  const slotCounts = useMemo(() => {
+    const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    preFilterData.forEach((entry) => {
+      if (entry.slot >= 1 && entry.slot <= 5) {
+        counts[entry.slot]++;
+      }
+    });
+    return counts;
+  }, [preFilterData]);
+
+  // Filter data by slot and search
+  const filteredData = useMemo(() => {
+    let data = preFilterData;
+
+    if (selectedSlot !== null) {
+      data = data.filter((entry) => entry.slot === selectedSlot);
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      data = data.filter((entry) =>
+        entry.headline.toLowerCase().includes(query) ||
+        entry.storyId.toLowerCase().includes(query) ||
+        entry.sourceId.toLowerCase().includes(query)
+      );
+    }
+
+    return data;
+  }, [preFilterData, selectedSlot, searchQuery]);
+
+  const formatLastSync = () => {
+    if (!lastSync) return "Never";
+    const diff = Math.floor((Date.now() - lastSync.getTime()) / 1000);
+    if (diff < 60) return "Just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+    return lastSync.toLocaleTimeString();
+  };
 
   return (
     <Card>
@@ -83,11 +126,17 @@ export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) 
           <CardAction>
             <div className="flex items-center gap-3">
               <span className="text-xs text-muted-foreground">
-                Last sync: 2 minutes ago
+                Last sync: {formatLastSync()}
               </span>
-              <Button variant="outline" size="sm" className="gap-2">
-                <MaterialIcon name="sync" className="text-base" />
-                Sync Now
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={fetchData}
+                disabled={loading}
+              >
+                <MaterialIcon name="sync" className={cn("text-base", loading && "animate-spin")} />
+                {loading ? "Syncing..." : "Sync Now"}
               </Button>
               <Button variant="outline" size="sm" className="gap-2" asChild>
                 <a href={airtableUrl} target="_blank" rel="noopener noreferrer">
@@ -105,24 +154,51 @@ export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) 
           <div className="relative flex-1 max-w-sm">
             <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg" />
             <Input
-              placeholder="Search..."
+              placeholder="Search headlines, story IDs..."
               className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           {stepId === 1 && (
             <div className="flex gap-2">
-              <Badge variant="outline" className="cursor-pointer hover:bg-muted">All (47)</Badge>
-              <Badge variant="outline" className="cursor-pointer hover:bg-muted">Slot 1 (8)</Badge>
-              <Badge variant="outline" className="cursor-pointer hover:bg-muted">Slot 2 (12)</Badge>
-              <Badge variant="outline" className="cursor-pointer hover:bg-muted">Slot 3 (10)</Badge>
-              <Badge variant="outline" className="cursor-pointer hover:bg-muted">Slot 4 (9)</Badge>
-              <Badge variant="outline" className="cursor-pointer hover:bg-muted">Slot 5 (8)</Badge>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "cursor-pointer hover:bg-muted",
+                  selectedSlot === null && "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
+                onClick={() => setSelectedSlot(null)}
+              >
+                All ({preFilterData.length})
+              </Badge>
+              {[1, 2, 3, 4, 5].map((slot) => (
+                <Badge
+                  key={slot}
+                  variant="outline"
+                  className={cn(
+                    "cursor-pointer hover:bg-muted",
+                    selectedSlot === slot && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
+                  onClick={() => setSelectedSlot(slot)}
+                >
+                  Slot {slot} ({slotCounts[slot]})
+                </Badge>
+              ))}
             </div>
           )}
         </div>
 
+        {/* Error State */}
+        {error && (
+          <div className="p-4 mb-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <MaterialIcon name="error" className="inline mr-2" />
+            {error}
+          </div>
+        )}
+
         {/* Data Table - varies by step */}
-        {stepId === 1 && <PreFilterTable />}
+        {stepId === 1 && <PreFilterTable data={filteredData} loading={loading} />}
         {stepId === 2 && <SelectedSlotsTable />}
         {stepId === 3 && <DecorationTable />}
         {stepId === 4 && <IssuesTable />}
@@ -131,14 +207,14 @@ export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) 
         {/* Pagination */}
         <div className="flex items-center justify-between mt-4 pt-4 border-t">
           <span className="text-sm text-muted-foreground">
-            Showing 1-8 of 47
+            Showing {filteredData.length} of {preFilterData.length} records
           </span>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" disabled>
               <MaterialIcon name="chevron_left" className="text-lg" />
             </Button>
             <span className="text-sm font-medium px-2">1</span>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled>
               <MaterialIcon name="chevron_right" className="text-lg" />
             </Button>
           </div>
@@ -148,36 +224,85 @@ export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) 
   );
 }
 
-function PreFilterTable() {
+function PreFilterTable({ data, loading }: { data: PreFilterEntry[]; loading: boolean }) {
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "—";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    } catch {
+      return dateString;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <MaterialIcon name="sync" className="text-4xl text-muted-foreground animate-spin" />
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+        <MaterialIcon name="inbox" className="text-4xl mb-2" />
+        <p>No pre-filter records found</p>
+      </div>
+    );
+  }
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-24">Story ID</TableHead>
+          <TableHead className="w-28">Story ID</TableHead>
           <TableHead>Headline</TableHead>
+          <TableHead className="w-24">Source</TableHead>
           <TableHead className="w-16 text-center">Slot</TableHead>
           <TableHead className="w-24">Date</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {mockPreFilterData.map((row) => (
+        {data.map((row) => (
           <TableRow key={row.id}>
             <TableCell className="font-mono text-xs text-muted-foreground">
-              {row.storyID}
+              {row.storyId || row.pivotId || "—"}
             </TableCell>
             <TableCell className="font-medium">{row.headline}</TableCell>
+            <TableCell className="text-xs text-muted-foreground">
+              {row.sourceId || "—"}
+            </TableCell>
             <TableCell className="text-center">
               <Badge variant="outline" className="font-mono">
                 {row.slot}
               </Badge>
             </TableCell>
-            <TableCell className="text-muted-foreground">{row.date}</TableCell>
+            <TableCell className="text-muted-foreground">
+              {formatDate(row.datePrefiltered || row.datePublished)}
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
     </Table>
   );
 }
+
+// Placeholder tables for other steps (these would also need real data integration)
+const mockSelectedSlotsData = [
+  { issue_date: "Pivot 5 - Dec 23", subject: "OpenAI's $6.6B Raise Signals New AI Arms Race", status: "decorated" },
+  { issue_date: "Pivot 5 - Dec 22", subject: "Google Drops Gemini 3 Flash Preview", status: "sent" },
+  { issue_date: "Pivot 5 - Dec 21", subject: "Meta's AI Ambitions Take Shape with Llama 4", status: "sent" },
+  { issue_date: "Pivot 5 - Dec 20", subject: "NVIDIA Stock Hits New High on AI Demand", status: "sent" },
+];
+
+const mockDecorationData = [
+  { id: "rec_dec1", headline: "OpenAI's $6.6B Raise Signals New AI Arms Race", slot: 1, image_status: "generated", decorated: true },
+  { id: "rec_dec2", headline: "Google Unveils Gemini 3 Flash Preview", slot: 2, image_status: "generated", decorated: true },
+  { id: "rec_dec3", headline: "Healthcare AI Adoption Hits 70%", slot: 3, image_status: "pending", decorated: false },
+  { id: "rec_dec4", headline: "Startup Raises $50M for AI Tools", slot: 4, image_status: "pending", decorated: false },
+  { id: "rec_dec5", headline: "The Ethics of AI Dating Apps", slot: 5, image_status: "pending", decorated: false },
+];
 
 function SelectedSlotsTable() {
   return (

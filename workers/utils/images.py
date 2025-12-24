@@ -126,20 +126,27 @@ Colors: Vibrant but corporate-appropriate."""
             return None
 
         # Gemini image generation endpoint
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
 
         headers = {
             "Content-Type": "application/json",
             "x-goog-api-key": self.gemini_api_key
         }
 
-        enhanced_prompt = f"Professional editorial illustration for tech newsletter. Abstract, no text or faces. Theme: {prompt}"
+        enhanced_prompt = f"Generate a professional, abstract newsletter image for: {prompt}. Style: clean, modern, suitable for business newsletter. No text or logos. 636px width, landscape orientation."
 
         payload = {
-            "instances": [{"prompt": enhanced_prompt}],
-            "parameters": {
-                "sampleCount": 1,
-                "aspectRatio": "1:1"
+            "contents": [{
+                "parts": [{
+                    "text": enhanced_prompt
+                }]
+            }],
+            "generationConfig": {
+                "responseModalities": ["image"],
+                "imageDimensions": {
+                    "width": 636,
+                    "height": 358
+                }
             }
         }
 
@@ -153,9 +160,14 @@ Colors: Vibrant but corporate-appropriate."""
 
             if response.status_code == 200:
                 data = response.json()
-                predictions = data.get("predictions", [])
-                if predictions and "bytesBase64Encoded" in predictions[0]:
-                    return base64.b64decode(predictions[0]["bytesBase64Encoded"])
+                # Extract base64 image from candidates response
+                candidates = data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    if parts and "inlineData" in parts[0]:
+                        image_data = parts[0]["inlineData"].get("data")
+                        if image_data:
+                            return base64.b64decode(image_data)
         except Exception as e:
             print(f"[ImageClient] Gemini Imagen error: {e}")
 
