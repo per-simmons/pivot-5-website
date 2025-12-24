@@ -139,20 +139,30 @@ prompt = get_prompt('headline_generator')
 prompt = get_slot_prompt(step=1, slot=1)  # Returns slot_1_prefilter content
 ```
 
-## Airtable Field Names
+## Airtable Field Names (Verified via API 12/24/25)
 
-### Pre-Filter Log Table (tbl72YMsm9iRHj3sp)
+### Newsletter Stories Table (tblY78ziWp5yhiGXp) - Pivot Media Master
+- `id`, `pivotId`, `storyID`
+- `ai_headline`, `ai_dek`, `ai_bullet_1`, `ai_bullet_2`, `ai_bullet_3`
+- `core_url`, `topic`, `sentiment`, `fit_score`, `tags`
+- `newsletter`, `date_og_published`, `image_url`, `pivotnews_url`
+
+### Pre-Filter Log Table (tbl72YMsm9iRHj3sp) - AI Editor 2.0
 - `core_url` (NOT `original_url`)
 - `date_og_published`, `date_prefiltered`
 - `storyID`, `pivotId`, `headline`, `slot`, `source_id`
 
-### Decoration Table (tbla16LJCf5Z6cRn3)
-- `story_id`, `slot_order`, `headline`, `label`
+### Decoration Table (tbla16LJCf5Z6cRn3) - AI Editor 2.0
+- `issue_id`, `slot_order`, `story_id`, `headline`, `label`
 - `b1`, `b2`, `b3`, `ai_dek`
-- `image_url`, `image_status`, `social_status`
-- `pivotnews_url`
+- `image_url`, `raw`, `image_status`, `social_status`
+- `blog_post_raw`, `pivotnews_url`
 
-### Selected Slots Table (tblzt2z7r512Kto3O)
+### AI Editor Queue Table (tblkVBP5mKq3sBpkv) - AI Editor 2.0
+- `original slot`, `status`
+- Note: This table has minimal fields; used for manual story queuing
+
+### Selected Slots Table (tblzt2z7r512Kto3O) - AI Editor 2.0
 - `issue_id`, `slot`, `story_id`, `pivotId`
 - `headline`, `source_id`
 

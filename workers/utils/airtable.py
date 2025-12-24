@@ -174,24 +174,20 @@ class AirtableClient:
     def get_queued_stories(self) -> List[dict]:
         """
         Step 1, Node 4: Get manually queued stories
-        Filter: status='pending' AND not expired
+        Filter: status='pending'
 
-        Updated with expires_date check (n8n Gap #5):
-        - Skip stories where expires_date has passed
-        - Include all fields needed for processing
+        Note: AI Editor Queue table has different structure than originally expected.
+        Actual fields: 'original slot', 'status'
+        Returns pending records for manual story queuing.
         """
         table = self._get_table(self.ai_editor_base_id, self.queued_stories_table_id)
 
-        # Filter: pending AND (no expires_date OR expires_date >= today)
-        filter_formula = "AND({status}='pending', OR({expires_date}='', IS_AFTER({expires_date}, DATEADD(TODAY(), -1, 'days'))))"
+        # Filter: pending status only (table doesn't have expires_date field)
+        filter_formula = "{status}='pending'"
 
+        # Don't specify fields - let it return whatever exists in the table
         records = table.all(
-            formula=filter_formula,
-            fields=[
-                'storyID', 'pivotId', 'headline', 'priority_slot',
-                'ai_headline', 'ai_dek', 'ai_bullet_1', 'ai_bullet_2', 'ai_bullet_3',
-                'date_og_published', 'topic', 'expires_date'
-            ]
+            formula=filter_formula
         )
 
         return records
