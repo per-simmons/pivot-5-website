@@ -51,16 +51,31 @@ class AirtableClient:
         """
         Step 1, Node 2: Get fresh stories from Newsletter Stories table
         Filter: Last N days with ai_headline populated
+
+        Updated to include all fields needed by n8n workflow (Gap #3):
+        - ai_bullet_1, ai_bullet_2, ai_bullet_3 for summary building
+        - core_url, image_url for media
+        - fit_score, sentiment, tags for filtering
         """
         table = self._get_table(self.pivot_media_base_id, self.newsletter_stories_table_id)
 
         filter_formula = f"AND(IS_AFTER({{date_og_published}}, DATEADD(TODAY(), -{days}, 'days')), {{ai_headline}}!='', {{newsletter}}='pivot_ai')"
 
+        # All fields needed by n8n workflow
+        fields = [
+            'storyID', 'pivotId', 'ai_headline', 'ai_dek',
+            'ai_bullet_1', 'ai_bullet_2', 'ai_bullet_3',  # For summary building
+            'date_og_published', 'newsletter', 'topic',
+            'core_url', 'image_url',  # Media fields
+            'fit_score', 'sentiment', 'tags',  # Filtering fields
+            'headline',  # Fallback if ai_headline is empty
+        ]
+
         records = table.all(
             formula=filter_formula,
             sort=['-date_og_published'],
             max_records=max_records,
-            fields=['storyID', 'pivotId', 'ai_headline', 'ai_dek', 'date_og_published', 'newsletter', 'topic']
+            fields=fields
         )
 
         return records
@@ -84,7 +99,12 @@ class AirtableClient:
         """
         Batch lookup articles by pivotIds
         Returns: dict mapping pivotId -> article record
+
+        Updated to include core_url (n8n Gap #6 - Pre-Filter Log uses core_url)
         """
+        if not pivot_ids:
+            return {}
+
         table = self._get_table(self.pivot_media_base_id, self.articles_table_id)
 
         # Build OR formula for batch lookup
@@ -93,7 +113,7 @@ class AirtableClient:
 
         records = table.all(
             formula=filter_formula,
-            fields=['pivot_Id', 'source_id', 'original_url', 'markdown']
+            fields=['pivot_Id', 'source_id', 'original_url', 'core_url', 'markdown']
         )
 
         return {r['fields'].get('pivot_Id'): r for r in records}
@@ -154,13 +174,24 @@ class AirtableClient:
     def get_queued_stories(self) -> List[dict]:
         """
         Step 1, Node 4: Get manually queued stories
-        Filter: status='pending'
+        Filter: status='pending' AND not expired
+
+        Updated with expires_date check (n8n Gap #5):
+        - Skip stories where expires_date has passed
+        - Include all fields needed for processing
         """
         table = self._get_table(self.ai_editor_base_id, self.queued_stories_table_id)
 
+        # Filter: pending AND (no expires_date OR expires_date >= today)
+        filter_formula = "AND({status}='pending', OR({expires_date}='', IS_AFTER({expires_date}, DATEADD(TODAY(), -1, 'days'))))"
+
         records = table.all(
-            formula="{status}='pending'",
-            fields=['storyID', 'pivotId', 'headline', 'priority_slot']
+            formula=filter_formula,
+            fields=[
+                'storyID', 'pivotId', 'headline', 'priority_slot',
+                'ai_headline', 'ai_dek', 'ai_bullet_1', 'ai_bullet_2', 'ai_bullet_3',
+                'date_og_published', 'topic', 'expires_date'
+            ]
         )
 
         return records
@@ -201,6 +232,8 @@ class AirtableClient:
     def get_prefilter_candidates(self, slot: int, freshness_days: int) -> List[dict]:
         """
         Step 2, Nodes 3-7: Get pre-filter candidates for a specific slot
+
+        Updated: Uses core_url instead of original_url (n8n Gap #6)
         """
         table = self._get_table(self.ai_editor_base_id, self.prefilter_log_table_id)
 
@@ -208,7 +241,7 @@ class AirtableClient:
 
         records = table.all(
             formula=filter_formula,
-            fields=['storyID', 'pivotId', 'headline', 'original_url', 'source_id', 'date_og_published', 'slot']
+            fields=['storyID', 'pivotId', 'headline', 'core_url', 'source_id', 'date_og_published', 'slot']
         )
 
         return records
