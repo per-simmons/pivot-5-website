@@ -95,10 +95,10 @@ export function PromptEditor({
         "rounded-md border bg-stone-50 overflow-hidden",
         className
       )}
-      style={{ minHeight, maxHeight }}
+      style={{ height: minHeight, minHeight, maxHeight }}
     >
       <Editor
-        height="100%"
+        height={minHeight}
         defaultLanguage="markdown"
         value={value}
         onChange={handleChange}
