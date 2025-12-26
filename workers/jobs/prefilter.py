@@ -279,7 +279,7 @@ def prefilter_stories() -> dict:
                     "headline": article_data.get("headline", ""),
                     "core_url": article_data.get("core_url", ""),
                     "source_id": article_data.get("source_id", ""),
-                    "date_prefiltered": datetime.utcnow().strftime('%Y-%m-%d'),
+                    "date_prefiltered": datetime.utcnow().strftime('%b %d at %I:%M%p').replace('AM', 'am').replace('PM', 'pm'),
                     "slot": str(slot)  # Airtable expects string for Single Select field
                 }
                 # Only include date_og_published if it has a value (Airtable rejects empty date strings)

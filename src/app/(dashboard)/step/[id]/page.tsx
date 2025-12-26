@@ -41,6 +41,9 @@ export default function StepPage({ params }: PageProps) {
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<"queued" | "started" | "finished" | "failed" | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [showCompletion, setShowCompletion] = useState(false);
+  const [lastResult, setLastResult] = useState<{ processed: number; elapsed: number } | null>(null);
+  const [activeTab, setActiveTab] = useState("logs");
 
   if (isNaN(stepId) || stepId < 1 || stepId > 5) {
     notFound();
@@ -58,6 +61,7 @@ export default function StepPage({ params }: PageProps) {
 
     setIsRunning(true);
     setElapsedTime(0);
+    setShowCompletion(false);
 
     try {
       const response = await fetch("/api/jobs", {
@@ -119,8 +123,11 @@ export default function StepPage({ params }: PageProps) {
           const finalElapsed = Math.floor((Date.now() - startTime) / 1000);
 
           if (status.status === "finished") {
+            const processedCount = status.result?.processed || status.result?.total_written || 0;
+            setLastResult({ processed: processedCount, elapsed: finalElapsed });
+            setShowCompletion(true);
             toast.success("Job Completed", {
-              description: `Processed ${status.result?.processed || status.result?.total_written || 0} stories in ${finalElapsed}s`,
+              description: `Processed ${processedCount} stories in ${finalElapsed}s`,
             });
             // Trigger refresh in StepData component
             window.dispatchEvent(new CustomEvent("jobCompleted", { detail: { stepId } }));
@@ -198,6 +205,50 @@ export default function StepPage({ params }: PageProps) {
         </CardContent>
       </Card>
 
+      {/* Completion Banner */}
+      {showCompletion && lastResult && (
+        <Card className="border-emerald-200 bg-emerald-50/50">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+                  <MaterialIcon name="check_circle" className="text-xl text-emerald-600" />
+                </div>
+                <div>
+                  <span className="font-semibold text-emerald-900">Job Completed Successfully</span>
+                  <p className="text-sm text-emerald-700">
+                    Processed {lastResult.processed} stories in {lastResult.elapsed}s
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {stepConfig.dataTable && (
+                  <Button
+                    variant="outline"
+                    className="gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                    onClick={() => {
+                      setActiveTab("data");
+                      setShowCompletion(false);
+                    }}
+                  >
+                    <MaterialIcon name="table_chart" className="text-base" />
+                    View {stepConfig.dataTable.name}
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-emerald-600 hover:bg-emerald-100"
+                  onClick={() => setShowCompletion(false)}
+                >
+                  <MaterialIcon name="close" className="text-base" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Running Status Banner */}
       {isRunning && (
         <Card className="border-blue-200 bg-blue-50/50">
@@ -221,9 +272,8 @@ export default function StepPage({ params }: PageProps) {
                   </span>
                 </div>
                 <Progress value={undefined} className="h-2 bg-blue-100" />
-                <div className="flex items-center justify-between mt-2 text-sm text-blue-600">
+                <div className="mt-2 text-sm text-blue-600">
                   <span>Job ID: {jobId?.slice(0, 8)}...</span>
-                  <span>Polling every 2s for status updates</span>
                 </div>
               </div>
             </div>
@@ -232,7 +282,7 @@ export default function StepPage({ params }: PageProps) {
       )}
 
       {/* Tabs Section */}
-      <Tabs defaultValue="logs" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="logs" className="gap-2">
             <MaterialIcon name="description" className="text-base" />
