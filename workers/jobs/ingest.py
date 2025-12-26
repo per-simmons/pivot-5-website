@@ -20,10 +20,140 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 
 from pyairtable import Api
+from urllib.parse import urlparse
 
 # Import local utilities
 from utils.pivot_id import generate_pivot_id
 from config.rss_feeds import get_feeds
+
+
+# Source name mappings from domain to display name
+DOMAIN_TO_SOURCE = {
+    "reuters.com": "Reuters",
+    "cnbc.com": "CNBC",
+    "theverge.com": "The Verge",
+    "techcrunch.com": "TechCrunch",
+    "yahoo.com": "Yahoo Finance",
+    "finance.yahoo.com": "Yahoo Finance",
+    "wsj.com": "WSJ",
+    "ft.com": "Financial Times",
+    "bloomberg.com": "Bloomberg",
+    "nytimes.com": "New York Times",
+    "washingtonpost.com": "Washington Post",
+    "bbc.com": "BBC",
+    "bbc.co.uk": "BBC",
+    "cnn.com": "CNN",
+    "forbes.com": "Forbes",
+    "businessinsider.com": "Business Insider",
+    "wired.com": "Wired",
+    "arstechnica.com": "Ars Technica",
+    "engadget.com": "Engadget",
+    "venturebeat.com": "VentureBeat",
+    "zdnet.com": "ZDNet",
+    "techrepublic.com": "TechRepublic",
+    "theatlantic.com": "The Atlantic",
+    "semafor.com": "Semafor",
+    "axios.com": "Axios",
+    "politico.com": "Politico",
+    "apnews.com": "AP News",
+    "marketwatch.com": "MarketWatch",
+    "fortune.com": "Fortune",
+    "inc.com": "Inc.",
+    "fastcompany.com": "Fast Company",
+    "hbr.org": "Harvard Business Review",
+    "thehill.com": "The Hill",
+    "foxbusiness.com": "Fox Business",
+    "theregister.com": "The Register",
+    "thenextweb.com": "The Next Web",
+    "gizmodo.com": "Gizmodo",
+}
+
+
+def extract_source_from_url(url: str) -> Optional[str]:
+    """
+    Extract source name from a URL by matching against known domains.
+
+    Args:
+        url: Article URL
+
+    Returns:
+        Source name if found, None otherwise
+    """
+    if not url:
+        return None
+
+    try:
+        parsed = urlparse(url)
+        domain = parsed.netloc.lower()
+
+        # Strip www. prefix
+        if domain.startswith("www."):
+            domain = domain[4:]
+
+        # Try exact match first
+        if domain in DOMAIN_TO_SOURCE:
+            return DOMAIN_TO_SOURCE[domain]
+
+        # Try matching root domain (e.g., "news.yahoo.com" -> "yahoo.com")
+        parts = domain.split(".")
+        if len(parts) >= 2:
+            root_domain = ".".join(parts[-2:])
+            if root_domain in DOMAIN_TO_SOURCE:
+                return DOMAIN_TO_SOURCE[root_domain]
+
+        # Fallback: capitalize the main domain name
+        # e.g., "techrepublic.com" -> "Techrepublic"
+        if len(parts) >= 2:
+            main_name = parts[-2]
+            return main_name.capitalize()
+
+        return None
+    except Exception:
+        return None
+
+
+async def resolve_google_news_url(
+    session: aiohttp.ClientSession,
+    url: str
+) -> tuple[str, Optional[str]]:
+    """
+    Resolve a Google News redirect URL to the actual article URL.
+
+    Google News RSS feeds contain URLs like:
+    https://news.google.com/rss/articles/...
+
+    This follows the redirect to get the real article URL.
+
+    Args:
+        session: aiohttp client session
+        url: Potentially a Google News redirect URL
+
+    Returns:
+        Tuple of (resolved_url, extracted_source_name)
+    """
+    # Only process Google News URLs
+    if not url or "news.google.com" not in url:
+        return url, None
+
+    try:
+        # Follow redirects to get the final URL
+        async with session.get(
+            url,
+            timeout=aiohttp.ClientTimeout(total=10),
+            allow_redirects=True,
+            headers={"User-Agent": "Pivot5-NewsBot/1.0"}
+        ) as response:
+            final_url = str(response.url)
+
+            # Extract source from the resolved URL
+            source_name = extract_source_from_url(final_url)
+
+            print(f"[Ingest] Resolved Google News URL: {url[:60]}... -> {final_url[:60]}... (source: {source_name})")
+            return final_url, source_name
+
+    except Exception as e:
+        print(f"[Ingest] Failed to resolve Google News URL: {e}")
+        return url, None
 
 
 # Airtable configuration
@@ -102,15 +232,74 @@ async def fetch_feed(
         return []
 
 
-async def fetch_all_feeds(feeds: List[Dict[str, str]]) -> List[Dict[str, Any]]:
+async def resolve_article_urls(
+    session: aiohttp.ClientSession,
+    articles: List[Dict[str, Any]]
+) -> tuple[List[Dict[str, Any]], int]:
     """
-    Fetch all RSS feeds in parallel.
+    Resolve Google News redirect URLs to actual article URLs.
+
+    For articles with Google News URLs, follows the redirect to get the
+    real article URL and extracts the actual source name.
+
+    Args:
+        session: aiohttp client session
+        articles: List of article dicts
+
+    Returns:
+        Tuple of (articles with resolved URLs and updated source_ids, count of resolved URLs)
+    """
+    google_news_articles = [
+        (i, a) for i, a in enumerate(articles)
+        if a.get("link") and "news.google.com" in a.get("link", "")
+    ]
+
+    if not google_news_articles:
+        return articles
+
+    print(f"[Ingest] Resolving {len(google_news_articles)} Google News URLs...")
+
+    # Process in batches of 20 to avoid overwhelming servers
+    batch_size = 20
+    resolved_count = 0
+
+    for batch_start in range(0, len(google_news_articles), batch_size):
+        batch = google_news_articles[batch_start:batch_start + batch_size]
+        tasks = [
+            resolve_google_news_url(session, articles[idx]["link"])
+            for idx, _ in batch
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for (idx, article), result in zip(batch, results):
+            if isinstance(result, Exception):
+                print(f"[Ingest] Failed to resolve URL for article: {result}")
+                continue
+
+            resolved_url, source_name = result
+
+            # Update article with resolved URL
+            if resolved_url and resolved_url != article["link"]:
+                articles[idx]["link"] = resolved_url
+                resolved_count += 1
+
+            # Update source_id if we got a better one from the resolved URL
+            if source_name:
+                articles[idx]["source_id"] = source_name
+
+    print(f"[Ingest] Resolved {resolved_count} Google News URLs to actual sources")
+    return articles, resolved_count
+
+
+async def fetch_all_feeds(feeds: List[Dict[str, str]]) -> tuple[List[Dict[str, Any]], int]:
+    """
+    Fetch all RSS feeds in parallel and resolve Google News URLs.
 
     Args:
         feeds: List of feed configs
 
     Returns:
-        Flattened list of all articles from all feeds
+        Tuple of (flattened list of all articles, count of resolved Google News URLs)
     """
     print(f"[Ingest] Fetching {len(feeds)} RSS feeds in parallel...")
 
@@ -126,7 +315,10 @@ async def fetch_all_feeds(feeds: List[Dict[str, str]]) -> List[Dict[str, Any]]:
             elif isinstance(result, list):
                 all_articles.extend(result)
 
-        return all_articles
+        # Resolve Google News redirect URLs to get actual article URLs and sources
+        all_articles, resolved_count = await resolve_article_urls(session, all_articles)
+
+        return all_articles, resolved_count
 
 
 def ingest_articles(debug: bool = False) -> Dict[str, Any]:
@@ -153,6 +345,7 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
         "articles_ingested": 0,
         "articles_skipped_duplicate": 0,
         "articles_skipped_invalid": 0,
+        "google_news_resolved": 0,
         "errors": []
     }
 
@@ -169,9 +362,10 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
         results["feeds_count"] = len(feeds)
         print(f"[Ingest] Using {len(feeds)} feeds")
 
-        # Fetch all articles from RSS feeds
-        articles = asyncio.run(fetch_all_feeds(feeds))
+        # Fetch all articles from RSS feeds (includes Google News URL resolution)
+        articles, google_news_resolved = asyncio.run(fetch_all_feeds(feeds))
         results["articles_found"] = len(articles)
+        results["google_news_resolved"] = google_news_resolved
         print(f"[Ingest] Found {len(articles)} total articles")
 
         if not articles:
@@ -220,6 +414,7 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
                 "original_url": article["link"],  # Source URL
                 "source_id": article["source_id"],  # Publication name
                 "date_ingested": datetime.now(timezone.utc).isoformat(),  # When we ingested
+                "needs_ai": True,  # Flag for AI Scoring job to pick up
             }
 
             # Add optional fields if present
@@ -246,6 +441,7 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
         print(f"[Ingest] Ingestion complete:")
         print(f"  - Feeds fetched: {results['feeds_count']}")
         print(f"  - Articles found: {results['articles_found']}")
+        print(f"  - Google News URLs resolved: {results['google_news_resolved']}")
         print(f"  - Articles ingested: {results['articles_ingested']}")
         print(f"  - Duplicates skipped: {results['articles_skipped_duplicate']}")
         print(f"  - Invalid skipped: {results['articles_skipped_invalid']}")
@@ -259,6 +455,8 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
         traceback.print_exc()
 
     results["completed_at"] = datetime.now(timezone.utc).isoformat()
+    # Add 'processed' key for UI compatibility (UI looks for processed || total_written)
+    results["processed"] = results["articles_ingested"]
     return results
 
 
