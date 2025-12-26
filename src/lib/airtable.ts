@@ -40,6 +40,7 @@ async function fetchAirtable(
     filterByFormula?: string;
     sort?: Array<{ field: string; direction: "asc" | "desc" }>;
     fields?: string[];
+    skipCache?: boolean;
   } = {}
 ): Promise<AirtableRecord[]> {
   if (!AIRTABLE_API_KEY) {
@@ -74,7 +75,10 @@ async function fetchAirtable(
       Authorization: `Bearer ${AIRTABLE_API_KEY}`,
       "Content-Type": "application/json",
     },
-    next: { revalidate: 60 }, // Cache for 60 seconds
+    // Skip cache when refresh is requested, otherwise cache for 60 seconds
+    ...(options.skipCache
+      ? { cache: "no-store" as const }
+      : { next: { revalidate: 60 } }),
   });
 
   if (!response.ok) {
@@ -344,7 +348,7 @@ export interface PreFilterEntry {
   slot: number;
 }
 
-export async function getPreFilterLog(): Promise<PreFilterEntry[]> {
+export async function getPreFilterLog(skipCache: boolean = false): Promise<PreFilterEntry[]> {
   if (!AI_EDITOR_BASE_ID || !TABLES.prefilterLog) {
     throw new Error("AI Editor base ID or prefilter log table not configured");
   }
@@ -353,6 +357,7 @@ export async function getPreFilterLog(): Promise<PreFilterEntry[]> {
     maxRecords: 200,
     sort: [{ field: "date_prefiltered", direction: "desc" }],
     fields: ["storyID", "pivotId", "headline", "core_url", "source_id", "date_og_published", "date_prefiltered", "slot"],
+    skipCache,
   });
 
   return records.map((record) => ({

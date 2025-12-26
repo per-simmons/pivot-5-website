@@ -54,13 +54,17 @@ export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) 
   const pageSize = 50; // Show 50 records per page
 
   // Fetch pre-filter data from API
-  const fetchData = async () => {
+  const fetchData = async (forceRefresh: boolean = false) => {
     if (stepId !== 1) return; // Only fetch for pre-filter step
 
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/stories?type=prefilter");
+      // Add refresh=true to bypass cache when data needs to be fresh
+      const url = forceRefresh
+        ? "/api/stories?type=prefilter&refresh=true"
+        : "/api/stories?type=prefilter";
+      const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch data");
       const data = await response.json();
       setPreFilterData(data.stories || []);
@@ -76,12 +80,13 @@ export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) 
     fetchData();
   }, [stepId]);
 
-  // Listen for job completion to auto-refresh data
+  // Listen for job completion to auto-refresh data with cache bypass
   useEffect(() => {
     const handleJobComplete = (event: Event) => {
       const customEvent = event as CustomEvent<{ stepId: number }>;
       if (customEvent.detail?.stepId === stepId) {
-        fetchData();
+        // Force refresh to bypass cache and get fresh Airtable data
+        fetchData(true);
       }
     };
 
@@ -161,7 +166,7 @@ export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) 
                 variant="outline"
                 size="sm"
                 className="gap-2"
-                onClick={fetchData}
+                onClick={() => fetchData(true)}
                 disabled={loading}
               >
                 <MaterialIcon name="sync" className={cn("text-base", loading && "animate-spin")} />
