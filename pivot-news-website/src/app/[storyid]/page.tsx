@@ -119,6 +119,19 @@ const stripTags = (input: string): string => {
   return result;
 };
 
+// Extract source URL from the end of blog post (format: ---\n\n[Source](url))
+const extractSourceUrl = (content: string): { text: string; sourceUrl: string | null } => {
+  const sourcePattern = /\n*---\n*\n*\[Source\]\((https?:\/\/[^\)]+)\)\s*$/;
+  const match = content.match(sourcePattern);
+  if (match) {
+    return {
+      text: content.replace(sourcePattern, '').trim(),
+      sourceUrl: match[1]
+    };
+  }
+  return { text: content, sourceUrl: null };
+};
+
 const normalizeRecord = (record: AirtableRecord): SocialPost => {
   const { fields } = record;
 
@@ -305,14 +318,31 @@ export default function PostPage({ params }: { params: Promise<{ storyid: string
             </div>
           )}
 
-          {(post.generatedStory || post.raw) && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-slate-900">Here's the Full Story</h2>
-              <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                {post.generatedStory || post.raw}
-              </p>
-            </div>
-          )}
+          {(post.generatedStory || post.raw) && (() => {
+            const content = post.generatedStory || post.raw || '';
+            const { text, sourceUrl } = extractSourceUrl(content);
+            return (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-slate-900">Here's the Full Story</h2>
+                <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                  {text}
+                </p>
+                {sourceUrl && (
+                  <div className="pt-4 border-t border-slate-200">
+                    <a
+                      href={sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Source
+                    </a>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
         </article>
       </div>
