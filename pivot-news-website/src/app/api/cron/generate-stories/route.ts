@@ -10,9 +10,11 @@
  * 1. Fetches records from AI Editor - Decoration table where:
  *    - image_status = 'generated' (has image ready)
  *    - blog_post_raw is empty
- * 2. Sends headline + raw content + bullet points to Gemini
- * 3. Gemini writes 500-800 word blog post
- * 4. Saves to blog_post_raw field in Airtable
+ * 2. Looks up original source URL from Pre-Filter Log table using story_id
+ * 3. Sends headline + raw content + bullet points to Gemini
+ * 4. Gemini writes 500-800 word blog post
+ * 5. Appends source link to the blog post
+ * 6. Saves to blog_post_raw field in Airtable
  *
  * RATE LIMITING:
  * - Processes 5 records per run (maxRecords=5)
@@ -20,15 +22,17 @@
  * - Run cron multiple times to process backlog
  *
  * UPDATED: Dec 21, 2025 - Switched from Newsletter Issue Stories to AI Editor - Decoration
+ * UPDATED: Dec 25, 2025 - Added source link at bottom of blog posts from Pre-Filter Log
  */
 
 import { NextRequest, NextResponse } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || "";
-// AI Editor 2.0 base and Decoration table
+// AI Editor 2.0 base and tables
 const AIRTABLE_BASE_ID = "appglKSJZxmA9iHpl";
-const AIRTABLE_TABLE_ID = "tbla16LJCf5Z6cRn3";
+const AIRTABLE_TABLE_ID = "tbla16LJCf5Z6cRn3"; // Decoration table
+const AIRTABLE_PREFILTER_LOG_TABLE_ID = "tbl72YMsm9iRHj3sp"; // Pre-Filter Log table
 const GENERATED_STORY_FIELD = "blog_post_raw";
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -74,6 +78,55 @@ interface AirtableRecord {
     story_id?: string;
     pivotnews_url?: string;
   };
+}
+
+interface PreFilterLogRecord {
+  id: string;
+  fields: {
+    story_id?: string;
+    core_url?: string;
+    original_url?: string;
+  };
+}
+
+/**
+ * Look up the original source URL from the Pre-Filter Log table by story_id
+ */
+async function getSourceUrl(storyId: string): Promise<string | null> {
+  if (!storyId) return null;
+
+  const filterFormula = encodeURIComponent(`{story_id}="${storyId}"`);
+
+  try {
+    const response = await fetch(
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_PREFILTER_LOG_TABLE_ID}?filterByFormula=${filterFormula}&maxRecords=1`,
+      {
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Pre-Filter Log lookup error for story_id ${storyId}: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const records = data.records as PreFilterLogRecord[];
+
+    if (records.length === 0) {
+      console.log(`No Pre-Filter Log record found for story_id: ${storyId}`);
+      return null;
+    }
+
+    // Try core_url first, then original_url as fallback
+    const sourceUrl = records[0].fields.core_url || records[0].fields.original_url;
+    return sourceUrl || null;
+  } catch (error) {
+    console.error(`Error looking up source URL for story_id ${storyId}:`, error);
+    return null;
+  }
 }
 
 async function fetchPendingRecords(): Promise<AirtableRecord[]> {
@@ -258,7 +311,23 @@ Source material:
 ${rawText}`;
 
         // Generate story
-        const generatedStory = await callGemini(prompt);
+        let generatedStory = await callGemini(prompt);
+
+        // Look up source URL from Pre-Filter Log table using story_id
+        const storyId = record.fields.story_id;
+        if (storyId) {
+          const sourceUrl = await getSourceUrl(storyId);
+          if (sourceUrl) {
+            // Append source link at the bottom of the blog post
+            generatedStory = `${generatedStory}\n\n---\n\n[Source](${sourceUrl})`;
+            console.log(`Added source link for story_id ${storyId}: ${sourceUrl}`);
+          } else {
+            console.log(`No source URL found for story_id: ${storyId}`);
+          }
+        } else {
+          console.log(`No story_id found for record: ${record.id}`);
+        }
+
         const wordCount = generatedStory.split(/\s+/).length;
 
         // Save to Airtable
