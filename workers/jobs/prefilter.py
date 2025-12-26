@@ -12,8 +12,9 @@ MATCHES n8n WORKFLOW ARCHITECTURE EXACTLY:
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional, Any, Set
+from zoneinfo import ZoneInfo
 
 from utils.airtable import AirtableClient
 from utils.gemini import GeminiClient
@@ -263,6 +264,11 @@ def prefilter_stories() -> dict:
 
         prefilter_records = []
 
+        # Get current time in EST timezone for all records
+        est = ZoneInfo("America/New_York")
+        now_est = datetime.now(est)
+        date_prefiltered_iso = now_est.isoformat()  # ISO 8601 format with EST timezone
+
         for story_id, eligible_slots in story_slots.items():
             if not eligible_slots:
                 continue
@@ -279,7 +285,7 @@ def prefilter_stories() -> dict:
                     "headline": article_data.get("headline", ""),
                     "core_url": article_data.get("core_url", ""),
                     "source_id": article_data.get("source_id", ""),
-                    "date_prefiltered": datetime.utcnow().isoformat() + "Z",  # ISO 8601 format required by Airtable Date field
+                    "date_prefiltered": date_prefiltered_iso,  # ISO 8601 format with EST timezone
                     "slot": str(slot)  # Airtable expects string for Single Select field
                 }
                 # Only include date_og_published if it has a value (Airtable rejects empty date strings)
