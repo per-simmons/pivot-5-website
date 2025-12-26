@@ -1,7 +1,7 @@
 "use client";
 
 import { notFound } from "next/navigation";
-import { use, useState } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { getStepConfig } from "@/lib/step-config";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ExecutionLogs } from "@/components/step/execution-logs";
 import { SystemPrompts } from "@/components/step/system-prompts";
 import { StepData } from "@/components/step/step-data";
+import { Progress } from "@/components/ui/progress";
 
 function MaterialIcon({ name, className }: { name: string; className?: string }) {
   return (
@@ -37,6 +38,9 @@ export default function StepPage({ params }: PageProps) {
   const { id } = use(params);
   const stepId = parseInt(id, 10);
   const [isRunning, setIsRunning] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<"queued" | "started" | "finished" | "failed" | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   if (isNaN(stepId) || stepId < 1 || stepId > 5) {
     notFound();
@@ -53,6 +57,8 @@ export default function StepPage({ params }: PageProps) {
     if (!jobName) return;
 
     setIsRunning(true);
+    setElapsedTime(0);
+
     try {
       const response = await fetch("/api/jobs", {
         method: "POST",
@@ -63,20 +69,77 @@ export default function StepPage({ params }: PageProps) {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        setJobId(data.job_id);  // Store job ID for polling
+        setJobStatus("queued");
         toast.success("Job Started", {
-          description: `${stepConfig.name} job queued successfully (ID: ${data.job_id?.slice(0, 8)}...)`,
+          description: `${stepConfig.name} job queued successfully`,
         });
       } else {
+        setIsRunning(false);
         throw new Error(data.error || "Failed to start job");
       }
     } catch (error) {
+      setIsRunning(false);
       toast.error("Error", {
         description: error instanceof Error ? error.message : "Failed to start job",
       });
-    } finally {
-      setIsRunning(false);
     }
+    // Note: Don't setIsRunning(false) here - polling effect will handle it
   };
+
+  // Poll job status until completion
+  useEffect(() => {
+    if (!jobId) return;
+
+    const startTime = Date.now();
+
+    // Update elapsed time every second
+    const timerInterval = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    // Poll job status every 2 seconds
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/jobs/${jobId}`);
+        const status = await response.json();
+
+        // Update job status for UI display
+        if (status.status === "started" || status.status === "queued") {
+          setJobStatus(status.status);
+        }
+
+        if (status.status === "finished" || status.status === "failed") {
+          clearInterval(pollInterval);
+          clearInterval(timerInterval);
+          setIsRunning(false);
+          setJobId(null);
+          setJobStatus(status.status);
+
+          const finalElapsed = Math.floor((Date.now() - startTime) / 1000);
+
+          if (status.status === "finished") {
+            toast.success("Job Completed", {
+              description: `Processed ${status.result?.processed || status.result?.total_written || 0} stories in ${finalElapsed}s`,
+            });
+            // Trigger refresh in StepData component
+            window.dispatchEvent(new CustomEvent("jobCompleted", { detail: { stepId } }));
+          } else {
+            toast.error("Job Failed", {
+              description: status.error || "Unknown error occurred",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error polling job status:", error);
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(timerInterval);
+    };
+  }, [jobId, stepId]);
 
   // Mock execution data - in production this would come from an API
   const lastRun = {
@@ -113,7 +176,7 @@ export default function StepPage({ params }: PageProps) {
             </div>
             <Button className="gap-2" onClick={handleRunNow} disabled={isRunning}>
               <MaterialIcon name={isRunning ? "sync" : "play_arrow"} className={`text-lg ${isRunning ? "animate-spin" : ""}`} />
-              {isRunning ? "Running..." : "Run Now"}
+              {isRunning ? `Running... ${elapsedTime}s` : "Run Now"}
             </Button>
           </div>
         </CardHeader>
@@ -134,6 +197,39 @@ export default function StepPage({ params }: PageProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Running Status Banner */}
+      {isRunning && (
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                <MaterialIcon name="sync" className="text-xl text-blue-600 animate-spin" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-blue-900">
+                      {jobStatus === "queued" ? "Job Queued" : "Job Running"}
+                    </span>
+                    <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
+                      {jobStatus === "queued" ? "Waiting for worker..." : "Processing..."}
+                    </Badge>
+                  </div>
+                  <span className="font-mono text-lg font-bold text-blue-700">
+                    {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, "0")}
+                  </span>
+                </div>
+                <Progress value={undefined} className="h-2 bg-blue-100" />
+                <div className="flex items-center justify-between mt-2 text-sm text-blue-600">
+                  <span>Job ID: {jobId?.slice(0, 8)}...</span>
+                  <span>Polling every 2s for status updates</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabs Section */}
       <Tabs defaultValue="logs" className="space-y-4">

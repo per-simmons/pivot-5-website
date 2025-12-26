@@ -76,6 +76,19 @@ export function StepData({ stepId, tableName, tableId, baseId }: StepDataProps) 
     fetchData();
   }, [stepId]);
 
+  // Listen for job completion to auto-refresh data
+  useEffect(() => {
+    const handleJobComplete = (event: Event) => {
+      const customEvent = event as CustomEvent<{ stepId: number }>;
+      if (customEvent.detail?.stepId === stepId) {
+        fetchData();
+      }
+    };
+
+    window.addEventListener("jobCompleted", handleJobComplete);
+    return () => window.removeEventListener("jobCompleted", handleJobComplete);
+  }, [stepId]);
+
   // Calculate slot counts
   const slotCounts = useMemo(() => {
     const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };

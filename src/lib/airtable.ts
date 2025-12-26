@@ -364,7 +364,7 @@ export async function getPreFilterLog(): Promise<PreFilterEntry[]> {
     sourceId: (record.fields.source_id as string) || "",
     datePublished: (record.fields.date_og_published as string) || "",
     datePrefiltered: (record.fields.date_prefiltered as string) || "",
-    slot: (record.fields.slot as number) || 0,
+    slot: parseInt(String(record.fields.slot || "0"), 10) || 0,
   }));
 }
 

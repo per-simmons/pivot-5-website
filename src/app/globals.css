@@ -154,3 +154,24 @@
     @apply font-mono;
   }
 }
+
+/* Indeterminate progress bar animation */
+@keyframes indeterminate {
+  0% {
+    width: 0%;
+    left: 0;
+  }
+  50% {
+    width: 30%;
+    left: 35%;
+  }
+  100% {
+    width: 0%;
+    left: 100%;
+  }
+}
+
+.animate-indeterminate {
+  position: absolute;
+  animation: indeterminate 1.5s ease-in-out infinite;
+}
