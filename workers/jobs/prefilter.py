@@ -279,7 +279,7 @@ def prefilter_stories() -> dict:
                     "headline": article_data.get("headline", ""),
                     "core_url": article_data.get("core_url", ""),
                     "source_id": article_data.get("source_id", ""),
-                    "date_prefiltered": datetime.utcnow().strftime('%b %d at %I:%M%p').replace('AM', 'am').replace('PM', 'pm'),
+                    "date_prefiltered": datetime.utcnow().isoformat() + "Z",  # ISO 8601 format required by Airtable Date field
                     "slot": str(slot)  # Airtable expects string for Single Select field
                 }
                 # Only include date_og_published if it has a value (Airtable rejects empty date strings)
