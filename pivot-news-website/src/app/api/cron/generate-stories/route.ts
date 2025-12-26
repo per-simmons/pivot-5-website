@@ -83,19 +83,20 @@ interface AirtableRecord {
 interface PreFilterLogRecord {
   id: string;
   fields: {
-    story_id?: string;
+    storyID?: string;  // Pre-Filter Log uses capital ID
     core_url?: string;
-    original_url?: string;
   };
 }
 
 /**
- * Look up the original source URL from the Pre-Filter Log table by story_id
+ * Look up the original source URL from the Pre-Filter Log table by storyID
+ * Note: Pre-Filter Log uses "storyID" (capital ID), Decoration table uses "story_id"
  */
 async function getSourceUrl(storyId: string): Promise<string | null> {
   if (!storyId) return null;
 
-  const filterFormula = encodeURIComponent(`{story_id}="${storyId}"`);
+  // Pre-Filter Log uses "storyID" field name (capital ID)
+  const filterFormula = encodeURIComponent(`{storyID}="${storyId}"`);
 
   try {
     const response = await fetch(
@@ -120,9 +121,7 @@ async function getSourceUrl(storyId: string): Promise<string | null> {
       return null;
     }
 
-    // Try core_url first, then original_url as fallback
-    const sourceUrl = records[0].fields.core_url || records[0].fields.original_url;
-    return sourceUrl || null;
+    return records[0].fields.core_url || null;
   } catch (error) {
     console.error(`Error looking up source URL for story_id ${storyId}:`, error);
     return null;
