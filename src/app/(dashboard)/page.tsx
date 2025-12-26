@@ -52,6 +52,15 @@ interface PipelineStep {
 
 const initialSteps: PipelineStep[] = [
   {
+    id: 0,
+    name: "Ingest",
+    description: "Fetches articles from 19 RSS feeds and creates records in Airtable Newsletter Issue Stories",
+    schedule: "8:00 PM EST",
+    status: "idle",
+    lastRun: undefined,
+    storiesProcessed: undefined,
+  },
+  {
     id: 1,
     name: "Pre-Filter",
     description: "Filters candidate articles into 5 newsletter slots based on freshness, source credibility, and content relevance",
@@ -131,15 +140,18 @@ export default function PipelinePage() {
   const [decorations, setDecorations] = useState<DecorationData[]>([]);
   const [prefilterCount, setPrefilterCount] = useState(0);
 
+  const [ingestStats, setIngestStats] = useState<{ totalArticles: number; todayCount: number } | null>(null);
+
   const fetchPipelineData = useCallback(async () => {
     try {
       setLoading(true);
 
       // Fetch all data in parallel
-      const [slotsRes, decorationsRes, prefilterRes] = await Promise.all([
+      const [slotsRes, decorationsRes, prefilterRes, ingestRes] = await Promise.all([
         fetch("/api/slots"),
         fetch("/api/decorations"),
         fetch("/api/stories?type=prefilter"),
+        fetch("/api/ingest"),
       ]);
 
       if (slotsRes.ok) {
@@ -155,6 +167,13 @@ export default function PipelinePage() {
       if (prefilterRes.ok) {
         const prefilterData = await prefilterRes.json();
         setPrefilterCount(prefilterData.stories?.length || 0);
+      }
+
+      if (ingestRes.ok) {
+        const ingestData = await ingestRes.json();
+        if (ingestData.success && ingestData.stats) {
+          setIngestStats(ingestData.stats);
+        }
       }
     } catch (error) {
       console.error("Error fetching pipeline data:", error);
@@ -294,7 +313,18 @@ export default function PipelinePage() {
       </Card>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-5 gap-4 mb-8">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-foreground">
+              {loading ? "..." : ingestStats?.totalArticles || 0}
+            </div>
+            <div className="text-sm text-muted-foreground">Articles Ingested</div>
+            {ingestStats?.todayCount !== undefined && ingestStats.todayCount > 0 && (
+              <div className="text-xs text-primary mt-1">+{ingestStats.todayCount} today</div>
+            )}
+          </CardContent>
+        </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-foreground">

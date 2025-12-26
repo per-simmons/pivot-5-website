@@ -21,6 +21,7 @@ const navigation: NavSection[] = [
     title: "PIPELINE",
     items: [
       { name: "Overview", href: "/", icon: "dashboard" },
+      { name: "Ingest", href: "/step/0", icon: "cloud_download", stepNumber: 0 },
       { name: "Pre-Filter", href: "/step/1", icon: "filter_alt", stepNumber: 1 },
       { name: "Slot Selection", href: "/step/2", icon: "checklist", stepNumber: 2 },
       { name: "Decoration", href: "/step/3", icon: "edit_note", stepNumber: 3 },

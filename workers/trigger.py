@@ -69,7 +69,10 @@ def get_job_function(step_name: str):
         return JOB_FUNCTIONS[step_name]
 
     try:
-        if step_name == 'prefilter':
+        if step_name == 'ingest':
+            from jobs.ingest import ingest_articles
+            JOB_FUNCTIONS[step_name] = ingest_articles
+        elif step_name == 'prefilter':
             from jobs.prefilter import prefilter_stories
             JOB_FUNCTIONS[step_name] = prefilter_stories
         elif step_name == 'slot_selection':
@@ -101,6 +104,7 @@ def get_job_function(step_name: str):
 
 # Queue name mapping (matches worker.py priority)
 QUEUE_MAPPING = {
+    'ingest': 'default',
     'prefilter': 'default',
     'slot_selection': 'high',
     'decoration': 'default',

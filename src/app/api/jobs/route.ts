@@ -18,6 +18,7 @@ const TRIGGER_SECRET = process.env.TRIGGER_SECRET || "";
 
 // Valid step names that can be triggered
 const VALID_STEPS = [
+  "ingest",
   "prefilter",
   "slot_selection",
   "decoration",

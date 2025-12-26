@@ -1,5 +1,6 @@
 """AI Editor 2.0 Background Jobs
 
+Step 0: ingest_articles - Fetch articles from RSS feeds
 Step 1: prefilter_stories - Pre-filter candidates by slot eligibility
 Step 2: select_slots - Claude agents select 5 stories for newsletter
 Step 3: decorate_stories - Generate headlines, deks, bullets
@@ -9,6 +10,7 @@ Step 4b: send_via_mautic - Send newsletter via Mautic
 Step 5: sync_social_posts - Syndicate to P5 Social Posts
 """
 
+from .ingest import ingest_articles
 from .prefilter import prefilter_stories
 from .slot_selection import select_slots
 from .decoration import decorate_stories
@@ -18,6 +20,8 @@ from .mautic_send import send_via_mautic, test_send, get_send_stats
 from .social_sync import sync_social_posts, resync_story, get_social_stats
 
 __all__ = [
+    # Step 0
+    'ingest_articles',
     # Step 1
     'prefilter_stories',
     # Step 2

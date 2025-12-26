@@ -25,6 +25,19 @@ export interface PromptConfig {
 
 export const stepConfigs: StepConfig[] = [
   {
+    id: 0,
+    name: "Ingest",
+    description: "Fetch articles from 19 RSS feeds and create records in Airtable",
+    schedule: "8:00 PM ET Monday-Friday",
+    icon: "cloud_download",
+    prompts: [],
+    dataTable: {
+      name: "Newsletter Issue Stories",
+      tableId: "tblaHcFFG6Iw3w7lL",
+      baseId: "appwSozYTkrsQWUXB",
+    },
+  },
+  {
     id: 1,
     name: "Pre-Filter",
     description: "Filter stories by slot eligibility using AI classification",

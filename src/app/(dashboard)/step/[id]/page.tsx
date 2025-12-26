@@ -27,6 +27,7 @@ interface PageProps {
 
 // Map step ID to job name
 const STEP_JOB_NAMES: Record<number, string> = {
+  0: "ingest",
   1: "prefilter",
   2: "slot_selection",
   3: "decoration",
@@ -45,7 +46,7 @@ export default function StepPage({ params }: PageProps) {
   const [lastResult, setLastResult] = useState<{ processed: number; elapsed: number } | null>(null);
   const [activeTab, setActiveTab] = useState("logs");
 
-  if (isNaN(stepId) || stepId < 1 || stepId > 5) {
+  if (isNaN(stepId) || stepId < 0 || stepId > 5) {
     notFound();
   }
 
