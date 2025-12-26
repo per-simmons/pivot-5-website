@@ -20,7 +20,8 @@ from utils.airtable import AirtableClient
 from utils.gemini import GeminiClient
 
 # Tier 1 companies for Slot 1 Company Filter (runs parallel to Gemini)
-SLOT_1_COMPANIES = ['openai', 'google', 'meta', 'nvidia', 'microsoft', 'anthropic', 'xai', 'amazon']
+# Updated 12/26/25: Reduced to 4 companies to match n8n workflow (line 1262)
+SLOT_1_COMPANIES = ['openai', 'google', 'meta', 'nvidia']
 
 
 def prefilter_stories() -> dict:

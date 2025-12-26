@@ -62,7 +62,8 @@ class AirtableClient:
         """
         table = self._get_table(self.pivot_media_base_id, self.newsletter_stories_table_id)
 
-        filter_formula = f"AND(IS_AFTER({{date_og_published}}, DATEADD(TODAY(), -{days}, 'days')), {{ai_headline}}!='', {{newsletter}}='pivot_ai')"
+        # Updated 12/26/25: Include all 3 newsletters to match n8n workflow
+        filter_formula = f"AND(IS_AFTER({{date_og_published}}, DATEADD(TODAY(), -{days}, 'days')), {{ai_headline}}!='', OR({{newsletter}}='pivot_ai', {{newsletter}}='pivot_build', {{newsletter}}='pivot_invest'))"
 
         # All fields needed by n8n workflow
         # Note: 'headline' field does not exist in this table - only 'ai_headline'
@@ -203,6 +204,8 @@ class AirtableClient:
         """
         Step 1, Node 8 / Step 2, Node 2: Get yesterday's sent issue
         Filter: status='sent', sorted by issue_date DESC
+
+        NOTE: For comprehensive duplicate checking, use get_recent_sent_issues() instead.
         """
         table = self._get_table(self.ai_editor_base_id, self.selected_slots_table_id)
 
@@ -213,6 +216,30 @@ class AirtableClient:
         )
 
         return records[0] if records else None
+
+    def get_recent_sent_issues(self, lookback_days: int = 14) -> List[dict]:
+        """
+        Get all sent issues from the last N days for comprehensive duplicate checking.
+
+        Updated 12/26/25: Added to match n8n workflow behavior.
+        n8n uses a 14-day lookback (line 1190) to check for recently used stories.
+
+        Args:
+            lookback_days: Number of days to look back (default 14 per n8n)
+
+        Returns:
+            List of sent issue records from the last N days
+        """
+        table = self._get_table(self.ai_editor_base_id, self.selected_slots_table_id)
+
+        filter_formula = f"AND({{status}}='sent', IS_AFTER({{issue_date}}, DATEADD(TODAY(), -{lookback_days}, 'days')))"
+
+        records = table.all(
+            formula=filter_formula,
+            sort=['-issue_date']
+        )
+
+        return records
 
     def write_prefilter_log(self, record_data: dict) -> str:
         """
@@ -226,9 +253,19 @@ class AirtableClient:
     def write_prefilter_log_batch(self, records: List[dict]) -> List[str]:
         """
         Batch write to Pre-Filter Log table
-        Returns: list of record IDs
+
+        Updated 12/26/25: Uses batch_create for initial implementation.
+        Each story can have multiple records (one per eligible slot).
+
+        Note: For deduplication, the n8n workflow uses "Create or Update" with storyID
+        as the match field. However, this requires the table to have no duplicate storyIDs.
+        For now, we use batch_create and allow multiple records per story+slot.
+
+        Returns: list of record IDs created
         """
         table = self._get_table(self.ai_editor_base_id, self.prefilter_log_table_id)
+
+        # batch_create accepts raw field dicts
         created = table.batch_create(records)
         return [r['id'] for r in created]
 
