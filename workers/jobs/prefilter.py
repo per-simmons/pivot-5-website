@@ -65,8 +65,10 @@ def prefilter_stories() -> dict:
         # =================================================================
 
         # 1. Get fresh stories from Newsletter Stories table
+        # NOTE: No max_records limit - matches n8n "Pull Fresh Candidates" node
+        # which pulls ALL eligible stories (typically 250-350 per run)
         print("[Step 1] Fetching fresh stories...")
-        fresh_stories = airtable.get_fresh_stories(days=7, max_records=100)
+        fresh_stories = airtable.get_fresh_stories(days=7)
         print(f"[Step 1] Found {len(fresh_stories)} fresh stories")
 
         # 2. Get queued stories (manual priority) - optional, may not have API access

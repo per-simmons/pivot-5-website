@@ -47,7 +47,7 @@ class AirtableClient:
     # PIVOT MEDIA MASTER BASE
     # =========================================================================
 
-    def get_fresh_stories(self, days: int = 7, max_records: int = 100) -> List[dict]:
+    def get_fresh_stories(self, days: int = 7, max_records: Optional[int] = None) -> List[dict]:
         """
         Step 1, Node 2: Get fresh stories from Newsletter Stories table
         Filter: Last N days with ai_headline populated
@@ -56,6 +56,9 @@ class AirtableClient:
         - ai_bullet_1, ai_bullet_2, ai_bullet_3 for summary building
         - core_url, image_url for media
         - fit_score, sentiment, tags for filtering
+
+        NOTE: max_records defaults to None (no limit) to match n8n behavior.
+        The n8n workflow pulls ALL eligible stories for evaluation.
         """
         table = self._get_table(self.pivot_media_base_id, self.newsletter_stories_table_id)
 
@@ -71,12 +74,16 @@ class AirtableClient:
             'fit_score', 'sentiment', 'tags',  # Filtering fields
         ]
 
-        records = table.all(
-            formula=filter_formula,
-            sort=['-date_og_published'],
-            max_records=max_records,
-            fields=fields
-        )
+        # Build query kwargs - only include max_records if specified
+        query_kwargs = {
+            'formula': filter_formula,
+            'sort': ['-date_og_published'],
+            'fields': fields
+        }
+        if max_records is not None:
+            query_kwargs['max_records'] = max_records
+
+        records = table.all(**query_kwargs)
 
         return records
 
