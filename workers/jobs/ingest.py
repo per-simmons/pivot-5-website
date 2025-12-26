@@ -2,9 +2,14 @@
 Step 0: RSS Ingestion Job
 
 Fetches articles from RSS feeds and creates records in Airtable.
-This is Step 0 of the newsletter pipeline - feeds articles to Pre-Filter (Step 1).
+This is Step 0 of the newsletter pipeline - raw ingestion to Articles table.
 
-Target Table: Newsletter Issue Stories (tblaHcFFG6Iw3w7lL)
+ARCHITECTURE:
+  Step 0 (Ingest) → Articles table (raw RSS data)
+  Step 1 (Pre-Filter) → Reads from Articles, AI scores → Pre-Filter Log
+  Step 2 (Slot Selection) → Selects best articles → Newsletter Issue Stories
+
+Target Table: Articles (tblGumae8KDpsrWvh) in Pivot Media Master base
 """
 
 import asyncio
@@ -17,16 +22,16 @@ from typing import List, Dict, Any, Optional
 from pyairtable import Api
 
 # Import local utilities
-from utils.pivot_id import generate_pivot_id, generate_story_id
+from utils.pivot_id import generate_pivot_id
 from config.rss_feeds import get_feeds
 
 
 # Airtable configuration
 AIRTABLE_API_KEY = os.environ.get("AIRTABLE_API_KEY")
-AIRTABLE_BASE_ID = os.environ.get("AIRTABLE_BASE_ID", "appwSozYTkrsQWUXB")
-NEWSLETTER_ISSUE_STORIES_TABLE = os.environ.get(
-    "AIRTABLE_NEWSLETTER_ISSUE_STORIES_TABLE",
-    "tblaHcFFG6Iw3w7lL"
+AIRTABLE_BASE_ID = os.environ.get("AIRTABLE_BASE_ID", "appwSozYTkrsQWUXB")  # Pivot Media Master
+ARTICLES_TABLE = os.environ.get(
+    "AIRTABLE_ARTICLES_TABLE",
+    "tblGumae8KDpsrWvh"  # Articles table - raw ingestion target
 )
 
 
@@ -157,7 +162,7 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
             raise ValueError("AIRTABLE_API_KEY environment variable not set")
 
         api = Api(AIRTABLE_API_KEY)
-        table = api.table(AIRTABLE_BASE_ID, NEWSLETTER_ISSUE_STORIES_TABLE)
+        table = api.table(AIRTABLE_BASE_ID, ARTICLES_TABLE)
 
         # Select feeds based on debug mode
         feeds = get_feeds(debug=debug)
@@ -174,14 +179,15 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
             results["completed_at"] = datetime.now(timezone.utc).isoformat()
             return results
 
-        # Get existing pivotIds from Airtable for deduplication
-        print("[Ingest] Fetching existing pivotIds for deduplication...")
+        # Get existing pivot_Ids from Airtable for deduplication
+        # Note: Articles table uses "pivot_Id" (with underscore) as the key
+        print("[Ingest] Fetching existing pivot_Ids for deduplication...")
         try:
-            existing_records = table.all(fields=["pivotId"])
+            existing_records = table.all(fields=["pivot_Id"])
             existing_pivot_ids = {
-                r["fields"].get("pivotId")
+                r["fields"].get("pivot_Id")
                 for r in existing_records
-                if r["fields"].get("pivotId")
+                if r["fields"].get("pivot_Id")
             }
             print(f"[Ingest] Found {len(existing_pivot_ids)} existing records")
         except Exception as e:
@@ -206,25 +212,24 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
                 results["articles_skipped_duplicate"] += 1
                 continue
 
-            # Generate storyId
-            story_id = generate_story_id(pivot_id)
-
             # Prepare Airtable record
-            # Fields based on Newsletter Issue Stories schema
+            # Fields based on Articles table schema (matching n8n Ingestion Engine)
+            # Note: We don't have markdown since we're RSS-only (no Firecrawl)
             record = {
-                "pivotId": pivot_id,
-                "StoryID": story_id,
-                "ai_headline": article["title"][:500] if article["title"] else None,
-                "topic": article["source_id"],
+                "pivot_Id": pivot_id,  # Primary deduplication key
+                "original_url": article["link"],  # Source URL
+                "source_id": article["source_id"],  # Publication name
+                "date_ingested": datetime.now(timezone.utc).isoformat(),  # When we ingested
             }
 
             # Add optional fields if present
             if article["pubDate"]:
-                record["date_og_published"] = article["pubDate"]
-            if article["categories"]:
-                record["tags"] = article["categories"][:1000]
-            if article["image_url"]:
-                record["image_url"] = article["image_url"]
+                record["date_published"] = article["pubDate"]
+
+            # Note: We don't have markdown content since we're RSS-only
+            # The n8n workflow uses Firecrawl to get markdown, but we're
+            # deliberately skipping that step for this implementation.
+            # Pre-Filter (Step 1) will need to work with minimal data.
 
             # Remove None values (Airtable doesn't like them)
             record = {k: v for k, v in record.items() if v is not None}
