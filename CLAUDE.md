@@ -1,5 +1,23 @@
 # AI Editor 2.0 - Project Notes
 
+## ⚠️ CRITICAL: Gemini Model Requirements
+
+**DO NOT USE OUTDATED GEMINI MODELS.** If you find any reference to `gemini-2.0-flash`, `gemini-2.0-flash-exp`, or any Gemini 2.x model, it is OUTDATED and must be updated immediately.
+
+| Use Case | Required Model | NEVER Use |
+|----------|----------------|-----------|
+| LLM / Pre-Filter work | `gemini-3-flash-preview` | ~~gemini-2.0-flash~~ |
+| Text Generation | `gemini-3-pro` | ~~gemini-2.0-pro~~ |
+| Image Generation | `gemini-3` | ~~gemini-2.0~~ |
+
+**Files that use Gemini (verify these):**
+- `workers/utils/gemini.py` - Main Gemini client (MUST use `gemini-3-flash-preview`)
+- `db/seed-prompts-python-syntax.sql` - Database seeds
+- `src/app/api/setup/route.ts` - API setup
+- `src/app/api/prompts/seed/route.ts` - Prompt seeding
+
+---
+
 ## ⚠️ CRITICAL: Git Repository Structure
 
 **This `app/` folder is its OWN git repository, separate from the parent folder.**

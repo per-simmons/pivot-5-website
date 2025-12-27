@@ -294,7 +294,7 @@ export async function getStories(): Promise<Story[]> {
   // Fields: storyID, pivotId, ai_headline, date_og_published, newsletter
   const records = await fetchAirtable(PIVOT_MEDIA_BASE_ID, TABLES.newsletterStories, {
     maxRecords: 100,
-    filterByFormula: "AND(IS_AFTER({date_og_published}, DATEADD(TODAY(), -7, 'days')), {newsletter}='pivot_ai')",
+    filterByFormula: "IS_AFTER({date_og_published}, DATEADD(TODAY(), -7, 'days'))",
     sort: [{ field: "date_og_published", direction: "desc" }],
     fields: ["storyID", "pivotId", "ai_headline", "date_og_published", "newsletter"],
   });

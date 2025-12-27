@@ -27,7 +27,7 @@ This document provides a **field-by-field comparison** of the n8n workflow and P
 | URL field name | `original_url` | `core_url` | None - same data |
 | Extra field | - | `topic` | None - extra context |
 | Index field | `index` (1-based) | Not included | None - story_id is used |
-| Model version | `gemini-3-flash-preview` | `gemini-2.0-flash` | Similar capability |
+| Model version | `gemini-3-flash-preview` | `gemini-3-flash-preview` | ✅ Matches |
 
 ---
 
@@ -226,10 +226,10 @@ json.dumps(articles, indent=2)
 
 | System | Model | Notes |
 |--------|-------|-------|
-| n8n | `gemini-3-flash-preview` | Preview version |
-| Python | `gemini-2.0-flash` | Stable release |
+| n8n | `gemini-3-flash-preview` | Latest Flash model |
+| Python | `gemini-3-flash-preview` | Latest Flash model |
 
-**Impact:** Both are fast Gemini Flash models. Performance and output quality are comparable.
+**Status:** ✅ Both systems now use the same model (`gemini-3-flash-preview`).
 
 ---
 
@@ -284,7 +284,7 @@ All 5 Pre-Filter slots receive the same article data with the following verified
 - URL field name (`core_url` vs `original_url`) - same data
 - Extra `topic` field in Python - bonus context
 - Missing `index` field - not needed (story_id used)
-- Model version (`gemini-2.0-flash` vs `gemini-3-flash-preview`) - similar capability
+- Model version - both now use `gemini-3-flash-preview`
 
 ---
 

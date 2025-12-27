@@ -9,17 +9,17 @@
 -- Run this after init.sql to populate prompts
 
 -- ============================================================================
--- STEP 1: PRE-FILTER PROMPTS (Gemini 2.0 Flash)
+-- STEP 1: PRE-FILTER PROMPTS (Gemini 3 Flash Preview)
 -- ============================================================================
 
 -- Insert prompt metadata first
 INSERT INTO system_prompts (prompt_key, step_id, name, description, model, temperature, slot_number, is_active)
 VALUES
-    ('slot_1_prefilter', 1, 'Slot 1 Pre-Filter', 'Jobs/Economy slot eligibility check', 'gemini-2.0-flash-exp', 0.3, 1, true),
-    ('slot_2_prefilter', 1, 'Slot 2 Pre-Filter', 'Tier 1 AI slot eligibility check', 'gemini-2.0-flash-exp', 0.3, 2, true),
-    ('slot_3_prefilter', 1, 'Slot 3 Pre-Filter', 'Industry Verticals slot eligibility check', 'gemini-2.0-flash-exp', 0.3, 3, true),
-    ('slot_4_prefilter', 1, 'Slot 4 Pre-Filter', 'Emerging Tech slot eligibility check', 'gemini-2.0-flash-exp', 0.3, 4, true),
-    ('slot_5_prefilter', 1, 'Slot 5 Pre-Filter', 'Consumer AI slot eligibility check', 'gemini-2.0-flash-exp', 0.3, 5, true)
+    ('slot_1_prefilter', 1, 'Slot 1 Pre-Filter', 'Jobs/Economy slot eligibility check', 'gemini-3-flash-preview', 0.3, 1, true),
+    ('slot_2_prefilter', 1, 'Slot 2 Pre-Filter', 'Tier 1 AI slot eligibility check', 'gemini-3-flash-preview', 0.3, 2, true),
+    ('slot_3_prefilter', 1, 'Slot 3 Pre-Filter', 'Industry Verticals slot eligibility check', 'gemini-3-flash-preview', 0.3, 3, true),
+    ('slot_4_prefilter', 1, 'Slot 4 Pre-Filter', 'Emerging Tech slot eligibility check', 'gemini-3-flash-preview', 0.3, 4, true),
+    ('slot_5_prefilter', 1, 'Slot 5 Pre-Filter', 'Consumer AI slot eligibility check', 'gemini-3-flash-preview', 0.3, 5, true)
 ON CONFLICT (prompt_key) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,

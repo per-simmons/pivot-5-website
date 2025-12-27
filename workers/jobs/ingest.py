@@ -18,8 +18,9 @@ import asyncio
 import aiohttp
 import feedparser
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
+from email.utils import parsedate_to_datetime
 
 from pyairtable import Api
 from urllib.parse import urlparse
@@ -71,6 +72,85 @@ DOMAIN_TO_SOURCE = {
     "thenextweb.com": "The Next Web",
     "gizmodo.com": "Gizmodo",
 }
+
+
+def parse_rss_date(date_str: str) -> Optional[datetime]:
+    """
+    Parse an RSS date string into a timezone-aware datetime.
+
+    Handles multiple formats:
+    - RFC 2822 (standard RSS): "Mon, 26 Dec 2025 10:30:00 GMT"
+    - ISO 8601: "2025-12-26T10:30:00Z"
+    - Various other formats feedparser might return
+
+    Args:
+        date_str: Date string from RSS feed
+
+    Returns:
+        Timezone-aware datetime, or None if parsing fails
+    """
+    if not date_str:
+        return None
+
+    try:
+        # Try RFC 2822 format first (standard RSS)
+        dt = parsedate_to_datetime(date_str)
+        # Ensure timezone aware (convert naive to UTC)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        pass
+
+    try:
+        # Try ISO 8601 format
+        if 'T' in date_str:
+            # Handle Z suffix
+            if date_str.endswith('Z'):
+                date_str = date_str[:-1] + '+00:00'
+            dt = datetime.fromisoformat(date_str)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+    except Exception:
+        pass
+
+    try:
+        # Let feedparser try to parse it
+        import time
+        parsed = feedparser._parse_date(date_str)
+        if parsed:
+            dt = datetime.fromtimestamp(time.mktime(parsed), tz=timezone.utc)
+            return dt
+    except Exception:
+        pass
+
+    return None
+
+
+def is_within_last_24_hours(date_str: str) -> bool:
+    """
+    Check if a date string represents a time within the last 24 hours.
+
+    This matches the n8n Ingestion Engine behavior exactly:
+    - Only ingest articles published within the last 24 hours
+    - Drop older articles
+
+    Args:
+        date_str: Date string from RSS feed
+
+    Returns:
+        True if within last 24 hours, False otherwise
+    """
+    parsed_date = parse_rss_date(date_str)
+    if not parsed_date:
+        # If we can't parse the date, include it (let AI scoring decide)
+        return True
+
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=24)
+
+    return parsed_date >= cutoff
 
 
 def extract_source_from_url(url: str) -> Optional[str]:
@@ -352,6 +432,7 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
         "articles_ingested": 0,
         "articles_skipped_duplicate": 0,
         "articles_skipped_invalid": 0,
+        "articles_skipped_old": 0,  # Articles older than 24 hours
         "google_news_resolved": 0,
         "errors": []
     }
@@ -402,6 +483,13 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
                 results["articles_skipped_invalid"] += 1
                 continue
 
+            # CRITICAL: 24-hour filter (matches n8n Ingestion Engine exactly)
+            # Only ingest articles published within the last 24 hours
+            pub_date = article.get("pubDate", "")
+            if pub_date and not is_within_last_24_hours(pub_date):
+                results["articles_skipped_old"] += 1
+                continue
+
             # Generate pivotId
             pivot_id = generate_pivot_id(article["link"], article["title"])
             if not pivot_id:
@@ -450,8 +538,9 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
         print(f"  - Articles found: {results['articles_found']}")
         print(f"  - Google News URLs resolved: {results['google_news_resolved']}")
         print(f"  - Articles ingested: {results['articles_ingested']}")
-        print(f"  - Duplicates skipped: {results['articles_skipped_duplicate']}")
-        print(f"  - Invalid skipped: {results['articles_skipped_invalid']}")
+        print(f"  - Skipped (older than 24h): {results['articles_skipped_old']}")
+        print(f"  - Skipped (duplicates): {results['articles_skipped_duplicate']}")
+        print(f"  - Skipped (invalid): {results['articles_skipped_invalid']}")
         print(f"  - Errors: {len(results['errors'])}")
 
         # AUTOMATIC CHAINING: Trigger AI Scoring if we ingested any articles

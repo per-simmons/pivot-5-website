@@ -21,7 +21,7 @@ const PROMPTS = {
     slotNumber: 1,
     name: "Slot 1 Pre-Filter",
     description: "Jobs/Economy slot eligibility check",
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-3-flash-preview",
     temperature: 0.3,
     content: `Analyze this news article and determine which newsletter slots it's eligible for.
 
@@ -53,7 +53,7 @@ Return JSON only:
     slotNumber: 2,
     name: "Slot 2 Pre-Filter",
     description: "Tier 1 AI slot eligibility check",
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-3-flash-preview",
     temperature: 0.3,
     content: `Analyze this news article and determine which newsletter slots it's eligible for.
 
@@ -85,7 +85,7 @@ Return JSON only:
     slotNumber: 3,
     name: "Slot 3 Pre-Filter",
     description: "Industry Verticals slot eligibility check",
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-3-flash-preview",
     temperature: 0.3,
     content: `Analyze this news article and determine which newsletter slots it's eligible for.
 
@@ -117,7 +117,7 @@ Return JSON only:
     slotNumber: 4,
     name: "Slot 4 Pre-Filter",
     description: "Emerging Tech slot eligibility check",
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-3-flash-preview",
     temperature: 0.3,
     content: `Analyze this news article and determine which newsletter slots it's eligible for.
 
@@ -149,7 +149,7 @@ Return JSON only:
     slotNumber: 5,
     name: "Slot 5 Pre-Filter",
     description: "Consumer AI slot eligibility check",
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-3-flash-preview",
     temperature: 0.3,
     content: `Analyze this news article and determine which newsletter slots it's eligible for.
 
@@ -429,7 +429,7 @@ Return JSON only:
     slotNumber: null,
     name: "Content Cleaner",
     description: "Clean article content",
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-3-flash-preview",
     temperature: 0.2,
     content: `Clean this article content by removing:
 - Advertisements and promotional content

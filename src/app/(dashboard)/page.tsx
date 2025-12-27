@@ -198,8 +198,29 @@ export default function PipelinePage() {
       )
     );
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Map step IDs to their API endpoints
+      const stepEndpoints: Record<number, string> = {
+        0: "/api/ingest",      // Step 0: Ingestion
+        1: "/api/prefilter",   // Step 1: Pre-Filter
+        2: "/api/slots",       // Step 2: Slot Selection
+        3: "/api/decorate",    // Step 3: Decoration
+        4: "/api/compile",     // Step 4: HTML Compile
+        5: "/api/send",        // Step 5: Send & Social
+      };
+
+      const endpoint = stepEndpoints[stepId];
+      if (!endpoint) {
+        throw new Error(`No endpoint configured for step ${stepId}`);
+      }
+
+      const response = await fetch(endpoint, { method: "POST" });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to trigger step");
+      }
+
       setSteps((prev) =>
         prev.map((step) =>
           step.id === stepId
@@ -211,7 +232,14 @@ export default function PipelinePage() {
             : step
         )
       );
-    }, 3000);
+    } catch (error) {
+      console.error(`Failed to run step ${stepId}:`, error);
+      setSteps((prev) =>
+        prev.map((step) =>
+          step.id === stepId ? { ...step, status: "error" as StepStatus } : step
+        )
+      );
+    }
   };
 
   const runAllSteps = async () => {

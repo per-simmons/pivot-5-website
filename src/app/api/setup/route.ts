@@ -14,7 +14,7 @@ const INITIAL_PROMPTS = [
     step_id: 1,
     name: "Slot 1 Pre-Filter",
     description: "Jobs/Economy pre-filter using Gemini",
-    model: "gemini-2.0-flash",
+    model: "gemini-3-flash-preview",
     temperature: 0.3,
     slot_number: 1,
     content: `You are a newsletter editor for Pivot 5, a daily AI newsletter.
@@ -49,7 +49,7 @@ Return JSON only:
     step_id: 1,
     name: "Slot 2 Pre-Filter",
     description: "Tier 1 AI pre-filter using Gemini",
-    model: "gemini-2.0-flash",
+    model: "gemini-3-flash-preview",
     temperature: 0.3,
     slot_number: 2,
     content: `You are a newsletter editor for Pivot 5, a daily AI newsletter.
@@ -84,7 +84,7 @@ Return JSON only:
     step_id: 1,
     name: "Slot 3 Pre-Filter",
     description: "Industry Impact pre-filter using Gemini",
-    model: "gemini-2.0-flash",
+    model: "gemini-3-flash-preview",
     temperature: 0.3,
     slot_number: 3,
     content: `You are a newsletter editor for Pivot 5, a daily AI newsletter.
@@ -119,7 +119,7 @@ Return JSON only:
     step_id: 1,
     name: "Slot 4 Pre-Filter",
     description: "Emerging Companies pre-filter using Gemini",
-    model: "gemini-2.0-flash",
+    model: "gemini-3-flash-preview",
     temperature: 0.3,
     slot_number: 4,
     content: `You are a newsletter editor for Pivot 5, a daily AI newsletter.
@@ -154,7 +154,7 @@ Return JSON only:
     step_id: 1,
     name: "Slot 5 Pre-Filter",
     description: "Consumer AI pre-filter using Gemini",
-    model: "gemini-2.0-flash",
+    model: "gemini-3-flash-preview",
     temperature: 0.3,
     slot_number: 5,
     content: `You are a newsletter editor for Pivot 5, a daily AI newsletter.
