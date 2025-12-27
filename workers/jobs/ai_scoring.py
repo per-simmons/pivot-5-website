@@ -1,17 +1,18 @@
 """
-AI Scoring Job - Score articles using Claude Sonnet
+AI Scoring Job - Score articles AND create decorated Newsletter Stories
 
-Replaces the n8n 20-minute cron workflow (mgIuocpwH9kXvPjM).
-Can run manually, on-demand, or chained after ingestion.
+REPLACES n8n workflows entirely. This Python job handles:
+1. Scoring articles (interest_score, sentiment, topic, tags)
+2. Creating fully-decorated Newsletter Stories (ai_headline, ai_dek, bullets, image_prompt)
 
 ARCHITECTURE:
   Step 0 (Ingest) → Articles table (needs_ai = true)
   AI Scoring → Updates Articles with scores (needs_ai = false)
-              → Creates Newsletter Stories records (interest_score >= 15)
+              → Creates DECORATED Newsletter Stories (interest_score >= 15)
 
 OUTPUT TABLES:
   1. Articles (tblGumae8KDpsrWvh) - ALL articles with scores
-  2. Newsletter Stories (tblY78ziWp5yhiGXp) - BEST articles (interest_score >= 15)
+  2. Newsletter Stories (tblY78ziWp5yhiGXp) - DECORATED high-interest articles
 
 Query: {needs_ai} = 1
 """
@@ -28,7 +29,7 @@ from anthropic import Anthropic
 AIRTABLE_API_KEY = os.environ.get("AIRTABLE_API_KEY")
 AIRTABLE_BASE_ID = os.environ.get("AIRTABLE_BASE_ID", "appwSozYTkrsQWUXB")
 ARTICLES_TABLE = os.environ.get("AIRTABLE_ARTICLES_TABLE", "tblGumae8KDpsrWvh")
-NEWSLETTER_STORIES_TABLE = "tblY78ziWp5yhiGXp"  # Output for high-interest articles
+NEWSLETTER_STORIES_TABLE = "tblY78ziWp5yhiGXp"  # Newsletter Stories in Pivot Media Master
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 
 # Interest score threshold for Newsletter Stories output
@@ -49,12 +50,6 @@ NEWSLETTERS = ["pivot_ai", "pivot_build", "pivot_invest"]
 def build_scoring_prompt(article: Dict[str, Any]) -> str:
     """
     Build the Claude prompt for scoring an article.
-
-    Args:
-        article: Article record from Airtable
-
-    Returns:
-        Formatted prompt string
     """
     headline = article.get("headline") or article.get("title", "No headline")
     source = article.get("source_id", "Unknown")
@@ -114,16 +109,62 @@ Return ONLY valid JSON (no markdown, no explanation):
 }}"""
 
 
+def build_decoration_prompt(article: Dict[str, Any], scores: Dict[str, Any]) -> str:
+    """
+    Build the Claude prompt for decorating a high-interest article.
+    Generates ai_headline, ai_dek, 3 bullets with bolding, and image_prompt.
+    """
+    headline = article.get("headline") or article.get("title", "No headline")
+    source = article.get("source_id", "Unknown")
+    url = article.get("original_url", "")
+    topic = scores.get("topic", "OTHER")
+
+    return f"""You are decorating a news article for an AI-focused newsletter. Generate compelling content.
+
+ARTICLE:
+- Original Headline: {headline}
+- Source: {source}
+- URL: {url}
+- Topic: {topic}
+
+GENERATE THE FOLLOWING:
+
+1. **ai_headline**: Rewrite the headline to be more compelling and newsletter-appropriate.
+   - 8-15 words
+   - Active voice
+   - No clickbait but engaging
+   - Focus on the key insight or development
+
+2. **ai_dek**: A 1-2 sentence summary that hooks the reader.
+   - Explain why this matters
+   - 25-40 words
+   - Complement the headline, don't repeat it
+
+3. **ai_bullet_1**, **ai_bullet_2**, **ai_bullet_3**: Three bullet points with key insights.
+   - Each bullet should be 1-2 sentences
+   - Include **bold text** around the key phrase or statistic in each bullet
+   - Focus on actionable insights, not just restating facts
+   - Each bullet should add new information
+
+4. **image_prompt**: A prompt for generating an illustration.
+   - Describe a professional, minimalist tech illustration
+   - Include style guidance (colors, composition)
+   - 20-40 words
+
+Return ONLY valid JSON (no markdown, no explanation):
+{{
+  "ai_headline": "<rewritten headline>",
+  "ai_dek": "<1-2 sentence summary>",
+  "ai_bullet_1": "<bullet with **bold** key phrase>",
+  "ai_bullet_2": "<bullet with **bold** key phrase>",
+  "ai_bullet_3": "<bullet with **bold** key phrase>",
+  "image_prompt": "<image generation prompt>"
+}}"""
+
+
 def score_article(client: Anthropic, article: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     Score a single article using Claude Sonnet.
-
-    Args:
-        client: Anthropic client
-        article: Article record from Airtable
-
-    Returns:
-        Scoring results dict or None if failed
     """
     prompt = build_scoring_prompt(article)
 
@@ -137,7 +178,6 @@ def score_article(client: Anthropic, article: Dict[str, Any]) -> Optional[Dict[s
             ]
         )
 
-        # Parse JSON response
         content = response.content[0].text.strip()
 
         # Handle potential markdown code block wrapping
@@ -158,10 +198,54 @@ def score_article(client: Anthropic, article: Dict[str, Any]) -> Optional[Dict[s
         return result
 
     except json.JSONDecodeError as e:
-        print(f"[AI Scoring] JSON parse error for article {article.get('id')}: {e}")
+        print(f"[AI Scoring] JSON parse error: {e}")
         return None
     except Exception as e:
-        print(f"[AI Scoring] Error scoring article {article.get('id')}: {e}")
+        print(f"[AI Scoring] Error scoring article: {e}")
+        return None
+
+
+def decorate_article(client: Anthropic, article: Dict[str, Any], scores: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Generate full decoration for a high-interest article.
+    Returns ai_headline, ai_dek, bullets, and image_prompt.
+    """
+    prompt = build_decoration_prompt(article, scores)
+
+    try:
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2048,
+            temperature=0.5,  # Slightly more creative for decoration
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        content = response.content[0].text.strip()
+
+        # Handle potential markdown code block wrapping
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+            content = content.strip()
+
+        result = json.loads(content)
+
+        # Validate required fields
+        required_fields = ["ai_headline", "ai_dek", "ai_bullet_1", "ai_bullet_2", "ai_bullet_3"]
+        for field in required_fields:
+            if not result.get(field):
+                raise ValueError(f"Missing required field: {field}")
+
+        return result
+
+    except json.JSONDecodeError as e:
+        print(f"[AI Scoring] Decoration JSON parse error: {e}")
+        return None
+    except Exception as e:
+        print(f"[AI Scoring] Error decorating article: {e}")
         return None
 
 
@@ -170,7 +254,7 @@ def run_ai_scoring(batch_size: int = 50) -> Dict[str, Any]:
     Main AI Scoring job function.
 
     Queries articles with needs_ai = true, scores them with Claude,
-    and updates the records.
+    updates Articles table, and creates decorated Newsletter Stories.
 
     Args:
         batch_size: Max articles to process per run (default 50)
@@ -186,9 +270,7 @@ def run_ai_scoring(batch_size: int = 50) -> Dict[str, Any]:
         "articles_queried": 0,
         "articles_scored": 0,
         "articles_failed": 0,
-        "articles_skipped": 0,
-        "high_interest_count": 0,  # interest_score >= 15
-        "newsletter_stories_created": 0,  # Written to Newsletter Stories table
+        "newsletter_stories_created": 0,
         "errors": []
     }
 
@@ -222,20 +304,18 @@ def run_ai_scoring(batch_size: int = 50) -> Dict[str, Any]:
         for record in articles:
             article_id = record["id"]
             fields = record["fields"]
+            pivot_id = fields.get("pivot_Id", "")
 
             headline = fields.get('headline') or fields.get('title', 'Unknown')
-            print(f"[AI Scoring] Scoring article: {headline[:50]}...")
+            print(f"[AI Scoring] Scoring: {headline[:50]}...")
 
             # Score with Claude
             scores = score_article(claude, fields)
 
             if not scores:
                 results["articles_failed"] += 1
+                results["errors"].append(f"Failed to score: {headline[:50]}")
                 continue
-
-            # Prepare update record for Articles table
-            # Field names verified against n8n AI Scoring workflow (mgIuocpwH9kXvPjM)
-            # "Enrich w/ AI Data1" node writes: interest_score, topic, tags, newsletter, fit_score, sentiment, date_scored
 
             # Get the best newsletter fit score
             newsletter_recs = scores.get("newsletter_recommendations", [])
@@ -244,22 +324,22 @@ def run_ai_scoring(batch_size: int = 50) -> Dict[str, Any]:
                 if rec.get("fit_score", 0) > best_fit_score:
                     best_fit_score = rec.get("fit_score", 0)
 
-            # Format tags as comma-separated string (matches n8n: tags.join(', '))
+            # Format tags as comma-separated string
             tags_list = scores.get("tags", [])
             tags_str = ", ".join(tags_list) if isinstance(tags_list, list) else str(tags_list)
 
+            # Update Articles table
             update_fields = {
-                "needs_ai": False,  # Mark as scored
+                "needs_ai": False,
                 "interest_score": scores.get("interest_score"),
                 "sentiment": scores.get("sentiment"),
                 "topic": scores.get("topic"),
                 "tags": tags_str,
-                "newsletter": scores.get("primary_newsletter_slug", "pivot_ai"),  # Added: matches n8n
-                "fit_score": best_fit_score,  # Added: matches n8n
+                "newsletter": scores.get("primary_newsletter_slug", "pivot_ai"),
+                "fit_score": best_fit_score,
                 "date_scored": datetime.now(timezone.utc).isoformat(),
             }
 
-            # Update Articles table record
             try:
                 articles_table.update(article_id, update_fields)
                 results["articles_scored"] += 1
@@ -271,45 +351,60 @@ def run_ai_scoring(batch_size: int = 50) -> Dict[str, Any]:
                 results["articles_failed"] += 1
                 continue
 
-            # Track high-interest articles and write to Newsletter Stories
+            # For high-interest articles, generate decoration and create Newsletter Story
             interest_score = scores.get("interest_score", 0)
             if interest_score >= INTEREST_SCORE_THRESHOLD:
-                results["high_interest_count"] += 1
+                print(f"[AI Scoring] ⭐ High-interest (score={interest_score}), generating decoration...")
 
-                # Create Newsletter Stories record for high-interest articles
-                # Fields verified against n8n AI Scoring workflow "Enrich w/ AI Data" node
-                # which writes to Newsletter Stories table (tblY78ziWp5yhiGXp)
+                # Generate decoration
+                decoration = decorate_article(claude, fields, scores)
+
+                if not decoration:
+                    error_msg = f"Failed to decorate high-interest article: {headline[:50]}"
+                    print(f"[AI Scoring] {error_msg}")
+                    results["errors"].append(error_msg)
+                    continue
+
+                # Create Newsletter Story record with FULL decoration
+                newsletter_story = {
+                    # Core identifiers
+                    "pivotId": pivot_id,
+                    "storyID": article_id,  # Link to Articles record
+                    "core_url": fields.get("original_url", ""),
+                    "date_og_published": fields.get("date_published", datetime.now(timezone.utc).isoformat()),
+
+                    # Scores from AI Scoring
+                    "interest_score": interest_score,
+                    "sentiment": scores.get("sentiment"),
+                    "topic": scores.get("topic"),
+                    "tags": tags_str,
+                    "fit_score": best_fit_score,
+                    "newsletter": scores.get("primary_newsletter_slug", "pivot_ai"),
+
+                    # Decoration from Claude
+                    "ai_headline": decoration.get("ai_headline", headline),
+                    "ai_dek": decoration.get("ai_dek", ""),
+                    "ai_bullet_1": decoration.get("ai_bullet_1", ""),
+                    "ai_bullet_2": decoration.get("ai_bullet_2", ""),
+                    "ai_bullet_3": decoration.get("ai_bullet_3", ""),
+                    "image_prompt": decoration.get("image_prompt", ""),
+
+                    # Status fields
+                    "ai_complete": True,
+                    "image_status": "pending",
+                    "date_ai_processed": datetime.now(timezone.utc).isoformat(),
+                }
+
                 try:
-                    pivot_id = fields.get("pivot_Id", "")
-                    # Generate storyID (n8n uses the storyID from prior steps, we'll use pivot_Id)
-                    story_id = pivot_id
-
-                    newsletter_story = {
-                        "storyID": story_id,  # Added: matches n8n
-                        "id": story_id,  # Added: n8n sets both id and storyID
-                        "pivotId": pivot_id,
-                        "core_url": fields.get("original_url"),
-                        "date_og_published": fields.get("date_published"),
-                        "interest_score": interest_score,  # Added back: exists in n8n workflow
-                        "sentiment": scores.get("sentiment"),
-                        "topic": scores.get("topic"),
-                        "tags": tags_str,  # Use same comma-separated format
-                        "fit_score": best_fit_score,
-                        "newsletter": scores.get("primary_newsletter_slug", "pivot_ai"),
-                        "image_status": "pending",  # Added: matches n8n
-                    }
-                    # Remove None values
-                    newsletter_story = {k: v for k, v in newsletter_story.items() if v is not None}
-
-                    newsletter_stories_table.create(newsletter_story)
+                    created = newsletter_stories_table.create(newsletter_story)
                     results["newsletter_stories_created"] += 1
-                    print(f"[AI Scoring] ✅ Created Newsletter Story: {headline[:50]}... (score: {interest_score})")
+                    print(f"[AI Scoring] ✅ Created Newsletter Story: {decoration.get('ai_headline', headline)[:50]}...")
                 except Exception as e:
-                    error_msg = f"Failed to create Newsletter Story for {article_id}: {e}"
+                    error_msg = f"Failed to create Newsletter Story for {pivot_id}: {e}"
                     print(f"[AI Scoring] {error_msg}")
                     results["errors"].append(error_msg)
 
-        print(f"[AI Scoring] Complete: {results['articles_scored']} scored, {results['high_interest_count']} high-interest, {results['newsletter_stories_created']} Newsletter Stories created")
+        print(f"[AI Scoring] Complete: {results['articles_scored']} scored, {results['newsletter_stories_created']} Newsletter Stories created")
 
     except Exception as e:
         error_msg = f"AI Scoring job failed: {e}"
@@ -327,7 +422,7 @@ def run_ai_scoring(batch_size: int = 50) -> Dict[str, Any]:
 JOB_CONFIG = {
     "func": run_ai_scoring,
     "trigger": "interval",
-    "minutes": 20,  # Match n8n behavior, or set higher
+    "minutes": 20,
     "id": "ai_scoring",
     "replace_existing": True
 }
