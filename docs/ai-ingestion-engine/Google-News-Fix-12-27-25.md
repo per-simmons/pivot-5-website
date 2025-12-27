@@ -2,7 +2,7 @@
 
 **Date:** December 27, 2025
 **File Modified:** `workers/jobs/ingest.py`
-**Status:** FIXED (v2) - Using googlenewsdecoder package
+**Status:** PENDING CONFIRMATION - Awaiting Pat's verification after deploy
 
 ---
 
@@ -52,7 +52,7 @@ decoded_str = decoded_bytes.decode('utf-8', errors='ignore')
 
 ---
 
-## Solution (v2 Fix - WORKING)
+## Solution (v2 Fix - Pending Confirmation)
 
 ### Using `googlenewsdecoder` Package
 
@@ -123,7 +123,7 @@ async def resolve_google_news_url(
 [Ingest] Resolved Google News URL: https://news.google.com/rss/articles/CBMi... -> https://news.google.com/rss/articles/CBMi... (source: Google)
 ```
 
-**After (WORKING):**
+**After (EXPECTED - pending confirmation):**
 ```
 [Ingest] Decoded Google News URL: https://news.google.com/rss/articles/CBMi... -> https://www.techcrunch.com/2025/12/27/article... (source: TechCrunch)
 ```
@@ -161,7 +161,7 @@ To verify the fix is working:
 | Date | Version | Status | Notes |
 |------|---------|--------|-------|
 | 12/27/2025 | v1 | BROKEN | Base64 decode approach - doesn't work for modern URLs |
-| 12/27/2025 | v2 | WORKING | googlenewsdecoder package - calls Google's batchexecute API |
+| 12/27/2025 | v2 | PENDING | googlenewsdecoder package - awaiting Pat's confirmation |
 
 ---
 
