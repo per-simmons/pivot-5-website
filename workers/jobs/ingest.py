@@ -196,6 +196,66 @@ def extract_source_from_url(url: str) -> Optional[str]:
         return None
 
 
+def decode_google_news_url(url: str) -> Optional[str]:
+    """
+    Decode a Google News article URL to get the actual source URL.
+
+    Google News RSS feeds use URLs like:
+    https://news.google.com/rss/articles/CBMi...
+
+    The part after 'articles/' is a Base64-encoded protobuf containing the real URL.
+
+    Args:
+        url: Google News article URL
+
+    Returns:
+        Decoded actual article URL, or None if decoding fails
+    """
+    import base64
+    import re
+
+    try:
+        # Extract the encoded part from the URL
+        # URL format: https://news.google.com/rss/articles/ENCODED_PART?...
+        match = re.search(r'/articles/([^?]+)', url)
+        if not match:
+            return None
+
+        encoded = match.group(1)
+
+        # Add padding if needed for base64
+        padding = 4 - len(encoded) % 4
+        if padding != 4:
+            encoded += '=' * padding
+
+        # URL-safe base64 decode
+        try:
+            decoded_bytes = base64.urlsafe_b64decode(encoded)
+        except Exception:
+            # Try standard base64 if URL-safe fails
+            decoded_bytes = base64.b64decode(encoded)
+
+        # The decoded bytes contain the URL - extract it
+        # Look for http:// or https:// in the decoded bytes
+        decoded_str = decoded_bytes.decode('utf-8', errors='ignore')
+
+        # Find URL patterns in the decoded string
+        url_match = re.search(r'(https?://[^\s\x00-\x1f"<>]+)', decoded_str)
+        if url_match:
+            found_url = url_match.group(1)
+            # Clean up any trailing garbage
+            found_url = re.sub(r'[\x00-\x1f].*$', '', found_url)
+            # Remove any trailing special chars
+            found_url = found_url.rstrip('"\'>)}]')
+            return found_url
+
+        return None
+
+    except Exception as e:
+        print(f"[Ingest] Error decoding Google News URL: {e}")
+        return None
+
+
 async def resolve_google_news_url(
     session: aiohttp.ClientSession,
     url: str
@@ -204,9 +264,10 @@ async def resolve_google_news_url(
     Resolve a Google News redirect URL to the actual article URL.
 
     Google News RSS feeds contain URLs like:
-    https://news.google.com/rss/articles/...
+    https://news.google.com/rss/articles/CBMi...
 
-    This follows the redirect to get the real article URL.
+    The encoded part contains a Base64-encoded protobuf with the real URL.
+    We decode it directly instead of following redirects (which doesn't work).
 
     Args:
         session: aiohttp client session
@@ -220,24 +281,36 @@ async def resolve_google_news_url(
         return url, None
 
     try:
-        # Follow redirects to get the final URL
-        async with session.get(
-            url,
-            timeout=aiohttp.ClientTimeout(total=10),
-            allow_redirects=True,
-            headers={"User-Agent": "Pivot5-NewsBot/1.0"}
-        ) as response:
-            final_url = str(response.url)
+        # Decode the Google News URL to get the actual article URL
+        decoded_url = decode_google_news_url(url)
 
+        if decoded_url and decoded_url != url:
             # Extract source from the resolved URL
-            source_name = extract_source_from_url(final_url)
+            source_name = extract_source_from_url(decoded_url)
+            print(f"[Ingest] Decoded Google News URL: {url[:50]}... -> {decoded_url[:60]}... (source: {source_name})")
+            return decoded_url, source_name
+        else:
+            # Fallback: try HTTP redirect method (sometimes works for older URLs)
+            async with session.get(
+                url,
+                timeout=aiohttp.ClientTimeout(total=10),
+                allow_redirects=True,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            ) as response:
+                final_url = str(response.url)
 
-            print(f"[Ingest] Resolved Google News URL: {url[:60]}... -> {final_url[:60]}... (source: {source_name})")
-            return final_url, source_name
+                # Only use if we actually got a different URL
+                if final_url != url and "news.google.com" not in final_url:
+                    source_name = extract_source_from_url(final_url)
+                    print(f"[Ingest] Resolved Google News URL via redirect: {url[:50]}... -> {final_url[:60]}... (source: {source_name})")
+                    return final_url, source_name
+
+        print(f"[Ingest] Could not resolve Google News URL: {url[:60]}...")
+        return url, "Google News"
 
     except Exception as e:
         print(f"[Ingest] Failed to resolve Google News URL: {e}")
-        return url, None
+        return url, "Google News"
 
 
 # Airtable configuration
