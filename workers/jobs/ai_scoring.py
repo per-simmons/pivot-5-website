@@ -249,7 +249,7 @@ def decorate_article(client: Anthropic, article: Dict[str, Any], scores: Dict[st
         return None
 
 
-def run_ai_scoring(batch_size: int = 50) -> Dict[str, Any]:
+def run_ai_scoring(batch_size: int = 150) -> Dict[str, Any]:
     """
     Main AI Scoring job function.
 
@@ -328,16 +328,21 @@ def run_ai_scoring(batch_size: int = 50) -> Dict[str, Any]:
             tags_list = scores.get("tags", [])
             tags_str = ", ".join(tags_list) if isinstance(tags_list, list) else str(tags_list)
 
+            # Determine decoration_status based on interest score
+            interest_score = scores.get("interest_score", 0)
+            decoration_status = "completed" if interest_score >= INTEREST_SCORE_THRESHOLD else "skipped_low_score"
+
             # Update Articles table
             update_fields = {
                 "needs_ai": False,
-                "interest_score": scores.get("interest_score"),
+                "interest_score": interest_score,
                 "sentiment": scores.get("sentiment"),
                 "topic": scores.get("topic"),
                 "tags": tags_str,
                 "newsletter": scores.get("primary_newsletter_slug", "pivot_ai"),
                 "fit_score": best_fit_score,
                 "date_scored": datetime.now(timezone.utc).isoformat(),
+                "decoration_status": decoration_status,
             }
 
             try:
@@ -352,7 +357,6 @@ def run_ai_scoring(batch_size: int = 50) -> Dict[str, Any]:
                 continue
 
             # For high-interest articles, generate decoration and create Newsletter Story
-            interest_score = scores.get("interest_score", 0)
             if interest_score >= INTEREST_SCORE_THRESHOLD:
                 print(f"[AI Scoring] ⭐ High-interest (score={interest_score}), generating decoration...")
 

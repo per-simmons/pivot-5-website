@@ -530,6 +530,7 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
                 "source_id": article["source_id"],  # Publication name
                 "date_ingested": datetime.now(timezone.utc).isoformat(),  # When we ingested
                 "needs_ai": True,  # Flag for AI Scoring job to pick up
+                "decoration_status": "pending",  # Waiting for AI Scoring
             }
             # Note: headline field removed - it doesn't exist in Articles table
             # AI Scoring uses the article URL to extract title from the page
