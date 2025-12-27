@@ -233,19 +233,31 @@ def run_ai_scoring(batch_size: int = 50) -> Dict[str, Any]:
                 results["articles_failed"] += 1
                 continue
 
-            # Prepare update record
-            # Note: Only include fields that exist in the Articles table
-            # Field names verified against n8n Ingestion Engine Airtable schema
+            # Prepare update record for Articles table
+            # Field names verified against n8n AI Scoring workflow (mgIuocpwH9kXvPjM)
+            # "Enrich w/ AI Data1" node writes: interest_score, topic, tags, newsletter, fit_score, sentiment, date_scored
+
+            # Get the best newsletter fit score
+            newsletter_recs = scores.get("newsletter_recommendations", [])
+            best_fit_score = 0
+            for rec in newsletter_recs:
+                if rec.get("fit_score", 0) > best_fit_score:
+                    best_fit_score = rec.get("fit_score", 0)
+
+            # Format tags as comma-separated string (matches n8n: tags.join(', '))
+            tags_list = scores.get("tags", [])
+            tags_str = ", ".join(tags_list) if isinstance(tags_list, list) else str(tags_list)
+
             update_fields = {
                 "needs_ai": False,  # Mark as scored
                 "interest_score": scores.get("interest_score"),
                 "sentiment": scores.get("sentiment"),
                 "topic": scores.get("topic"),
-                "tags": json.dumps(scores.get("tags", [])),
-                "date_scored": datetime.now(timezone.utc).isoformat(),  # Fixed: was date_ai_scored
+                "tags": tags_str,
+                "newsletter": scores.get("primary_newsletter_slug", "pivot_ai"),  # Added: matches n8n
+                "fit_score": best_fit_score,  # Added: matches n8n
+                "date_scored": datetime.now(timezone.utc).isoformat(),
             }
-            # Removed: primary_newsletter_slug (field doesn't exist in Airtable)
-            # Removed: fit_score_{slug} loop (fields don't exist in Airtable)
 
             # Update Articles table record
             try:
@@ -265,21 +277,26 @@ def run_ai_scoring(batch_size: int = 50) -> Dict[str, Any]:
                 results["high_interest_count"] += 1
 
                 # Create Newsletter Stories record for high-interest articles
-                # Fields verified against CLAUDE.md Newsletter Stories Table schema:
-                # id, pivotId, storyID, ai_headline, ai_dek, ai_bullet_1/2/3,
-                # core_url, topic, sentiment, fit_score, tags, newsletter, date_og_published
+                # Fields verified against n8n AI Scoring workflow "Enrich w/ AI Data" node
+                # which writes to Newsletter Stories table (tblY78ziWp5yhiGXp)
                 try:
+                    pivot_id = fields.get("pivot_Id", "")
+                    # Generate storyID (n8n uses the storyID from prior steps, we'll use pivot_Id)
+                    story_id = pivot_id
+
                     newsletter_story = {
-                        "pivotId": fields.get("pivot_Id"),
+                        "storyID": story_id,  # Added: matches n8n
+                        "id": story_id,  # Added: n8n sets both id and storyID
+                        "pivotId": pivot_id,
                         "core_url": fields.get("original_url"),
-                        # Removed: source_id (field doesn't exist in Newsletter Stories)
                         "date_og_published": fields.get("date_published"),
-                        # Removed: interest_score (field doesn't exist in Newsletter Stories)
+                        "interest_score": interest_score,  # Added back: exists in n8n workflow
                         "sentiment": scores.get("sentiment"),
                         "topic": scores.get("topic"),
-                        "tags": json.dumps(scores.get("tags", [])),
-                        "fit_score": scores.get("newsletter_recommendations", [{}])[0].get("fit_score", 0),
+                        "tags": tags_str,  # Use same comma-separated format
+                        "fit_score": best_fit_score,
                         "newsletter": scores.get("primary_newsletter_slug", "pivot_ai"),
+                        "image_status": "pending",  # Added: matches n8n
                     }
                     # Remove None values
                     newsletter_story = {k: v for k, v in newsletter_story.items() if v is not None}
