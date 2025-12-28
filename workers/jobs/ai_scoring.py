@@ -411,35 +411,45 @@ def run_ai_scoring(batch_size: int = 150) -> Dict[str, Any]:
 
         print(f"[AI Scoring] Complete: {results['articles_scored']} scored, {results['newsletter_stories_created']} Newsletter Stories created")
 
-        # Check if there are more articles to process and auto-requeue
-        remaining = articles_table.all(formula="{needs_ai} = 1", max_records=1)
-        if remaining:
-            remaining_count = len(articles_table.all(formula="{needs_ai} = 1", max_records=500))
-            print(f"[AI Scoring] 🔄 {remaining_count} more articles remaining, auto-requeueing...")
-            results["remaining_articles"] = remaining_count
-            results["requeued"] = True
-
-            # Re-queue another AI Scoring job
-            from rq import Queue
-            from redis import Redis
-            import os
-
-            redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379")
-            redis_conn = Redis.from_url(redis_url)
-            queue = Queue("default", connection=redis_conn)
-            queue.enqueue(run_ai_scoring, batch_size=batch_size)
-            print(f"[AI Scoring] ✅ Requeued next batch")
-        else:
-            print(f"[AI Scoring] ✅ All articles processed, no more remaining")
-            results["remaining_articles"] = 0
-            results["requeued"] = False
-
     except Exception as e:
         error_msg = f"AI Scoring job failed: {e}"
         print(f"[AI Scoring] {error_msg}")
         results["errors"].append(error_msg)
         import traceback
         traceback.print_exc()
+
+    # ALWAYS check for remaining articles and auto-requeue (even after errors)
+    try:
+        # Re-initialize Airtable client if needed
+        if not AIRTABLE_API_KEY:
+            print("[AI Scoring] Cannot check remaining: AIRTABLE_API_KEY not set")
+        else:
+            airtable = Api(AIRTABLE_API_KEY)
+            articles_table = airtable.table(AIRTABLE_BASE_ID, ARTICLES_TABLE)
+
+            remaining = articles_table.all(formula="{needs_ai} = 1", max_records=1)
+            if remaining:
+                remaining_count = len(articles_table.all(formula="{needs_ai} = 1", max_records=500))
+                print(f"[AI Scoring] 🔄 {remaining_count} more articles remaining, auto-requeueing...")
+                results["remaining_articles"] = remaining_count
+                results["requeued"] = True
+
+                # Re-queue another AI Scoring job
+                from rq import Queue
+                from redis import Redis
+
+                redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379")
+                redis_conn = Redis.from_url(redis_url)
+                queue = Queue("default", connection=redis_conn)
+                queue.enqueue(run_ai_scoring, batch_size=batch_size)
+                print(f"[AI Scoring] ✅ Requeued next batch")
+            else:
+                print(f"[AI Scoring] ✅ All articles processed, no more remaining")
+                results["remaining_articles"] = 0
+                results["requeued"] = False
+    except Exception as requeue_error:
+        print(f"[AI Scoring] ⚠️ Auto-requeue failed: {requeue_error}")
+        results["requeue_error"] = str(requeue_error)
 
     results["completed_at"] = datetime.now(timezone.utc).isoformat()
     results["processed"] = results["articles_scored"]
