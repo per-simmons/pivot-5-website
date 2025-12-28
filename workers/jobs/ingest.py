@@ -526,14 +526,13 @@ def ingest_articles(debug: bool = False) -> Dict[str, Any]:
             # Note: We don't have markdown since we're RSS-only (no Firecrawl)
             record = {
                 "pivot_Id": pivot_id,  # Primary deduplication key
+                "headline": article["title"],  # RSS title for AI Scoring
                 "original_url": article["link"],  # Source URL
                 "source_id": article["source_id"],  # Publication name
                 "date_ingested": datetime.now(timezone.utc).isoformat(),  # When we ingested
                 "needs_ai": True,  # Flag for AI Scoring job to pick up
                 "decoration_status": "pending",  # Waiting for AI Scoring
             }
-            # Note: headline field removed - it doesn't exist in Articles table
-            # AI Scoring uses the article URL to extract title from the page
 
             # Add optional fields if present
             if article["pubDate"]:
