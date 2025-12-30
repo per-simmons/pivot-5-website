@@ -49,8 +49,8 @@ REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
 def ingest_articles_sandbox(
     debug: bool = False,
-    limit: int = 100,
-    since_hours: int = 24
+    limit: int = 300,
+    since_hours: int = 36
 ) -> Dict[str, Any]:
     """
     Main sandbox ingestion job function.
