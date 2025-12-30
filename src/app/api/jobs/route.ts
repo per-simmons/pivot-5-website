@@ -27,6 +27,9 @@ const VALID_STEPS = [
   "html_compile",
   "mautic_send",
   "social_sync",
+  // Sandbox jobs (FreshRSS-based pipeline)
+  "ingest_sandbox",
+  "ai_scoring_sandbox",
 ] as const;
 
 type StepName = (typeof VALID_STEPS)[number];
