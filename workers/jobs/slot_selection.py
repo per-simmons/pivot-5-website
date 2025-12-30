@@ -137,8 +137,8 @@ def select_slots() -> dict:
         print(f"[Step 2] Next issue date: {issue_date_label}")
 
         issue_data = {
-            "issue_date": issue_date_label,
-            "issue_date_iso": issue_date_iso,
+            "issue_date": issue_date_iso,  # ISO format for Airtable date field
+            "issue_label": issue_date_label,  # Human-readable label
             "status": "pending"
         }
 

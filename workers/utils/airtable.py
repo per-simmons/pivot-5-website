@@ -269,7 +269,7 @@ class AirtableClient:
         created = table.batch_create(records)
         return [r['id'] for r in created]
 
-    def get_prefilter_candidates(self, slot: int, freshness_days: int) -> List[dict]:
+    def get_prefilter_candidates(self, slot: int, freshness_days: int, max_records: int = 200) -> List[dict]:
         """
         Step 2, Nodes 3-7: Get pre-filter candidates for a specific slot
 
@@ -277,6 +277,8 @@ class AirtableClient:
         - Uses date_og_published (original publish date) instead of date_prefiltered
         - This matches n8n workflow behavior for freshness filtering
         - Uses core_url instead of original_url (n8n Gap #6)
+        - Added max_records safety cap (default 200) to prevent Claude context overflow
+        - Sorted by date_og_published DESC so freshest candidates are prioritized
         """
         table = self._get_table(self.ai_editor_base_id, self.prefilter_log_table_id)
 
@@ -285,6 +287,8 @@ class AirtableClient:
 
         records = table.all(
             formula=filter_formula,
+            sort=['-date_og_published'],  # Freshest first
+            max_records=max_records,  # Safety cap for Claude context
             fields=['storyID', 'pivotId', 'headline', 'core_url', 'source_id', 'date_og_published', 'slot']
         )
 
