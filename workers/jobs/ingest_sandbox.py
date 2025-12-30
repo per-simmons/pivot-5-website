@@ -85,6 +85,26 @@ DOMAIN_TO_SOURCE = {
     "gizmodo.com": "Gizmodo",
 }
 
+# Domains to skip during ingestion (stock speculation, low-quality sources)
+BLOCKED_DOMAINS = [
+    "yahoo.com",
+    "finance.yahoo.com",
+]
+
+
+def is_blocked_domain(url: str) -> bool:
+    """Check if URL is from a blocked domain."""
+    if not url:
+        return False
+    try:
+        parsed = urlparse(url)
+        domain = parsed.netloc.lower()
+        if domain.startswith("www."):
+            domain = domain[4:]
+        return any(blocked in domain for blocked in BLOCKED_DOMAINS)
+    except Exception:
+        return False
+
 
 def extract_source_from_url(url: str) -> Optional[str]:
     """
@@ -278,6 +298,7 @@ def ingest_articles_sandbox(
         "articles_ingested": 0,
         "articles_skipped_duplicate": 0,
         "articles_skipped_invalid": 0,
+        "articles_skipped_blocked": 0,
         "google_news_resolved": 0,
         "errors": []
     }
@@ -344,6 +365,11 @@ def ingest_articles_sandbox(
                 results["articles_skipped_invalid"] += 1
                 continue
 
+            # Skip blocked domains (Yahoo Finance, etc.)
+            if is_blocked_domain(url):
+                results["articles_skipped_blocked"] += 1
+                continue
+
             # Generate pivot_id
             pivot_id = generate_pivot_id(url, title)
             if not pivot_id:
@@ -391,6 +417,7 @@ def ingest_articles_sandbox(
         print(f"  - Articles ingested: {results['articles_ingested']}")
         print(f"  - Skipped (duplicates): {results['articles_skipped_duplicate']}")
         print(f"  - Skipped (invalid): {results['articles_skipped_invalid']}")
+        print(f"  - Skipped (blocked): {results['articles_skipped_blocked']}")
         print(f"  - Errors: {len(results['errors'])}")
 
         # AUTOMATIC CHAINING: Trigger AI Scoring if we ingested any articles

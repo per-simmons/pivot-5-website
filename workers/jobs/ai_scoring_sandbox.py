@@ -197,7 +197,11 @@ SCORING REQUIREMENTS:
    - "Think pieces" without new information
    - Speculation about future trends
    - Personal essays or first-person narratives
-   - Listicles like "5 ways AI will change X"
+   - Listicles and roundups
+   - Feature stories and human interest pieces
+   - How-to guides, tutorials, advice columns
+   - Profile pieces about individuals or wealth rankings
+   - Stock market speculation and investment advice
 
    Score ranges:
    - 0-8: Opinion/op-ed, not news, or not AI-relevant
