@@ -279,3 +279,22 @@ system_prompt_versions (
 update_prompt_content(key, content, user_id, email, summary)
 rollback_prompt(key, version, user_id, email)
 ```
+
+---
+
+## Claude Skills
+
+Custom skills are stored in `.claude/skills/` for reference:
+
+| Skill | Purpose |
+|-------|---------|
+| `freshrss.md` | FreshRSS Google Reader API reference, feed IDs, timestamp handling |
+
+### Using Context7 for Documentation
+
+For FreshRSS documentation lookups:
+```
+mcp__context7__query-docs:
+  libraryId: /websites/freshrss_github_io_freshrss_en
+  query: "your search query"
+```
