@@ -95,17 +95,15 @@ def extract_article_content(url: str) -> Optional[str]:
     try:
         app = FirecrawlApp(api_key=FIRECRAWL_API_KEY)
 
-        # SDK v2 uses keyword arguments directly, not a dict
-        # Note: Cookies via headers not currently supported in SDK v2
-        result = app.scrape(
-            url,
-            formats=["markdown"],
-            only_main_content=True,  # Exclude nav, footer, ads
-        )
+        # FirecrawlApp uses scrape_url() with params dict
+        result = app.scrape_url(url, params={
+            'formats': ['markdown'],
+            'onlyMainContent': True,  # Exclude nav, footer, ads
+        })
 
-        # SDK v2 returns object with .markdown attribute (not dict)
-        if result and result.markdown:
-            content = result.markdown
+        # scrape_url returns a dict with 'markdown' key
+        if result and result.get('markdown'):
+            content = result['markdown']
             print(f"[AI Scoring Sandbox] Extracted {len(content)} chars from {url[:50]}...")
             return content
         else:
@@ -351,7 +349,7 @@ def run_ai_scoring_sandbox(batch_size: int = 50) -> Dict[str, Any]:
                         "source_name": fields.get("source_name", "Unknown"),
                         "date_ai_process": datetime.now(timezone.utc).isoformat(),
                         "date_og_published": fields.get("date_og_published"),
-                        "original_headline": headline,  # Original headline for reference
+                        "headline": headline,  # Original headline for reference
                         "raw": raw_content,  # Extracted article content from Firecrawl
                         "ai_complete": False,  # Will be set to True after full decoration
                         "topic": scores.get("topic", "OTHER"),
