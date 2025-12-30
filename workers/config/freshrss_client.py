@@ -209,7 +209,13 @@ class FreshRSSClient:
             if not article:
                 continue
 
-            # Filter by publication date
+            # Filter by BOTH crawl time AND publication time:
+            # 1. crawl_dt = when FreshRSS discovered it (avoid re-processing old stuff)
+            # 2. published_dt = when article was published (ensure news is recent)
+            # An article must pass BOTH filters to be included
+            if article.get("crawl_dt"):
+                if article["crawl_dt"] < cutoff:
+                    continue
             if article.get("published_dt"):
                 if article["published_dt"] < cutoff:
                     continue
@@ -245,12 +251,22 @@ class FreshRSSClient:
             if not title:
                 return None
 
-            # Extract timestamp
+            # Extract publication timestamp (for reference/output)
             published = item.get("published")
             published_dt = None
             if published:
                 try:
                     published_dt = datetime.fromtimestamp(published, tz=timezone.utc)
+                except (ValueError, TypeError):
+                    pass
+
+            # Extract crawl timestamp (when FreshRSS discovered the article)
+            # This is more reliable for filtering "recent" articles
+            crawl_ms = item.get("crawlTimeMsec")
+            crawl_dt = None
+            if crawl_ms:
+                try:
+                    crawl_dt = datetime.fromtimestamp(int(crawl_ms) / 1000, tz=timezone.utc)
                 except (ValueError, TypeError):
                     pass
 
@@ -282,6 +298,7 @@ class FreshRSSClient:
                 "source_id": source or "Unknown",
                 "published": published_dt.isoformat() if published_dt else None,
                 "published_dt": published_dt,
+                "crawl_dt": crawl_dt,  # When FreshRSS discovered the article
                 "summary": summary[:500] if summary else None,  # Truncate summary
                 "stream_id": stream_id,
             }

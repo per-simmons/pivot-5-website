@@ -245,7 +245,7 @@ REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
 def ingest_articles_sandbox(
     debug: bool = False,
-    limit: int = 300,
+    limit: int = 1000,  # Increased to get all articles before filtering
     since_hours: int = 36
 ) -> Dict[str, Any]:
     """
