@@ -24,6 +24,7 @@ Query: {needs_ai} = 1
 
 import os
 import json
+import time
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from zoneinfo import ZoneInfo
@@ -110,6 +111,8 @@ def extract_article_content(url: str) -> Optional[str]:
         if result and result.get('markdown'):
             content = result['markdown']
             print(f"[AI Scoring Sandbox] Extracted {len(content)} chars from {url[:50]}...")
+            # Rate limit protection: 1 second delay between Firecrawl calls
+            time.sleep(1)
             return content
         else:
             print(f"[AI Scoring Sandbox] No content extracted from {url[:50]}")
