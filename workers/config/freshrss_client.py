@@ -8,9 +8,12 @@ Production Instance:
     URL: https://pivot-media-rss-feed.onrender.com
     API: https://pivot-media-rss-feed.onrender.com/api/greader.php
 
-14 Active Feeds (Dec 29, 2025):
-    - Direct RSS: Bloomberg, The Verge, TechCrunch, The Atlantic, VentureBeat
-    - Google News RSS: WSJ, CNBC, NYT, Semafor, TechRepublic, Reuters, AI News
+18 Active Feeds (Dec 30, 2025):
+    - Direct RSS: Bloomberg, The Verge, The Atlantic, CNBC, VentureBeat, Semafor
+    - AI-Specific RSS: TechCrunch AI, TechRepublic AI, MIT Tech Review, MIT News,
+                       Science Daily, The Guardian, The Next Web
+    - Native RSS: NYT AI (direct), WSJ Technology (Dow Jones)
+    - Google News RSS: Reuters AI, Google News AI
     - Kill The Newsletter: AI Newsletters
 
 Usage:
@@ -45,22 +48,27 @@ FRESHRSS_API = f"{FRESHRSS_URL}/api/greader.php"
 
 
 # Source name mappings from stream ID to display name
-# Updated Dec 30, 2025 to match current FreshRSS subscriptions
+# Updated Dec 30, 2025 - Added new AI-focused feeds, replaced general with AI-specific
 STREAM_ID_TO_SOURCE = {
     "feed/3": "Bloomberg",
     "feed/8": "The Verge",
-    "feed/9": "TechCrunch",
     "feed/10": "CNBC",
     "feed/11": "The Atlantic",
     "feed/16": "Google News AI",
     "feed/17": "AI Newsletters",
-    "feed/19": "TechRepublic",
-    "feed/21": "WSJ",
-    "feed/22": "WSJ",
     "feed/23": "Reuters",
     "feed/27": "Semafor",
     "feed/28": "VentureBeat",
-    "feed/29": "New York Times",
+    # New feeds added Dec 30, 2025
+    "feed/30": "The Next Web",
+    "feed/31": "MIT Tech Review",
+    "feed/32": "MIT News",
+    "feed/33": "Science Daily",
+    "feed/34": "The Guardian",
+    "feed/35": "TechCrunch",  # AI-specific feed (replaced general)
+    "feed/36": "TechRepublic",  # AI-specific feed (replaced general)
+    "feed/37": "New York Times",  # Native RSS (replaced Google News)
+    "feed/38": "WSJ",  # Dow Jones direct (replaced Google News)
 }
 
 # Domain to source name mappings for URL-based extraction
@@ -86,6 +94,12 @@ DOMAIN_TO_SOURCE = {
     "apnews.com": "AP News",
     "fortune.com": "Fortune",
     "fastcompany.com": "Fast Company",
+    # New sources added Dec 30, 2025
+    "thenextweb.com": "The Next Web",
+    "technologyreview.com": "MIT Tech Review",
+    "news.mit.edu": "MIT News",
+    "sciencedaily.com": "Science Daily",
+    "theguardian.com": "The Guardian",
 }
 
 # Newsletter domain mappings for Kill The Newsletter content extraction
