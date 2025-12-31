@@ -115,7 +115,7 @@ if article.get("published_dt"):
         continue
 ```
 
-**Why 36h for crawl?** FreshRSS on Render free tier may not crawl consistently. 36h gives buffer for crawl delays while still preventing stale reprocessing.
+**Why 36h for crawl?** FreshRSS requires external triggers to crawl and may not run consistently. 36h gives buffer for crawl delays while still preventing stale reprocessing.
 
 **Why 72h for published?** Articles can be crawled days after publication (Google News delays, editorial processes). 72h allows recently-discovered older articles while blocking stale news that would flood the pipeline.
 
@@ -250,9 +250,9 @@ FRESHRSS_URL=https://pivot-media-rss-feed.onrender.com
 FRESHRSS_AUTH=admin/d13c712f15c87f1d9aee574372ed7dffe7e5e880
 ```
 
-## CRITICAL: FreshRSS Feed Refresh (Render Free Tier)
+## CRITICAL: FreshRSS Feed Refresh
 
-**FreshRSS on Render free tier goes to sleep and stops crawling feeds automatically.**
+**FreshRSS requires an external trigger to crawl feeds - it doesn't auto-refresh on its own.**
 
 ### Actualize Endpoint (Wake Up FreshRSS)
 ```bash
@@ -278,7 +278,7 @@ Without triggering a refresh, articles from some feeds may be 40+ hours old (las
 ## Troubleshooting
 
 ### "Only getting articles from some feeds"
-- **Cause:** FreshRSS hasn't crawled some feeds recently (Render free tier sleep)
+- **Cause:** FreshRSS hasn't crawled some feeds recently (needs external trigger)
 - **Fix:** Call the actualize endpoint before fetching, or ensure `auto_refresh=True`
 
 ### "Only getting Google News articles"

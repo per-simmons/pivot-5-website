@@ -204,8 +204,9 @@ class FreshRSSClient:
         """
         Trigger FreshRSS to crawl/refresh all feeds.
 
-        FreshRSS on Render free tier goes to sleep and stops crawling.
-        This endpoint wakes it up and forces a feed refresh.
+        FreshRSS requires an external trigger to crawl feeds - it doesn't
+        auto-refresh on its own. This calls the actualize endpoint to
+        force an immediate feed refresh.
 
         Args:
             max_feeds: Maximum feeds to refresh per call (default 50)
@@ -249,8 +250,8 @@ class FreshRSSClient:
         Returns:
             List of article dicts with normalized fields
         """
-        # Trigger feed refresh to wake up FreshRSS and get fresh articles
-        # This is critical because FreshRSS on Render free tier goes to sleep
+        # Trigger feed refresh before fetching to ensure fresh articles
+        # FreshRSS requires an external trigger to crawl - it doesn't auto-refresh
         if auto_refresh:
             self.trigger_refresh()
 
