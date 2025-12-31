@@ -304,8 +304,9 @@ ARTICLE:
             logger.info("[Gemini slot_1] Using prompt from database")
 
         # Chunk large batches to prevent Gemini response truncation
+        # Reduced to 5 articles per chunk (12/31/25) - 8 was still causing truncation
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=15)
+        chunks = self._chunk_articles(articles, chunk_size=5)
 
         for i, chunk in enumerate(chunks):
             if len(chunks) > 1:
@@ -375,8 +376,9 @@ If no stories match, return: {{"matches": []}}"""
             logger.info("[Gemini slot_2] Using prompt from database")
 
         # Chunk large batches to prevent Gemini response truncation
+        # Reduced to 5 articles per chunk (12/31/25) - 8 was still causing truncation
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=15)
+        chunks = self._chunk_articles(articles, chunk_size=5)
 
         for i, chunk in enumerate(chunks):
             if len(chunks) > 1:
@@ -446,8 +448,9 @@ If no stories match, return: {{"matches": []}}"""
             logger.info("[Gemini slot_3] Using prompt from database")
 
         # Chunk large batches to prevent Gemini response truncation
+        # Reduced to 5 articles per chunk (12/31/25) - 8 was still causing truncation
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=15)
+        chunks = self._chunk_articles(articles, chunk_size=5)
 
         for i, chunk in enumerate(chunks):
             if len(chunks) > 1:
@@ -525,8 +528,9 @@ If no stories match, return: {{"matches": []}}"""
             logger.info("[Gemini slot_4] Using prompt from database")
 
         # Chunk large batches to prevent Gemini response truncation
+        # Reduced to 5 articles per chunk (12/31/25) - 8 was still causing truncation
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=15)
+        chunks = self._chunk_articles(articles, chunk_size=5)
 
         for i, chunk in enumerate(chunks):
             if len(chunks) > 1:
@@ -599,8 +603,9 @@ If no stories match, return: {{"matches": []}}"""
             logger.info("[Gemini slot_5] Using prompt from database")
 
         # Chunk large batches to prevent Gemini response truncation
+        # Reduced to 5 articles per chunk (12/31/25) - 8 was still causing truncation
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=15)
+        chunks = self._chunk_articles(articles, chunk_size=5)
 
         for i, chunk in enumerate(chunks):
             if len(chunks) > 1:
@@ -678,11 +683,18 @@ If no stories match, return: {{"matches": []}}"""
 
         except json.JSONDecodeError as e:
             logger.error(f"[Gemini {slot_name}] JSON parse error: {e}")
+            # Log truncated response for debugging (first 500 chars)
+            response_preview = response.text[:500] if hasattr(response, 'text') else 'No response text'
+            logger.error(f"[Gemini {slot_name}] Truncated response preview: {response_preview}...")
+
             # Try to extract partial matches from truncated response
             partial_matches = self._parse_batch_response(response.text)
             if partial_matches:
                 logger.info(f"[Gemini {slot_name}] Recovered {len(partial_matches)} matches from partial response")
                 return partial_matches
+
+            logger.warning(f"[Gemini {slot_name}] Could not recover any matches from response")
+
             # Retry with exponential backoff if we got nothing
             if retry_count < 2:
                 wait_time = (retry_count + 1) * 2
@@ -698,16 +710,30 @@ If no stories match, return: {{"matches": []}}"""
                 return self._execute_batch_prefilter(prompt, slot_name, retry_count + 1)
             return []
 
-    def _chunk_articles(self, articles: List[Dict], chunk_size: int = 15) -> List[List[Dict]]:
-        """Split articles into smaller chunks for reliable Gemini processing."""
+    def _chunk_articles(self, articles: List[Dict], chunk_size: int = 8) -> List[List[Dict]]:
+        """
+        Split articles into smaller chunks for reliable Gemini processing.
+
+        Reduced from 15 to 8 articles per chunk on 12/31/25 to prevent
+        Gemini response truncation issues causing JSON parse errors.
+        """
         return [articles[i:i + chunk_size] for i in range(0, len(articles), chunk_size)]
 
     def _parse_batch_response(self, text: str) -> List[Dict]:
-        """Fallback parser for batch responses that aren't clean JSON."""
+        """
+        Robust fallback parser for batch responses that aren't clean JSON.
+
+        Handles truncated responses by extracting individual match objects
+        even when the overall JSON structure is incomplete.
+
+        Updated 12/31/25: Better recovery from truncated Gemini responses.
+        """
         import re
 
-        # Try to find JSON object in response
-        json_match = re.search(r'\{[\s\S]*"matches"[\s\S]*\}', text)
+        matches = []
+
+        # First, try to parse complete JSON
+        json_match = re.search(r'\{[\s\S]*"matches"\s*:\s*\[[\s\S]*\]\s*\}', text)
         if json_match:
             try:
                 result = json.loads(json_match.group())
@@ -715,4 +741,32 @@ If no stories match, return: {{"matches": []}}"""
             except json.JSONDecodeError:
                 pass
 
-        return []
+        # Second, try to extract individual match objects from truncated response
+        # Pattern matches {"story_id": "...", "headline": "..."}
+        match_pattern = r'\{\s*"story_id"\s*:\s*"([^"]+)"\s*,\s*"headline"\s*:\s*"([^"]+)"\s*\}'
+        individual_matches = re.findall(match_pattern, text)
+
+        for story_id, headline in individual_matches:
+            matches.append({
+                "story_id": story_id,
+                "headline": headline
+            })
+
+        if matches:
+            logger.info(f"Recovered {len(matches)} matches from truncated response using regex extraction")
+        else:
+            # Third attempt: try to find just story_ids even without complete headline
+            # Pattern: "story_id": "recXXX"
+            story_id_pattern = r'"story_id"\s*:\s*"(rec[^"]+)"'
+            story_ids = re.findall(story_id_pattern, text)
+
+            for story_id in story_ids:
+                matches.append({
+                    "story_id": story_id,
+                    "headline": "[recovered from truncated response]"
+                })
+
+            if matches:
+                logger.info(f"Recovered {len(matches)} story IDs from severely truncated response")
+
+        return matches
