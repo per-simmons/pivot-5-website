@@ -339,16 +339,12 @@ def run_ai_scoring(batch_size: int = 150) -> Dict[str, Any]:
             interest_score = scores.get("interest_score", 0)
             decoration_status = "completed" if interest_score >= INTEREST_SCORE_THRESHOLD else "skipped_low_score"
 
-            # Update Articles table
+            # Update Articles table (AI Editor 2.0 base)
+            # NOTE: This table has minimal fields. Only update fields that exist:
+            # - needs_ai, decoration_status (created by ingest)
+            # Full scoring data goes to Newsletter Stories in Pivot Media Master
             update_fields = {
                 "needs_ai": False,
-                "interest_score": interest_score,
-                "sentiment": scores.get("sentiment"),
-                "topic": scores.get("topic"),
-                "tags": tags_str,
-                "newsletter": scores.get("primary_newsletter_slug", "pivot_ai"),
-                "fit_score": best_fit_score,
-                "date_scored": datetime.now(timezone.utc).isoformat(),
                 "decoration_status": decoration_status,
             }
 
