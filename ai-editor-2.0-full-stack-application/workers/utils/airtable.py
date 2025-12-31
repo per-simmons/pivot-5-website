@@ -39,6 +39,7 @@ class AirtableClient:
         self.slots_table_id = os.getenv('AI_EDITOR_SELECTED_SLOTS_TABLE', 'tblzt2z7r512Kto3O')
         self.decoration_table_id = os.getenv('AI_EDITOR_DECORATION_TABLE', 'tbla16LJCf5Z6cRn3')
         self.source_scores_table_id = os.getenv('AI_EDITOR_SOURCE_SCORES_TABLE', 'tbl3Zkdl1No2edDLK')
+        self.newsletter_selects_table_id = os.getenv('AIRTABLE_NEWSLETTER_SELECTS_TABLE', 'tblKhICCdWnyuqgry')
 
         # P5 Social Posts base (separate)
         self.social_base_id = os.getenv('P5_SOCIAL_BASE_ID', 'appRUgK44hQnXH1PM')
@@ -68,6 +69,75 @@ class AirtableClient:
 
         records = table.all(formula=formula)
         return [{'id': r['id'], **r['fields']} for r in records]
+
+    # === Newsletter Selects Table (AI Editor 2.0 - FreshRSS Migration) ===
+
+    def get_newsletter_selects(self, since_date: str = None) -> List[Dict[str, Any]]:
+        """
+        Get newsletter selects from AI Editor 2.0 base.
+
+        This is the new data source for pre-filter agents, replacing Newsletter Stories.
+        Fields are transformed to maintain compatibility with existing prefilter code.
+        """
+        table = self._get_table(self.editor_base_id, self.newsletter_selects_table_id)
+
+        formula = None
+        if since_date:
+            formula = f"IS_AFTER({{date_og_published}}, '{since_date}')"
+
+        records = table.all(formula=formula)
+
+        # Transform fields to match expected format for prefilter agents
+        transformed = []
+        for r in records:
+            fields = r['fields']
+            raw_content = fields.get('raw', '')
+
+            # Extract summary from raw content (first ~300 chars, break at sentence)
+            summary = self._extract_summary(raw_content, max_length=300)
+
+            transformed.append({
+                'id': r['id'],
+                'storyID': r['id'],  # Use record ID as storyID (no storyID in new table)
+                'pivotId': fields.get('pivot_id'),  # snake_case in new table
+                'headline': fields.get('headline'),
+                'ai_headline': fields.get('headline'),  # Alias for compatibility
+                'ai_dek': summary,  # Derived from raw
+                'raw': raw_content,
+                'source_id': fields.get('source_name'),  # Alias for compatibility
+                'source_name': fields.get('source_name'),
+                'date_og_published': fields.get('date_og_published'),
+                'topic': fields.get('topic'),
+                'interest_score': fields.get('interest_score'),
+                'sentiment': fields.get('sentiment'),
+                'core_url': fields.get('core_url'),
+                'ai_complete': fields.get('ai_complete'),
+            })
+
+        return transformed
+
+    def _extract_summary(self, raw_content: str, max_length: int = 300) -> str:
+        """Extract a clean summary from raw content, breaking at sentence boundary."""
+        if not raw_content:
+            return ''
+
+        # Take first portion of content
+        if len(raw_content) <= max_length:
+            return raw_content
+
+        # Try to break at a sentence boundary
+        truncated = raw_content[:max_length]
+        last_period = truncated.rfind('.')
+        last_question = truncated.rfind('?')
+        last_exclaim = truncated.rfind('!')
+
+        # Find the last sentence boundary
+        last_boundary = max(last_period, last_question, last_exclaim)
+
+        if last_boundary > max_length // 2:  # At least half the length
+            return truncated[:last_boundary + 1]
+
+        return truncated.rstrip() + '...'
 
     # === Pre-Filter Log Table (AI Editor 2.0) ===
 

@@ -55,9 +55,11 @@ def prefilter_stories(job_id: str = None) -> Dict[str, Any]:
     genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
     model = genai.GenerativeModel('gemini-3-flash-preview')
 
-    # Get fresh stories from Newsletter Stories table (last 7 days)
+    # Get fresh stories from Newsletter Selects table (last 7 days)
+    # Migrated from Newsletter Stories (Pivot Media Master) to Newsletter Selects (AI Editor 2.0)
     seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
-    stories = airtable.get_newsletter_stories(since_date=seven_days_ago)
+    stories = airtable.get_newsletter_selects(since_date=seven_days_ago)
+    print(f"[Step 1] Fetched {len(stories)} stories from Newsletter Selects")
 
     # Get source credibility scores
     source_scores = airtable.get_source_scores()
@@ -137,7 +139,9 @@ def _evaluate_slot_eligibility(
         List of eligible slot numbers (1-5)
     """
     headline = story.get('ai_headline', story.get('headline', ''))
-    content = story.get('ai_dek', '') + ' ' + story.get('ai_bullet_1', '')
+    # Use raw field (truncated) for content, with ai_dek fallback for compatibility
+    raw_content = story.get('raw', '')
+    content = story.get('ai_dek', raw_content[:500] if raw_content else '')
     date_published = story.get('date_og_published', '')
 
     prompt = f"""Analyze this news article and determine which newsletter slots it's eligible for.
