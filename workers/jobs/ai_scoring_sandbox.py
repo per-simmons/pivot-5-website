@@ -167,7 +167,7 @@ def build_scoring_prompt(article: Dict[str, Any]) -> str:
         Formatted prompt string
     """
     headline = article.get("headline") or article.get("title", "No headline")
-    source = article.get("source_id", "Unknown")
+    source = article.get("source_name", "Unknown")
     url = article.get("original_url", "")
     published = article.get("date_og_published", "")
 
