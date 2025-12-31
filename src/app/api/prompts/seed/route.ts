@@ -181,28 +181,41 @@ Return JSON only:
     stepId: 2,
     slotNumber: 1,
     name: "Slot 1 Selection Agent",
-    description: "Select lead story for Jobs/Economy",
+    description: "Select lead story - prioritize Big 4 companies, then jobs/economy",
     model: "claude-sonnet-4-5-20250929",
     temperature: 0.3,
     content: `You are selecting ONE story for **Slot 1** (Breaking News) of a daily AI newsletter.
 
-## Slot 1 is ALWAYS one of:
-- OpenAI OR Google OR Meta OR Nvidia; or
-- AI impact on jobs or
-- AI impact on economy
+## SLOT 1 PRIORITY ORDER (FOLLOW THIS EXACTLY)
 
-Especially prioritize one of the 4 companies listed above.
+**STEP 1: Look for Big 4 Company Names in Headlines**
+Scan ALL candidate headlines for these company names: **OpenAI, Google, Meta, Nvidia**
 
-## SOURCE CREDIBILITY GUIDE
-Credibility scores help weigh story quality when comparing similar options:
-| Score | Sources | Weight |
-|-------|---------|--------|
-| 5 | TechCrunch, The Verge, TAAFT | High - prefer when available |
-| 4 | Bloomberg, WSJ, NYTimes | Good - reliable sources |
-| 3 | CNBC, Semafor | Moderate - acceptable sources |
-| 2 | Unknown/unlisted | Lower weight - but story quality matters most |
+If you find a headline mentioning one of these companies AND the story is NEWSWORTHY (see definition below), select it. Prefer higher credibility sources (5 → 4 → 3 → 2) when multiple Big 4 stories exist.
 
-Credibility score is ONE factor among many. A compelling story from a score-2 source can beat a mediocre story from a score-5 source.
+**STEP 2: If No Big 4 Company Story is Newsworthy**
+Look for stories about AI impact on jobs OR AI impact on economy. These are your fallback options if no Big 4 company story qualifies.
+
+**STEP 3: Source Credibility Cascade**
+When comparing similar stories, prefer:
+- Score 5 sources first (TechCrunch, The Verge, TAAFT)
+- Then Score 4 (Bloomberg, WSJ, NYTimes)
+- Then Score 3 (CNBC, Semafor)
+- Then Score 2 (Unknown/unlisted)
+
+## WHAT MAKES A STORY "NEWSWORTHY"
+
+A story is NEWSWORTHY if it meets ALL of these criteria:
+1. **Actionable Impact** - The news affects how businesses operate, invest, or compete
+2. **Significant Scale** - Major deal ($1B+), major product launch, major partnership, or industry-shifting announcement
+3. **Breaking/Fresh** - This is new information, not a recap or opinion piece
+4. **Concrete Details** - Includes specific numbers, names, dates, or facts (not vague predictions)
+
+A story is NOT newsworthy if:
+- It's speculation or "sources say" without concrete details
+- It's a minor update dressed up as big news
+- It's interesting to engineers but doesn't affect business decisions
+- It's a prediction or opinion piece
 
 ## STORIES TO AVOID - DO NOT SELECT THESE TYPES
 - Leadership shuffles and personnel moves (any hiring, firing, replacing, stepping down, departing, appointed, promoted, resigned, ousted, exits, joins, leaves, new CEO/CTO/Chief)
@@ -213,22 +226,31 @@ Credibility score is ONE factor among many. A compelling story from a score-2 so
 
 **Editorial lens:** "For a working professional, is this useful to me right now, in my job and day to day?" Stories should be APPLICABLE, not just interesting.
 
+## SOURCE CREDIBILITY GUIDE
+| Score | Sources | Weight |
+|-------|---------|--------|
+| 5 | TechCrunch, The Verge, TAAFT | High - prefer when available |
+| 4 | Bloomberg, WSJ, NYTimes | Good - reliable sources |
+| 3 | CNBC, Semafor | Moderate - acceptable sources |
+| 2 | Unknown/unlisted | Lower weight - but story quality matters most |
+
 ## EDITORIAL RULES - YOU MUST FOLLOW ALL OF THESE
 
-### Rule 1:
-**Yesterday's headlines - Do NOT select any story covering the same topic as yesterday's headlines, even from a different source
+### Rule 1: Recent Headlines
+Do NOT select any story covering the same topic as these recent headlines, even from a different source:
 
 {recent_headlines}
 
-### Rule 2:
-Don't select the same Slot 1 company twice (slot 1 is the first company listed in the above)
+### Rule 2: No Repeat Slot 1 Company
+Don't select the same company that was featured in yesterday's Slot 1.
 
 --
 
 ## CANDIDATES ({candidate_count} stories)
 Each candidate includes storyID, headline, source_name, credibility_score (1-5, 5=best), date_og_published, and url.
 
-Select from them here:
+**First, scan all headlines for OpenAI, Google, Meta, or Nvidia. If found and newsworthy, that's your selection.**
+
 {candidates}
 
 
@@ -238,9 +260,9 @@ Return ONLY valid JSON with no additional text:
   "selected_id": "storyID",
   "selected_headline": "headline text",
   "selected_source": "source_name",
-  "selected_company": "primary company featured (e.g., OpenAI, Nvidia, Google) or null if no specific company",
+  "selected_company": "primary company featured (e.g., OpenAI, Nvidia, Google) or null if jobs/economy story",
   "credibility_score": number,
-  "reasoning": "2-3 sentences explaining why this story was selected and how it satisfies all editorial rules"
+  "reasoning": "2-3 sentences explaining: (1) which priority step you used (Big 4 company or jobs/economy fallback), (2) why the story is newsworthy, (3) how it satisfies editorial rules"
 }}`,
   },
 
