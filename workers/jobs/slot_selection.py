@@ -138,6 +138,7 @@ def select_slots() -> dict:
 
         issue_data = {
             "issue_date": issue_date_iso,  # ISO format for Airtable date field
+            "issue_id": issue_date_label,  # Human-readable label e.g. "Pivot 5 - Dec 31"
             "status": "pending"
         }
 
@@ -211,14 +212,11 @@ def select_slots() -> dict:
                 if source_id:
                     cumulative_state["selectedSources"].append(source_id)
 
-                # Add to issue data
+                # Add to issue data (only fields that exist in Airtable Selected Slots table)
                 issue_data[f"slot_{slot}_headline"] = selected_headline
                 issue_data[f"slot_{slot}_storyId"] = selected_story_id
                 issue_data[f"slot_{slot}_pivotId"] = selected_pivot_id
-                issue_data[f"slot_{slot}_source"] = source_id
-
-                if company:
-                    issue_data[f"slot_{slot}_company"] = company
+                # Note: slot_{n}_source and slot_{n}_company fields don't exist in Airtable
 
                 headlines.append(selected_headline)
                 results["slots_filled"] += 1
