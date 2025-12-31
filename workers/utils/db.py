@@ -16,8 +16,9 @@ from psycopg2.extras import RealDictCursor
 logger = logging.getLogger(__name__)
 
 # Retry configuration for SSL connection failures
-MAX_RETRIES = 3
-RETRY_DELAY_SECONDS = 1
+# Increased from 3 to 5 retries with longer delays for Render cold starts
+MAX_RETRIES = 5
+RETRY_DELAY_SECONDS = 2  # Start with 2s, exponential backoff: 2s, 4s, 6s, 8s, 10s
 
 
 class DatabaseClient:

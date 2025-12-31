@@ -156,6 +156,25 @@ def run_scheduler():
     scheduler.run()
 
 
+def warmup_database():
+    """
+    Warm up database connection on startup.
+    Render free tier PostgreSQL can be cold - this ensures it's ready before jobs run.
+    """
+    try:
+        from utils.db import get_db
+        db = get_db()
+        # Simple query to wake up the database
+        with db.get_cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+        print("[Worker] Database connection warm-up successful")
+        return True
+    except Exception as e:
+        print(f"[Worker] Database warm-up failed (will retry on first job): {e}")
+        return False
+
+
 def run_worker():
     """Run the RQ worker"""
     conn = get_redis_connection()
@@ -169,6 +188,9 @@ def run_worker():
 
     print(f"[Worker] Starting worker at {datetime.utcnow().isoformat()}")
     print(f"[Worker] Listening on queues: high, default, low")
+
+    # Warm up database connection before processing jobs
+    warmup_database()
 
     worker = Worker(queues, connection=conn)
     worker.work()
