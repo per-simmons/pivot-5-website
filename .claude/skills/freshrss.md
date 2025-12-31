@@ -161,7 +161,7 @@ Updated Dec 31, 2025 - Semafor feed changed to tech-only (site:semafor.com/tech)
 | `feed/31` | MIT Tech Review AI | Direct RSS |
 | `feed/32` | MIT News AI | Direct RSS |
 | `feed/33` | Science Daily AI | Direct RSS |
-| `feed/34` | The Guardian AI | Direct RSS |
+| `feed/42` | The Guardian AI | Google News (site:theguardian.com/technology AI) |
 | `feed/35` | TechCrunch AI | Direct RSS |
 | `feed/36` | TechRepublic AI | Direct RSS |
 | `feed/37` | New York Times AI | Direct RSS (native) |

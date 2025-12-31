@@ -64,7 +64,7 @@ STREAM_ID_TO_SOURCE = {
     "feed/31": "MIT Tech Review",
     "feed/32": "MIT News",
     "feed/33": "Science Daily",
-    "feed/34": "The Guardian",
+    "feed/42": "The Guardian",  # Google News (site:theguardian.com/technology AI) - updated Dec 31, 2025
     "feed/35": "TechCrunch",  # AI-specific feed (replaced general)
     "feed/36": "TechRepublic",  # AI-specific feed (replaced general)
     "feed/37": "New York Times",  # Native RSS (replaced Google News)
