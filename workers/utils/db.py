@@ -1,16 +1,23 @@
 """
 PostgreSQL Database Client for AI Editor 2.0 Workers
 Loads system prompts and configuration from the database
+
+Updated 12/31/25: Added retry logic for SSL connection failures
 """
 
 import os
 import logging
+import time
 from typing import Optional, Dict, Any, List
 from contextlib import contextmanager
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
 logger = logging.getLogger(__name__)
+
+# Retry configuration for SSL connection failures
+MAX_RETRIES = 3
+RETRY_DELAY_SECONDS = 1
 
 
 class DatabaseClient:
@@ -21,38 +28,64 @@ class DatabaseClient:
         if not self.database_url:
             raise ValueError("DATABASE_URL environment variable is required")
 
-        # Connection pool settings
-        self._connection = None
+    def _create_connection(self):
+        """Create a new database connection with proper SSL settings"""
+        # Use fresh connection each time to avoid stale SSL sessions
+        sslmode = 'require' if os.environ.get('NODE_ENV') == 'production' else 'prefer'
 
-    def _get_connection(self):
-        """Get or create database connection"""
-        if self._connection is None or self._connection.closed:
-            self._connection = psycopg2.connect(
-                self.database_url,
-                cursor_factory=RealDictCursor,
-                sslmode='require' if os.environ.get('NODE_ENV') == 'production' else 'prefer'
-            )
-        return self._connection
+        return psycopg2.connect(
+            self.database_url,
+            cursor_factory=RealDictCursor,
+            sslmode=sslmode,
+            connect_timeout=10,  # 10 second connection timeout
+            options='-c statement_timeout=30000'  # 30 second query timeout
+        )
 
     @contextmanager
     def get_cursor(self):
-        """Context manager for database cursor"""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        try:
-            yield cursor
-            conn.commit()
-        except Exception as e:
-            conn.rollback()
-            logger.error(f"Database error: {e}")
-            raise
-        finally:
-            cursor.close()
+        """Context manager for database cursor with retry logic"""
+        last_error = None
+
+        for attempt in range(MAX_RETRIES):
+            conn = None
+            cursor = None
+            try:
+                # Create fresh connection each time
+                conn = self._create_connection()
+                cursor = conn.cursor()
+                yield cursor
+                conn.commit()
+                return  # Success - exit the retry loop
+
+            except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+                # SSL connection failures, connection drops
+                last_error = e
+                logger.warning(f"Database connection error (attempt {attempt + 1}/{MAX_RETRIES}): {e}")
+
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_DELAY_SECONDS * (attempt + 1))  # Exponential backoff
+                continue
+
+            except Exception as e:
+                # Other database errors (query errors, etc.)
+                if conn:
+                    conn.rollback()
+                logger.error(f"Database error: {e}")
+                raise
+
+            finally:
+                if cursor:
+                    cursor.close()
+                if conn:
+                    conn.close()
+
+        # All retries exhausted
+        logger.error(f"Database connection failed after {MAX_RETRIES} retries: {last_error}")
+        raise last_error
 
     def close(self):
-        """Close database connection"""
-        if self._connection and not self._connection.closed:
-            self._connection.close()
+        """No-op for backwards compatibility - connections are closed per query"""
+        pass
 
     # =========================================================================
     # PROMPT QUERIES

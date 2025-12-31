@@ -38,6 +38,7 @@ def get_prompt(prompt_key: str, use_cache: bool = True) -> Optional[str]:
 
     # Check cache first
     if use_cache and prompt_key in _prompt_cache:
+        logger.debug(f"Prompt {prompt_key} loaded from cache")
         return _prompt_cache[prompt_key].get('content')
 
     try:
@@ -46,9 +47,11 @@ def get_prompt(prompt_key: str, use_cache: bool = True) -> Optional[str]:
 
         if prompt_data:
             _prompt_cache[prompt_key] = prompt_data
+            content_preview = prompt_data.get('content', '')[:100] if prompt_data.get('content') else 'EMPTY'
+            logger.info(f"Prompt {prompt_key} loaded from database (v{prompt_data.get('current_version', '?')}): {content_preview}...")
             return prompt_data.get('content')
         else:
-            logger.warning(f"Prompt not found: {prompt_key}")
+            logger.warning(f"Prompt not found in database: {prompt_key}")
             return None
 
     except Exception as e:
