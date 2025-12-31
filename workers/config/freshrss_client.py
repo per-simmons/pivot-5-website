@@ -57,7 +57,7 @@ STREAM_ID_TO_SOURCE = {
     "feed/16": "Google News AI",
     "feed/17": "AI Newsletters",
     "feed/23": "Reuters",
-    "feed/27": "Semafor",
+    "feed/41": "Semafor",  # Semafor Tech (site:semafor.com technology AI) - updated Dec 31, 2025
     "feed/28": "VentureBeat",
     # New feeds added Dec 30, 2025
     "feed/30": "The Next Web",

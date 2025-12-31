@@ -144,7 +144,7 @@ https://kill-the-newsletter.com/feeds/wursamkt3o49gpvmp6la.xml
 
 ## Feed IDs (Pivot 5 Production)
 
-Updated Dec 30, 2025 - Added AI-focused feeds, replaced general with AI-specific.
+Updated Dec 31, 2025 - Semafor feed changed to tech-only (site:semafor.com/tech).
 
 | Feed ID | Source | Type |
 |---------|--------|------|
@@ -155,7 +155,7 @@ Updated Dec 30, 2025 - Added AI-focused feeds, replaced general with AI-specific
 | `feed/16` | Google News AI | Google News |
 | `feed/17` | AI Newsletters | Kill The Newsletter |
 | `feed/23` | Reuters AI | Google News |
-| `feed/27` | Semafor | Direct RSS |
+| `feed/41` | Semafor Tech | Google News (site:semafor.com technology AI) |
 | `feed/28` | VentureBeat | Direct RSS |
 | `feed/30` | The Next Web AI | Direct RSS |
 | `feed/31` | MIT Tech Review AI | Direct RSS |
