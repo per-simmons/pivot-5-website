@@ -126,11 +126,17 @@ def select_slots() -> dict:
         print(f"[Step 2] Recent issues found: {len(recent_issues)}, total storyIds: {len(recent_data['storyIds'])}")
 
         # 2. Initialize cumulative state for tracking across slots
+        # Updated 12/31/25: selectedSources is now a dict with counts per n8n audit
         cumulative_state = {
             "selectedToday": [],       # storyIDs selected today
             "selectedCompanies": [],   # companies featured today
-            "selectedSources": []      # sources used today (count for max 2)
+            "selectedSources": {}      # sources used today {source: count} for max 2 rule
         }
+
+        # 2b. Build source credibility lookup for slot selection
+        print("[Step 2] Building source credibility lookup...")
+        source_lookup = airtable.build_source_lookup()
+        print(f"[Step 2] Loaded {len(source_lookup)} source scores")
 
         # 3. Build today's issue data using proper next-issue calculation
         issue_date_iso, issue_date_label = get_next_issue_date()
@@ -180,12 +186,13 @@ def select_slots() -> dict:
 
                 print(f"[Step 2] Slot {slot}: {len(available_candidates)} available after filtering")
 
-                # Call Claude agent for slot selection
+                # Call Claude agent for slot selection (pass source_lookup for credibility scores)
                 selection = claude.select_slot(
                     slot=slot,
                     candidates=available_candidates,
                     recent_data=recent_data,
-                    cumulative_state=cumulative_state
+                    cumulative_state=cumulative_state,
+                    source_lookup=source_lookup
                 )
 
                 if "error" in selection:
@@ -210,7 +217,9 @@ def select_slots() -> dict:
                 if company:
                     cumulative_state["selectedCompanies"].append(company)
                 if source_id:
-                    cumulative_state["selectedSources"].append(source_id)
+                    # Track source counts in dict (n8n format: {"TechCrunch": 1, "Bloomberg": 1})
+                    cumulative_state["selectedSources"][source_id] = \
+                        cumulative_state["selectedSources"].get(source_id, 0) + 1
 
                 # Add to issue data (only fields that exist in Airtable Selected Slots table)
                 issue_data[f"slot_{slot}_headline"] = selected_headline

@@ -38,7 +38,8 @@ class ClaudeClient:
         slot: int,
         candidates: List[dict],
         recent_data: dict,
-        cumulative_state: dict
+        cumulative_state: dict,
+        source_lookup: Optional[Dict[str, int]] = None
     ) -> dict:
         """
         Step 2, Nodes 18-22: Claude agent for slot selection
@@ -48,12 +49,13 @@ class ClaudeClient:
             candidates: List of story candidates for this slot
             recent_data: {headlines, storyIds, pivotIds, slot1Company} from 14-day lookback
             cumulative_state: {selectedToday, selectedCompanies, selectedSources}
+            source_lookup: {source_name: credibility_score} lookup for source scoring
 
         Returns:
             {selected_storyId, selected_pivotId, selected_headline, company, source_id, reasoning}
         """
         system_prompt = self._build_slot_system_prompt(slot, recent_data, cumulative_state)
-        user_prompt = self._build_slot_user_prompt(candidates)
+        user_prompt = self._build_slot_user_prompt(candidates, source_lookup)
 
         response = self.client.messages.create(
             model=self.default_model,
@@ -87,7 +89,16 @@ class ClaudeClient:
         recent_story_ids = recent_data.get('storyIds', [])
         selected_today = cumulative_state.get('selectedToday', [])
         selected_companies = cumulative_state.get('selectedCompanies', [])
-        selected_sources = cumulative_state.get('selectedSources', [])
+        selected_sources = cumulative_state.get('selectedSources', {})  # Dict with counts
+
+        # Format selected sources for display (n8n format: {"TechCrunch": 1, "Bloomberg": 1})
+        if isinstance(selected_sources, dict) and selected_sources:
+            sources_display = ', '.join([f"{src}: {cnt}" for src, cnt in selected_sources.items()])
+        elif isinstance(selected_sources, list):
+            # Legacy list format fallback
+            sources_display = ', '.join(selected_sources) if selected_sources else '(none yet)'
+        else:
+            sources_display = '(none yet)'
 
         # For yesterday_slot context, use recent headlines if available
         # (showing the first 5 most recent as a sample)
@@ -102,7 +113,7 @@ class ClaudeClient:
                     candidates="(See candidates below)",
                     selected_stories=', '.join(selected_today) if selected_today else '(none yet)',
                     selected_companies=', '.join(selected_companies) if selected_companies else '(none yet)',
-                    selected_sources=', '.join(selected_sources) if selected_sources else '(none yet)',
+                    selected_sources=sources_display,
                     yesterday_slot=yesterday_slot
                 )
 
@@ -167,7 +178,7 @@ Already featured today: {', '.join(selected_companies) if selected_companies els
 
 ### Rule 4: Source Diversity
 Max 2 stories per source per day.
-Already used today: {', '.join(selected_sources) if selected_sources else '(none yet)'}
+Already used today: {sources_display}
 """
 
         # Slot 1 has special two-day rotation rule
@@ -189,18 +200,37 @@ Return JSON with:
 
         return context
 
-    def _build_slot_user_prompt(self, candidates: List[dict]) -> str:
-        """Build user prompt with candidate stories"""
-        prompt = "CANDIDATE STORIES:\n\n"
+    def _build_slot_user_prompt(self, candidates: List[dict], source_lookup: Optional[Dict[str, int]] = None) -> str:
+        """
+        Build user prompt with candidate stories including all n8n fields.
+
+        Updated 12/31/25: Added missing fields from n8n audit:
+        - credibility_score (from source_lookup)
+        - primary_company
+        - url (core_url)
+        - Candidate count in header
+        """
+        prompt = f"## CANDIDATE STORIES ({len(candidates)} stories)\n\n"
 
         for i, candidate in enumerate(candidates, 1):
             fields = candidate.get('fields', candidate)
+            source_id = fields.get('source_id', '')
+
+            # Get credibility score from lookup (default to 2 if not found)
+            cred_score = 2  # Default
+            if source_lookup and source_id:
+                # Try exact match, then lowercase
+                cred_score = source_lookup.get(source_id, source_lookup.get(source_id.lower(), 2))
+
             prompt += f"""Story {i}:
 - storyID: {fields.get('storyID', '')}
 - pivotId: {fields.get('pivotId', '')}
 - headline: {fields.get('headline', '')}
-- source: {fields.get('source_id', '')}
-- published: {fields.get('date_og_published', '')}
+- source_name: {source_id}
+- credibility_score: {cred_score}
+- date_og_published: {fields.get('date_og_published', '')}
+- primary_company: {fields.get('primary_company') or 'null'}
+- url: {fields.get('core_url', '')}
 
 """
 
