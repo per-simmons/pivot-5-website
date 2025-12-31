@@ -1,18 +1,23 @@
 """
-AI Scoring Job - Score articles AND create decorated Newsletter Stories
+AI Scoring Job - Score articles AND create Newsletter Selects
 
 REPLACES n8n workflows entirely. This Python job handles:
-1. Scoring articles (interest_score, sentiment, topic, tags)
-2. Creating fully-decorated Newsletter Stories (ai_headline, ai_dek, bullets, image_prompt)
+1. Scoring articles (interest_score, sentiment, topic)
+2. Creating Newsletter Selects for high-interest articles (headline, raw summary)
 
 ARCHITECTURE:
-  Step 0 (Ingest) → Articles table (needs_ai = true)
-  AI Scoring → Updates Articles with scores (needs_ai = false)
-              → Creates DECORATED Newsletter Stories (interest_score >= 15)
+  Step 0 (Ingest) → Articles All Ingested table (needs_ai = true)
+  AI Scoring → Updates Articles with scores (needs_ai = false, interest_score, fit_status)
+              → Creates Newsletter Selects records (interest_score >= 15)
 
-OUTPUT TABLES:
-  1. Articles (tblGumae8KDpsrWvh) - ALL articles with scores
-  2. Newsletter Stories (tblY78ziWp5yhiGXp) - DECORATED high-interest articles
+TABLES (AI Editor 2.0 base - appglKSJZxmA9iHpl):
+  1. Articles All Ingested (tblMfRgSNSyoRIhx1):
+     Fields: pivot_id, original_url, source_name, headline, date_ingested,
+             date_og_published, date_scored, fit_status, interest_score, needs_ai
+
+  2. Newsletter Selects (tblKhICCdWnyuqgry):
+     Fields: pivot_id, core_url, source_name, headline, date_og_published,
+             date_ai_process, topic, interest_score, sentiment, raw
 
 Query: {needs_ai} = 1
 """
@@ -32,9 +37,8 @@ AIRTABLE_API_KEY = os.environ.get("AIRTABLE_API_KEY")
 AI_EDITOR_BASE_ID = os.environ.get("AI_EDITOR_BASE_ID", "appglKSJZxmA9iHpl")
 ARTICLES_TABLE = "tblMfRgSNSyoRIhx1"  # Articles All Ingested in AI Editor 2.0
 
-# Pivot Media Master base - where decorated Newsletter Stories go
-PIVOT_MEDIA_BASE_ID = os.environ.get("AIRTABLE_BASE_ID", "appwSozYTkrsQWUXB")
-NEWSLETTER_STORIES_TABLE = "tblY78ziWp5yhiGXp"  # Newsletter Stories in Pivot Media Master
+# Newsletter Selects table - where high-interest articles go (SAME BASE)
+NEWSLETTER_SELECTS_TABLE = "tblKhICCdWnyuqgry"  # Newsletter Selects in AI Editor 2.0
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 
 # Interest score threshold for Newsletter Stories output
@@ -56,9 +60,9 @@ def build_scoring_prompt(article: Dict[str, Any]) -> str:
     """
     Build the Claude prompt for scoring an article.
     """
-    source = article.get("source_id", "Unknown")
+    source = article.get("source_name", "Unknown")
     url = article.get("original_url", "")
-    published = article.get("date_published", "")
+    published = article.get("date_og_published", "")
 
     return f"""Analyze this news article and provide scoring for newsletter placement.
 
@@ -117,53 +121,40 @@ Return ONLY valid JSON (no markdown, no explanation):
 def build_decoration_prompt(article: Dict[str, Any], scores: Dict[str, Any]) -> str:
     """
     Build the Claude prompt for decorating a high-interest article.
-    Generates ai_headline, ai_dek, 3 bullets with bolding, and image_prompt.
+    Generates headline and raw summary for Newsletter Selects.
     """
-    source = article.get("source_id", "Unknown")
+    source = article.get("source_name", "Unknown")
     url = article.get("original_url", "")
+    headline = article.get("headline", "")
     topic = scores.get("topic", "OTHER")
 
-    return f"""You are decorating a news article for an AI-focused newsletter. Generate compelling content.
+    return f"""You are decorating a news article for an AI-focused newsletter.
 
 ARTICLE:
 - Source: {source}
 - URL: {url}
+- Original Headline: {headline}
 - Topic: {topic}
 
-IMPORTANT: Extract the article's topic and key information from the URL path. The URL slug reveals the article subject.
+IMPORTANT: Extract key information from the URL path and original headline.
 
 GENERATE THE FOLLOWING:
 
-1. **ai_headline**: Rewrite the headline to be more compelling and newsletter-appropriate.
-   - 8-15 words
-   - Active voice
-   - No clickbait but engaging
-   - Focus on the key insight or development
+1. **ai_headline**: Rewrite the headline to be more compelling.
+   - 8-15 words, active voice
+   - Engaging but not clickbait
+   - Focus on the key insight
 
-2. **ai_dek**: A 1-2 sentence summary that hooks the reader.
-   - Explain why this matters
-   - 25-40 words
-   - Complement the headline, don't repeat it
-
-3. **ai_bullet_1**, **ai_bullet_2**, **ai_bullet_3**: Three bullet points with key insights.
-   - Each bullet should be 1-2 sentences
-   - Include **bold text** around the key phrase or statistic in each bullet
-   - Focus on actionable insights, not just restating facts
-   - Each bullet should add new information
-
-4. **image_prompt**: A prompt for generating an illustration.
-   - Describe a professional, minimalist tech illustration
-   - Include style guidance (colors, composition)
-   - 20-40 words
+2. **raw_summary**: A detailed 2-4 paragraph summary of the article.
+   - Explain the key developments
+   - Include relevant stats, names, companies
+   - 150-300 words
+   - This will be used as the article's raw content
 
 Return ONLY valid JSON (no markdown, no explanation):
 {{
   "ai_headline": "<rewritten headline>",
-  "ai_dek": "<1-2 sentence summary>",
-  "ai_bullet_1": "<bullet with **bold** key phrase>",
-  "ai_bullet_2": "<bullet with **bold** key phrase>",
-  "ai_bullet_3": "<bullet with **bold** key phrase>",
-  "image_prompt": "<image generation prompt>"
+  "raw_summary": "<detailed summary paragraphs>"
 }}"""
 
 
@@ -238,8 +229,8 @@ def decorate_article(client: Anthropic, article: Dict[str, Any], scores: Dict[st
 
         result = json.loads(content)
 
-        # Validate required fields
-        required_fields = ["ai_headline", "ai_dek", "ai_bullet_1", "ai_bullet_2", "ai_bullet_3"]
+        # Validate required fields for Newsletter Selects
+        required_fields = ["ai_headline", "raw_summary"]
         for field in required_fields:
             if not result.get(field):
                 raise ValueError(f"Missing required field: {field}")
@@ -288,7 +279,7 @@ def run_ai_scoring(batch_size: int = 150) -> Dict[str, Any]:
 
         airtable = Api(AIRTABLE_API_KEY)
         articles_table = airtable.table(AI_EDITOR_BASE_ID, ARTICLES_TABLE)
-        newsletter_stories_table = airtable.table(PIVOT_MEDIA_BASE_ID, NEWSLETTER_STORIES_TABLE)
+        newsletter_selects_table = airtable.table(AI_EDITOR_BASE_ID, NEWSLETTER_SELECTS_TABLE)
         claude = Anthropic(api_key=ANTHROPIC_API_KEY)
 
         # Query articles needing AI scoring
@@ -309,7 +300,7 @@ def run_ai_scoring(batch_size: int = 150) -> Dict[str, Any]:
         for record in articles:
             article_id = record["id"]
             fields = record["fields"]
-            pivot_id = fields.get("pivot_Id", "")
+            pivot_id = fields.get("pivot_id", "")
 
             # Articles table doesn't have headline - use URL slug for logging
             url = fields.get('original_url', '')
@@ -335,16 +326,18 @@ def run_ai_scoring(batch_size: int = 150) -> Dict[str, Any]:
             tags_list = scores.get("tags", [])
             tags_str = ", ".join(tags_list) if isinstance(tags_list, list) else str(tags_list)
 
-            # Determine decoration_status based on interest score
+            # Determine fit_status based on interest score
             interest_score = scores.get("interest_score", 0)
-            decoration_status = "completed" if interest_score >= INTEREST_SCORE_THRESHOLD else "skipped_low_score"
+            fit_status = "newsletter_fit" if interest_score >= INTEREST_SCORE_THRESHOLD else "skipped_low_score"
 
-            # Update Articles table (AI Editor 2.0 base)
-            # NOTE: This table has ONLY these fields from ingest:
-            # - pivot_Id, original_url, source_id, date_ingested, needs_ai
-            # Full scoring data goes to Newsletter Stories in Pivot Media Master
+            # Update Articles All Ingested table with scoring results
+            # Actual fields: pivot_id, original_url, source_name, headline, date_ingested,
+            #                date_og_published, date_scored, fit_status, interest_score, needs_ai
             update_fields = {
                 "needs_ai": False,
+                "interest_score": interest_score,
+                "fit_status": fit_status,
+                "date_scored": datetime.now(timezone.utc).isoformat(),
             }
 
             try:
@@ -358,7 +351,7 @@ def run_ai_scoring(batch_size: int = 150) -> Dict[str, Any]:
                 results["articles_failed"] += 1
                 continue
 
-            # For high-interest articles, generate decoration and create Newsletter Story
+            # For high-interest articles, generate decoration and create Newsletter Selects record
             if interest_score >= INTEREST_SCORE_THRESHOLD:
                 print(f"[AI Scoring] ⭐ High-interest (score={interest_score}), generating decoration...")
 
@@ -371,43 +364,28 @@ def run_ai_scoring(batch_size: int = 150) -> Dict[str, Any]:
                     results["errors"].append(error_msg)
                     continue
 
-                # Create Newsletter Story record with FULL decoration
-                newsletter_story = {
-                    # Core identifiers
-                    "id": article_id,  # Required unique identifier for Newsletter Stories
-                    "pivotId": pivot_id,
-                    "storyID": article_id,  # Link to Articles record
+                # Create Newsletter Selects record
+                # Actual fields: pivot_id, core_url, source_name, headline, date_og_published,
+                #                date_ai_process, topic, interest_score, sentiment, raw
+                newsletter_select = {
+                    "pivot_id": pivot_id,
                     "core_url": fields.get("original_url", ""),
-                    "date_og_published": fields.get("date_published", datetime.now(timezone.utc).isoformat()),
-
-                    # Scores from AI Scoring
+                    "source_name": fields.get("source_name", "Unknown"),
+                    "headline": decoration.get("ai_headline", fields.get("headline", url_slug)),
+                    "date_og_published": fields.get("date_og_published", datetime.now(timezone.utc).isoformat()),
+                    "date_ai_process": datetime.now(timezone.utc).isoformat(),
+                    "topic": scores.get("topic", "OTHER"),
                     "interest_score": interest_score,
-                    "sentiment": scores.get("sentiment"),
-                    "topic": scores.get("topic"),
-                    "tags": tags_str,
-                    "fit_score": best_fit_score,
-                    "newsletter": scores.get("primary_newsletter_slug", "pivot_ai"),
-
-                    # Decoration from Claude
-                    "ai_headline": decoration.get("ai_headline", url_slug),
-                    "ai_dek": decoration.get("ai_dek", ""),
-                    "ai_bullet_1": decoration.get("ai_bullet_1", ""),
-                    "ai_bullet_2": decoration.get("ai_bullet_2", ""),
-                    "ai_bullet_3": decoration.get("ai_bullet_3", ""),
-                    "image_prompt": decoration.get("image_prompt", ""),
-
-                    # Status fields
-                    "ai_complete": True,
-                    "image_status": "pending",
-                    "date_ai_processed": datetime.now(timezone.utc).isoformat(),
+                    "sentiment": scores.get("sentiment", 0),
+                    "raw": decoration.get("raw_summary", ""),
                 }
 
                 try:
-                    created = newsletter_stories_table.create(newsletter_story)
+                    created = newsletter_selects_table.create(newsletter_select)
                     results["newsletter_stories_created"] += 1
-                    print(f"[AI Scoring] ✅ Created Newsletter Story: {decoration.get('ai_headline', url_slug)[:50]}...")
+                    print(f"[AI Scoring] ✅ Created Newsletter Select: {newsletter_select['headline'][:50]}...")
                 except Exception as e:
-                    error_msg = f"Failed to create Newsletter Story for {pivot_id}: {e}"
+                    error_msg = f"Failed to create Newsletter Select for {pivot_id}: {e}"
                     print(f"[AI Scoring] {error_msg}")
                     results["errors"].append(error_msg)
 
