@@ -96,21 +96,26 @@ Each article item in the response contains:
 | `crawlTimeMsec` | Unix milliseconds | When FreshRSS **discovered** the article | Filter to avoid reprocessing |
 
 ### Common Issue
-An article published 7 days ago can be crawled today (e.g., Reuters article published Dec 23, crawled Dec 29). Filtering only by `published` would miss this article.
+An article published 7 days ago can be crawled today (e.g., backfill when new feeds are added). Using identical time windows for both filters is too aggressive.
 
-**Best Practice:** Filter by BOTH timestamps:
-1. `crawlTimeMsec` - Ensure we're not re-ingesting old crawls
-2. `published` - Ensure news is actually recent
+**Best Practice:** Use different windows for each filter:
+1. `crawlTimeMsec` - 24h window (prevents reprocessing)
+2. `published` - 72h window (allows 2-3 day old articles, blocks week-old stale news)
 
 ```python
-# Filter by BOTH timestamps
+# Filter by BOTH timestamps with different windows
+cutoff = datetime.now(timezone.utc) - timedelta(hours=24)  # crawl filter
+published_cutoff = datetime.now(timezone.utc) - timedelta(hours=72)  # published filter
+
 if article.get("crawl_dt"):
     if article["crawl_dt"] < cutoff:
         continue
 if article.get("published_dt"):
-    if article["published_dt"] < cutoff:
+    if article["published_dt"] < published_cutoff:
         continue
 ```
+
+**Why 72h for published?** Articles can be crawled days after publication (Google News delays, editorial processes). 72h allows recently-discovered older articles while blocking stale news that would flood the pipeline.
 
 ## Feed Types (Pivot 5 Configuration)
 
