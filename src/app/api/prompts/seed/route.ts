@@ -270,26 +270,41 @@ Return ONLY valid JSON with no additional text:
     stepId: 2,
     slotNumber: 2,
     name: "Slot 2 Selection Agent",
-    description: "Select story for Tier 1 AI",
+    description: "Select story for Tier 2 AI Companies / Economic Themes",
     model: "claude-sonnet-4-5-20250929",
     temperature: 0.3,
-    content: `You are selecting ONE story for **Slot 2** (Recent Important News) of a daily AI newsletter.
+    content: `You are selecting ONE story for **Slot 2** of a daily AI newsletter.
 
-## Slot 2 should be:
-- Broader set of tier 1 AI companies: OpenAI, GOOG, META, NVDA, MSFT, Anthropic, xAI, AMZN
-- OR a broad economic theme
-- OR relevant research around AI adoption, impact, etc.
+## SLOT 2 PRIORITY ORDER (FOLLOW THIS EXACTLY)
 
-## SOURCE CREDIBILITY GUIDE
-Credibility scores help weigh story quality when comparing similar options:
-| Score | Sources | Weight |
-|-------|---------|--------|
-| 5 | TechCrunch, The Verge, TAAFT | High - prefer when available |
-| 4 | Bloomberg, WSJ, NYTimes | Good - reliable sources |
-| 3 | CNBC, Semafor | Moderate - acceptable sources |
-| 2 | Unknown/unlisted | Lower weight - but story quality matters most |
+**STEP 1: Look for Tier 2 Company Names in Headlines**
+Scan ALL candidate headlines for these company names:
+**Microsoft, Anthropic, xAI, Amazon, Apple, Salesforce, Oracle, IBM, Palantir, Adobe, Tesla, Cohere, Mistral, Scale AI**
 
-Credibility score is ONE factor among many. A compelling story from a score-2 source can beat a mediocre story from a score-5 source.
+(Note: The Big 4 - OpenAI, Google, Meta, Nvidia - are handled by Slot 1, so prioritize these Tier 2 companies here.)
+
+If you find a headline mentioning one of these companies AND the story is NEWSWORTHY (see definition below), select it. Prefer higher credibility sources (5 → 4 → 3 → 2) when multiple Tier 2 company stories exist.
+
+**STEP 2: If No Tier 2 Company Story is Newsworthy**
+Look for stories about:
+- Broad economic themes related to AI (market trends, investment shifts, industry economics)
+- Relevant research around AI adoption, impact, enterprise integration
+- Macro-level AI developments affecting multiple industries
+
+**STEP 3: Source Credibility Cascade**
+When comparing similar stories, prefer:
+- Score 5 sources first (TechCrunch, The Verge, TAAFT)
+- Then Score 4 (Bloomberg, WSJ, NYTimes)
+- Then Score 3 (CNBC, Semafor)
+- Then Score 2 (Unknown/unlisted)
+
+## WHAT MAKES A STORY "NEWSWORTHY"
+
+A story is NEWSWORTHY if it meets ALL of these criteria:
+1. **Actionable Impact** - The news affects how businesses operate, invest, or compete
+2. **Significant Scale** - Major deal ($1B+), major product launch, major partnership, or industry-shifting announcement
+3. **Breaking/Fresh** - This is new information, not a recap or opinion piece
+4. **Concrete Details** - Includes specific numbers, names, dates, or facts (not vague predictions)
 
 ## STORIES TO AVOID - DO NOT SELECT THESE TYPES
 - Leadership shuffles and personnel moves (any hiring, firing, replacing, stepping down, departing, appointed, promoted, resigned, ousted, exits, joins, leaves, new CEO/CTO/Chief)
@@ -342,9 +357,9 @@ Return ONLY valid JSON with no additional text:
   "selected_id": "storyID",
   "selected_headline": "headline text",
   "selected_source": "source_name",
-  "selected_company": "primary company featured (e.g., OpenAI, Nvidia, Google) or null if no specific company",
+  "selected_company": "primary company featured (e.g., Microsoft, Anthropic, Amazon) or null if economic theme",
   "credibility_score": number,
-  "reasoning": "2-3 sentences explaining why this story was selected and how it satisfies all editorial rules"
+  "reasoning": "2-3 sentences explaining: (1) which priority step you used (Tier 2 company or economic theme fallback), (2) why the story is newsworthy, (3) how it satisfies editorial rules"
 }}`,
   },
 
