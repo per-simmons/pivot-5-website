@@ -110,9 +110,21 @@ class ClaudeClient:
                 if slot == 1 and recent_data.get('slot1Company'):
                     prompt += f"\n\nTWO-DAY ROTATION (Slot 1): Do NOT feature {recent_data['slot1Company']} (yesterday's Slot 1 company)."
 
-                # Add recent storyIDs context (14-day lookback)
+                # CRITICAL: Add recent HEADLINES for semantic deduplication (not just IDs)
+                # Claude needs to see actual headlines to avoid stories about the same topic
+                if recent_headlines:
+                    prompt += "\n\n### RECENT HEADLINES (Last 14 Days) - CRITICAL SEMANTIC DEDUPLICATION"
+                    prompt += "\nDo NOT select any story about the same topic/event as these recent headlines."
+                    prompt += "\nEven if worded differently, if it's the SAME underlying news, treat as duplicate:\n"
+                    # Show up to 30 recent headlines for context
+                    for i, headline in enumerate(recent_headlines[:30], 1):
+                        prompt += f"\n{i}. {headline}"
+                    if len(recent_headlines) > 30:
+                        prompt += f"\n... and {len(recent_headlines) - 30} more"
+
+                # Also add storyIDs as a backup check
                 if recent_story_ids:
-                    prompt += f"\n\n14-DAY LOOKBACK: Do NOT select any of these storyIDs (already sent in last 2 weeks): {', '.join(recent_story_ids[:20])}{'...' if len(recent_story_ids) > 20 else ''}"
+                    prompt += f"\n\nSTORY IDs TO AVOID (already sent): {', '.join(recent_story_ids[:20])}{'...' if len(recent_story_ids) > 20 else ''}"
 
                 return prompt
             except KeyError as e:
@@ -128,20 +140,34 @@ class ClaudeClient:
             5: "Consumer AI, human interest, ethics, entertainment, societal impact, fun/quirky uses."
         }
 
+        # Build recent headlines list for semantic deduplication
+        headlines_list = ""
+        if recent_headlines:
+            for i, headline in enumerate(recent_headlines[:30], 1):
+                headlines_list += f"\n   {i}. {headline}"
+            if len(recent_headlines) > 30:
+                headlines_list += f"\n   ... and {len(recent_headlines) - 30} more"
+        else:
+            headlines_list = "\n   (none)"
+
         context = f"""You are a senior editor for Pivot 5. SLOT {slot} FOCUS: {slot_focus.get(slot, '')}
 
 CURRENT CONTEXT:
-1. RECENT STORIES (14-day lookback) - Do NOT select stories covering same topics or storyIDs:
-   Recent storyIDs to avoid: {', '.join(recent_story_ids[:20]) if recent_story_ids else '(none)'}{'...' if len(recent_story_ids) > 20 else ''}
 
-2. ALREADY SELECTED TODAY - Do NOT select these storyIDs:
-   {', '.join(selected_today) if selected_today else '(none yet)'}
+### Rule 1: Recent Headlines (Last 14 Days) - CRITICAL SEMANTIC DEDUPLICATION
+Do NOT select any story about the same topic/event as these recent headlines.
+Even if worded differently, if it's the SAME underlying news, treat as duplicate:{headlines_list}
 
-3. COMPANY DIVERSITY - Each company appears at most ONCE across all 5 slots:
-   Already featured today: {', '.join(selected_companies) if selected_companies else '(none yet)'}
+### Rule 2: Already Selected Today
+Do NOT select these storyIDs: {', '.join(selected_today) if selected_today else '(none yet)'}
 
-4. SOURCE DIVERSITY - Max 2 stories per source per day:
-   Already used today: {', '.join(selected_sources) if selected_sources else '(none yet)'}
+### Rule 3: Company Diversity
+Each company appears at most ONCE across all 5 slots.
+Already featured today: {', '.join(selected_companies) if selected_companies else '(none yet)'}
+
+### Rule 4: Source Diversity
+Max 2 stories per source per day.
+Already used today: {', '.join(selected_sources) if selected_sources else '(none yet)'}
 """
 
         # Slot 1 has special two-day rotation rule
