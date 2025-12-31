@@ -102,7 +102,7 @@ def prefilter_stories() -> dict:
             print(f"[Step 1] Yesterday's headlines: {len(yesterday_data['headlines'])}")
         except Exception as e:
             print(f"[Step 1] Warning: Could not fetch yesterday's issue (API access issue): {e}")
-            yesterday_data = {"headlines": [], "storyIds": [], "pivotIds": [], "slot1Company": None}
+            yesterday_data = {"headlines": [], "storyIds": [], "pivotIds": [], "slot1Headline": None}
 
         # Build yesterday's storyId exclusion set
         yesterday_story_ids = set(yesterday_data['storyIds'])
@@ -363,7 +363,7 @@ def _extract_yesterday_data(issue: Optional[dict]) -> dict:
         "headlines": [],
         "storyIds": [],
         "pivotIds": [],
-        "slot1Company": None
+        "slot1Headline": None  # Yesterday's Slot 1 headline for two-day company rotation
     }
 
     if not issue:
@@ -383,8 +383,8 @@ def _extract_yesterday_data(issue: Optional[dict]) -> dict:
         if pivot_id:
             data["pivotIds"].append(pivot_id)
 
-    # Slot 1 company for two-day rotation rule
-    data["slot1Company"] = fields.get('slot_1_company')
+    # Slot 1 headline for two-day company rotation (Claude infers company from headline)
+    data["slot1Headline"] = fields.get('slot_1_headline')
 
     return data
 

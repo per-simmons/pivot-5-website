@@ -293,7 +293,7 @@ def _extract_recent_issues_data(issues: List[dict]) -> dict:
         "headlines": [],
         "storyIds": [],
         "pivotIds": [],
-        "slot1Company": None  # Most recent slot 1 company for two-day rotation
+        "slot1Headline": None  # Yesterday's Slot 1 headline for two-day company rotation
     }
 
     if not issues:
@@ -314,9 +314,10 @@ def _extract_recent_issues_data(issues: List[dict]) -> dict:
             if pivot_id:
                 data["pivotIds"].append(pivot_id)
 
-        # Only get slot 1 company from most recent issue (for two-day rotation)
+        # Get Slot 1 headline from most recent issue for two-day company rotation
+        # Claude will infer the company name from the headline (e.g., "Nvidia Eyes $3B..." → Nvidia)
         if idx == 0:
-            data["slot1Company"] = fields.get('slot_1_company')
+            data["slot1Headline"] = fields.get('slot_1_headline')
 
     return data
 

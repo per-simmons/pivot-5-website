@@ -47,7 +47,7 @@ class ClaudeClient:
         Args:
             slot: Slot number (1-5)
             candidates: List of story candidates for this slot
-            recent_data: {headlines, storyIds, pivotIds, slot1Company} from 14-day lookback
+            recent_data: {headlines, storyIds, pivotIds, slot1Headline} from 14-day lookback
             cumulative_state: {selectedToday, selectedCompanies, selectedSources}
             source_lookup: {source_name: credibility_score} lookup for source scoring
 
@@ -133,8 +133,9 @@ class ClaudeClient:
                 )
 
                 # Add slot 1 special rule (two-day company rotation)
-                if slot == 1 and recent_data.get('slot1Company'):
-                    prompt += f"\n\nTWO-DAY ROTATION (Slot 1): Do NOT feature {recent_data['slot1Company']} (yesterday's Slot 1 company)."
+                # Claude infers the company name from yesterday's Slot 1 headline
+                if slot == 1 and recent_data.get('slot1Headline'):
+                    prompt += f"\n\nTWO-DAY COMPANY ROTATION (Slot 1 Only): Yesterday's Slot 1 featured: \"{recent_data['slot1Headline']}\"\nIdentify which company was featured in that headline, then do NOT select a story about the same company today. This ensures company diversity across consecutive days."
 
                 # Note: recent_headlines are now included via {recent_headlines} placeholder
                 # in the database prompt template - no longer appended separately.
@@ -187,11 +188,12 @@ Max 2 stories per source per day.
 Already used today: {sources_display}
 """
 
-        # Slot 1 has special two-day rotation rule
-        if slot == 1 and recent_data.get('slot1Company'):
+        # Slot 1 has special two-day rotation rule (infer company from headline)
+        if slot == 1 and recent_data.get('slot1Headline'):
             context += f"""
-5. TWO-DAY ROTATION (Slot 1 only) - Do NOT feature this company:
-   Yesterday's Slot 1 company: {recent_data['slot1Company']}
+5. TWO-DAY COMPANY ROTATION (Slot 1 only):
+   Yesterday's Slot 1 headline: "{recent_data['slot1Headline']}"
+   Identify which company was featured in that headline, then do NOT select the same company today.
 """
 
         context += """
