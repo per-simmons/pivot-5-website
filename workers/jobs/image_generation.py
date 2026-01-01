@@ -59,7 +59,7 @@ def generate_images() -> dict:
         for decoration in pending_decorations:
             record_id = decoration.get('id', '')
             fields = decoration.get('fields', {})
-            story_id = fields.get('storyID', 'unknown')
+            story_id = fields.get('story_id', 'unknown')
 
             print(f"[Step 3b] Processing story: {story_id}")
 
@@ -69,7 +69,7 @@ def generate_images() -> dict:
 
                 if not image_prompt:
                     # Generate fallback prompt from headline
-                    headline = fields.get('ai_headline', '')
+                    headline = fields.get('headline', '')
                     image_prompt = f"Abstract editorial illustration representing: {headline}"
 
                 # 2a-c. Generate, optimize, and upload image

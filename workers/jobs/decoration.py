@@ -165,9 +165,19 @@ def decorate_stories(newsletter: str = 'pivot_ai') -> dict:
                 # Field names from Airtable API query (table tbla16LJCf5Z6cRn3)
                 print(f"[Step 3] Slot {slot}: Writing decoration record...")
 
-                # Build issue_id from issue date (format: "Pivot 5 - Dec 31")
-                issue_date = issue_fields.get('issue_date', '')
-                issue_id_text = f"Pivot 5 - {issue_date}" if issue_date else "Pivot 5"
+                # Build issue_id from issue date (format: "Pivot 5 - Jan 02")
+                issue_date_raw = issue_fields.get('issue_date', '')
+                # Convert "2026-01-02" to "Jan 02" format
+                if issue_date_raw and '-' in issue_date_raw:
+                    try:
+                        from datetime import datetime as dt
+                        parsed = dt.strptime(issue_date_raw, '%Y-%m-%d')
+                        issue_date_fmt = parsed.strftime('%b %d')  # "Jan 02"
+                    except ValueError:
+                        issue_date_fmt = issue_date_raw  # Fallback to raw
+                else:
+                    issue_date_fmt = issue_date_raw  # Already formatted or empty
+                issue_id_text = f"Pivot 5 - {issue_date_fmt}" if issue_date_fmt else "Pivot 5"
 
                 decoration_data = {
                     # Record identifiers (verified via Airtable API)
