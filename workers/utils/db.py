@@ -3,6 +3,7 @@ PostgreSQL Database Client for AI Editor 2.0 Workers
 Loads system prompts and configuration from the database
 
 Updated 12/31/25: Added retry logic for SSL connection failures
+Updated 12/31/25: Fixed recurring SSL issues with proper sslmode and keepalives
 """
 
 import os
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Retry configuration for SSL connection failures
 # Increased from 3 to 5 retries with longer delays for Render cold starts
 MAX_RETRIES = 5
-RETRY_DELAY_SECONDS = 2  # Start with 2s, exponential backoff: 2s, 4s, 6s, 8s, 10s
+RETRY_DELAY_SECONDS = 3  # Start with 3s, exponential backoff
 
 
 class DatabaseClient:
@@ -30,16 +31,28 @@ class DatabaseClient:
             raise ValueError("DATABASE_URL environment variable is required")
 
     def _create_connection(self):
-        """Create a new database connection with proper SSL settings"""
-        # Use fresh connection each time to avoid stale SSL sessions
-        sslmode = 'require' if os.environ.get('NODE_ENV') == 'production' else 'prefer'
+        """Create a new database connection with proper SSL and keepalive settings.
 
+        Key fixes for Render Postgres SSL issues:
+        1. Always use sslmode='require' - Render requires SSL
+        2. TCP keepalives prevent "SSL connection closed unexpectedly" errors
+        3. Longer connect_timeout for cold starts
+        """
         return psycopg2.connect(
             self.database_url,
             cursor_factory=RealDictCursor,
-            sslmode=sslmode,
-            connect_timeout=10,  # 10 second connection timeout
-            options='-c statement_timeout=30000'  # 30 second query timeout
+            # SSL Settings - ALWAYS require SSL for Render Postgres
+            sslmode='require',
+            # Connection timeout - allow for cold starts
+            connect_timeout=30,
+            # TCP Keepalive settings - CRITICAL for preventing SSL drops
+            # These prevent Render's infrastructure from killing idle connections
+            keepalives=1,           # Enable TCP keepalives
+            keepalives_idle=30,     # Seconds before sending keepalive probe
+            keepalives_interval=10, # Seconds between keepalive probes
+            keepalives_count=5,     # Number of failed probes before disconnect
+            # Query timeout
+            options='-c statement_timeout=60000'  # 60 second query timeout
         )
 
     @contextmanager

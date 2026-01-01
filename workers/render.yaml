@@ -90,6 +90,11 @@ services:
           name: ai-editor-redis
           type: redis
           property: connectionString
+      # Database - CRITICAL: Required for loading prompts from Postgres
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-editor-db
+          property: connectionString
       # Airtable - Pivot Media Master Base
       - key: AIRTABLE_API_KEY
         sync: false
