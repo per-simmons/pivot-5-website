@@ -365,11 +365,33 @@ class AirtableClient:
 
         Returns: list of record IDs created
         """
+        print(f"[Airtable] write_prefilter_log_batch called with {len(records)} records", flush=True)
+
+        if not records:
+            print("[Airtable] write_prefilter_log_batch: No records to write, returning empty list", flush=True)
+            return []
+
+        # Log first record for debugging
+        print(f"[Airtable] First record sample: {records[0]}", flush=True)
+
+        print(f"[Airtable] Getting table: base={self.ai_editor_base_id}, table={self.prefilter_log_table_id}", flush=True)
         table = self._get_table(self.ai_editor_base_id, self.prefilter_log_table_id)
+        print(f"[Airtable] Table object obtained: {table}", flush=True)
 
         # batch_create accepts raw field dicts
-        created = table.batch_create(records)
-        return [r['id'] for r in created]
+        print(f"[Airtable] Calling table.batch_create() with {len(records)} records...", flush=True)
+        try:
+            created = table.batch_create(records)
+            print(f"[Airtable] ✓ batch_create SUCCESS: {len(created)} records created", flush=True)
+
+            record_ids = [r['id'] for r in created]
+            print(f"[Airtable] Record IDs: {record_ids[:5]}{'...' if len(record_ids) > 5 else ''}", flush=True)
+            return record_ids
+        except Exception as e:
+            print(f"[Airtable] ✗ batch_create FAILED: {type(e).__name__}: {e}", flush=True)
+            import traceback
+            print(f"[Airtable] Traceback: {traceback.format_exc()}", flush=True)
+            raise
 
     def get_prefilter_candidates(self, slot: int, freshness_days: int, max_records: int = 200) -> List[dict]:
         """

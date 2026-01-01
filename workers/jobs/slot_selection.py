@@ -133,10 +133,8 @@ def select_slots() -> dict:
             "selectedSources": {}      # sources used today {source: count} for max 2 rule
         }
 
-        # 2b. Build source credibility lookup for slot selection
-        print("[Step 2] Building source credibility lookup...")
-        source_lookup = airtable.build_source_lookup()
-        print(f"[Step 2] Loaded {len(source_lookup)} source scores")
+        # NOTE: Source credibility lookup removed 1/1/26
+        # Credibility guidance is now baked into Claude system prompts in the database
 
         # 3. Build today's issue data using proper next-issue calculation
         issue_date_iso, issue_date_label = get_next_issue_date()
@@ -186,13 +184,12 @@ def select_slots() -> dict:
 
                 print(f"[Step 2] Slot {slot}: {len(available_candidates)} available after filtering")
 
-                # Call Claude agent for slot selection (pass source_lookup for credibility scores)
+                # Call Claude agent for slot selection
                 selection = claude.select_slot(
                     slot=slot,
                     candidates=available_candidates,
                     recent_data=recent_data,
-                    cumulative_state=cumulative_state,
-                    source_lookup=source_lookup
+                    cumulative_state=cumulative_state
                 )
 
                 if "error" in selection:

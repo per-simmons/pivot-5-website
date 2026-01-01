@@ -46,8 +46,7 @@ services:
         value: tblzt2z7r512Kto3O
       - key: AI_EDITOR_DECORATION_TABLE
         value: tbla16LJCf5Z6cRn3
-      - key: AI_EDITOR_SOURCE_SCORES_TABLE
-        value: tbl3Zkdl1No2edDLK
+      # AI_EDITOR_SOURCE_SCORES_TABLE removed 1/1/26 - credibility now in system prompts
       # Mautic (for analytics)
       - key: MAUTIC_BASE_URL
         value: https://app.pivotnews.com
@@ -117,8 +116,7 @@ services:
         value: tblzt2z7r512Kto3O
       - key: AI_EDITOR_DECORATION_TABLE
         value: tbla16LJCf5Z6cRn3
-      - key: AI_EDITOR_SOURCE_SCORES_TABLE
-        value: tbl3Zkdl1No2edDLK
+      # AI_EDITOR_SOURCE_SCORES_TABLE removed 1/1/26 - credibility now in system prompts
       # Airtable - P5 Social Posts Base
       - key: P5_SOCIAL_BASE_ID
         sync: false
@@ -217,8 +215,7 @@ services:
         value: tblzt2z7r512Kto3O
       - key: AI_EDITOR_DECORATION_TABLE
         value: tbla16LJCf5Z6cRn3
-      - key: AI_EDITOR_SOURCE_SCORES_TABLE
-        value: tbl3Zkdl1No2edDLK
+      # AI_EDITOR_SOURCE_SCORES_TABLE removed 1/1/26 - credibility now in system prompts
       # Database for prompts
       - key: DATABASE_URL
         fromDatabase:
