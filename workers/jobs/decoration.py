@@ -6,11 +6,15 @@ Schedule: 9:25 PM EST (0 2 25 * * 2-6 UTC)
 Creates AI-generated headlines, deks, bullet points for each selected story.
 Uses Gemini for content cleaning and Claude for decoration generation.
 
-Updated Jan 1, 2026 to match n8n workflow prompts exactly:
+Updated Jan 1, 2026:
 - Uses HTML <b> tags for bolding (not Markdown **)
-- Uses ai_bullet_1/2/3 field names (not b1/b2/b3)
+- Field names match Airtable Newsletter Issue Stories table (tbla16LJCf5Z6cRn3):
+  - headline (not ai_headline)
+  - b1, b2, b3 (not ai_bullet_1/2/3)
+  - story_id (not storyID)
+  - issue_id (text, not record ID)
 - Supports newsletter style variants (pivot_ai, pivot_build, pivot_invest)
-- 18 label categories from n8n
+- 18 label categories
 """
 
 import os
@@ -158,30 +162,29 @@ def decorate_stories(newsletter: str = 'pivot_ai') -> dict:
                     print(f"[Step 3] Slot {slot}: Bolding failed, using original: {e}")
 
                 # 2e. Write to Newsletter Issue Stories table
+                # Field names from Airtable API query (table tbla16LJCf5Z6cRn3)
                 print(f"[Step 3] Slot {slot}: Writing decoration record...")
+
+                # Build issue_id from issue date (format: "Pivot 5 - Dec 31")
+                issue_date = issue_fields.get('issue_date', '')
+                issue_id_text = f"Pivot 5 - {issue_date}" if issue_date else "Pivot 5"
+
                 decoration_data = {
-                    # Record identifiers
-                    "storyID": story_id,
-                    "pivotId": pivot_id,
-                    "issue_record_id": issue_record_id,
-                    "slot_order": slot,
-                    # AI-generated content (field names match n8n workflow)
-                    "ai_headline": decoration.get("ai_headline", headline),
-                    "ai_dek": decoration.get("ai_dek", ""),
-                    "ai_bullet_1": decoration.get("ai_bullet_1", ""),  # Correct field name
-                    "ai_bullet_2": decoration.get("ai_bullet_2", ""),  # Correct field name
-                    "ai_bullet_3": decoration.get("ai_bullet_3", ""),  # Correct field name
-                    # Metadata from MASTER PROMPT
-                    "label": decoration.get("label", "ENTERPRISE"),  # Valid category from 18 options
-                    "source": decoration.get("source", source_id),  # Publication name
-                    "clean_url": decoration.get("clean_url", original_url),  # URL without tracking
+                    # Record identifiers (verified via Airtable API)
+                    "story_id": story_id,           # singleLineText
+                    "issue_id": issue_id_text,      # singleLineText (e.g., "Pivot 5 - Dec 31")
+                    "slot_order": slot,             # number (1-5)
+                    # AI-generated content (field names from Airtable schema)
+                    "headline": decoration.get("ai_headline", headline),  # multilineText
+                    "ai_dek": decoration.get("ai_dek", ""),                # multilineText
+                    "b1": decoration.get("ai_bullet_1", ""),              # multilineText with <b> tags
+                    "b2": decoration.get("ai_bullet_2", ""),              # multilineText with <b> tags
+                    "b3": decoration.get("ai_bullet_3", ""),              # multilineText with <b> tags
+                    # Metadata
+                    "label": decoration.get("label", "ENTERPRISE"),       # singleLineText
+                    "raw": cleaned_content[:10000] if cleaned_content else "",  # multilineText
                     # Image generation
-                    "image_prompt": decoration.get("image_prompt", ""),
-                    "image_status": "needs_image",  # n8n uses this value
-                    # Original data
-                    "original_url": original_url,
-                    "source_id": source_id,
-                    "date_decorated": datetime.utcnow().strftime('%Y-%m-%d')
+                    "image_status": "needs_image",  # singleSelect
                 }
 
                 record_id = airtable.write_decoration(decoration_data)
