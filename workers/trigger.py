@@ -168,6 +168,12 @@ def trigger_job(step_name: str):
             ...other job-specific params
         }
 
+    Step-specific parameters:
+        decoration:
+            "newsletter": "pivot_ai" | "pivot_build" | "pivot_invest"
+                Newsletter style variant for decoration prompts.
+                Default: "pivot_ai"
+
     Returns:
         {
             "success": true,

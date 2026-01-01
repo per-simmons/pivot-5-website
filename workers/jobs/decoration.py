@@ -5,6 +5,12 @@ Schedule: 9:25 PM EST (0 2 25 * * 2-6 UTC)
 
 Creates AI-generated headlines, deks, bullet points for each selected story.
 Uses Gemini for content cleaning and Claude for decoration generation.
+
+Updated Jan 1, 2026 to match n8n workflow prompts exactly:
+- Uses HTML <b> tags for bolding (not Markdown **)
+- Uses ai_bullet_1/2/3 field names (not b1/b2/b3)
+- Supports newsletter style variants (pivot_ai, pivot_build, pivot_invest)
+- 18 label categories from n8n
 """
 
 import os
@@ -16,24 +22,35 @@ from utils.gemini import GeminiClient
 from utils.claude import ClaudeClient
 
 
-def decorate_stories() -> dict:
+def decorate_stories(newsletter: str = 'pivot_ai') -> dict:
     """
     Step 3: Decoration Cron Job - Main entry point
 
-    Flow:
+    Flow (matching n8n workflow HCbd2g852rkQgSqr):
     1. Get pending issue from Selected Slots (status='pending')
     2. For each slot (1-5):
-       a. Lookup article markdown by pivotId
-       b. Clean content using Gemini
-       c. Generate decoration (headline, dek, bullets, image_prompt) using Claude
-       d. Apply bolding to bullets
-       e. Write to Decoration table
+       a. Lookup article markdown by pivotId from Newsletter Selects
+       b. Clean content using Gemini (content_cleaner prompt)
+       c. Generate decoration using Claude (headline_generator MASTER PROMPT)
+          - Outputs: ai_headline, ai_dek, ai_bullet_1/2/3, label, source, clean_url
+       d. Apply HTML <b> bolding to bullets (bold_formatter prompt)
+       e. Write to Newsletter Issue Stories table
     3. Update issue status to 'decorated'
 
+    Args:
+        newsletter: Style variant - 'pivot_ai', 'pivot_build', or 'pivot_invest'
+
     Returns:
-        {decorated: int, issue_id: str, errors: list}
+        {decorated: int, issue_id: str, decoration_ids: list, errors: list}
     """
     print(f"[Step 3] Starting decoration at {datetime.utcnow().isoformat()}")
+    print(f"[Step 3] Using newsletter style: {newsletter}")
+
+    # Validate newsletter style
+    valid_newsletters = ['pivot_ai', 'pivot_build', 'pivot_invest']
+    if newsletter not in valid_newsletters:
+        print(f"[Step 3] WARNING: Unknown newsletter '{newsletter}', defaulting to 'pivot_ai'")
+        newsletter = 'pivot_ai'
 
     # Initialize clients
     airtable = AirtableClient()
@@ -108,16 +125,18 @@ def decorate_stories() -> dict:
                     print(f"[Step 3] Slot {slot}: Gemini cleaning failed, using raw: {e}")
                     cleaned_content = markdown[:8000]
 
-                # 2c. Generate decoration using Claude
-                print(f"[Step 3] Slot {slot}: Generating decoration...")
+                # 2c. Generate decoration using Claude MASTER PROMPT
+                print(f"[Step 3] Slot {slot}: Generating decoration with {newsletter} style...")
                 story_data = {
                     "headline": headline,
-                    "source": source_id,
-                    "url": original_url,
-                    "topic": issue_fields.get(f'slot_{slot}_topic', '')
+                    "source_id": source_id,
+                    "core_url": original_url,
+                    "date_published": issue_fields.get('issue_date', ''),
+                    "newsletter": newsletter
                 }
 
-                decoration = claude.decorate_story(story_data, cleaned_content)
+                # Pass newsletter style variant to Claude
+                decoration = claude.decorate_story(story_data, cleaned_content, newsletter=newsletter)
 
                 if "error" in decoration:
                     results["errors"].append({
@@ -126,38 +145,40 @@ def decorate_stories() -> dict:
                     })
                     continue
 
-                # 2d. Apply bolding to bullets
-                print(f"[Step 3] Slot {slot}: Applying bolding...")
-                bullets = [
-                    decoration.get("b1", ""),
-                    decoration.get("b2", ""),
-                    decoration.get("b3", "")
-                ]
-
+                # 2d. Apply HTML <b> bolding to bullets
+                print(f"[Step 3] Slot {slot}: Applying HTML bolding...")
                 try:
-                    bolded_bullets = claude.apply_bolding(bullets)
-                    if len(bolded_bullets) >= 3:
-                        decoration["b1"] = bolded_bullets[0]
-                        decoration["b2"] = bolded_bullets[1]
-                        decoration["b3"] = bolded_bullets[2]
+                    # apply_bolding now takes full decoration dict and returns dict with bolded bullets
+                    bolded_decoration = claude.apply_bolding(decoration)
+                    # Update decoration with bolded versions
+                    decoration["ai_bullet_1"] = bolded_decoration.get("ai_bullet_1", decoration.get("ai_bullet_1", ""))
+                    decoration["ai_bullet_2"] = bolded_decoration.get("ai_bullet_2", decoration.get("ai_bullet_2", ""))
+                    decoration["ai_bullet_3"] = bolded_decoration.get("ai_bullet_3", decoration.get("ai_bullet_3", ""))
                 except Exception as e:
                     print(f"[Step 3] Slot {slot}: Bolding failed, using original: {e}")
 
-                # 2e. Write to Decoration table
+                # 2e. Write to Newsletter Issue Stories table
                 print(f"[Step 3] Slot {slot}: Writing decoration record...")
                 decoration_data = {
+                    # Record identifiers
                     "storyID": story_id,
                     "pivotId": pivot_id,
                     "issue_record_id": issue_record_id,
                     "slot_order": slot,
+                    # AI-generated content (field names match n8n workflow)
                     "ai_headline": decoration.get("ai_headline", headline),
                     "ai_dek": decoration.get("ai_dek", ""),
-                    "ai_bullet_1": decoration.get("b1", ""),
-                    "ai_bullet_2": decoration.get("b2", ""),
-                    "ai_bullet_3": decoration.get("b3", ""),
-                    "label": decoration.get("label", "AI NEWS"),
+                    "ai_bullet_1": decoration.get("ai_bullet_1", ""),  # Correct field name
+                    "ai_bullet_2": decoration.get("ai_bullet_2", ""),  # Correct field name
+                    "ai_bullet_3": decoration.get("ai_bullet_3", ""),  # Correct field name
+                    # Metadata from MASTER PROMPT
+                    "label": decoration.get("label", "ENTERPRISE"),  # Valid category from 18 options
+                    "source": decoration.get("source", source_id),  # Publication name
+                    "clean_url": decoration.get("clean_url", original_url),  # URL without tracking
+                    # Image generation
                     "image_prompt": decoration.get("image_prompt", ""),
-                    "image_status": "pending",
+                    "image_status": "needs_image",  # n8n uses this value
+                    # Original data
                     "original_url": original_url,
                     "source_id": source_id,
                     "date_decorated": datetime.utcnow().strftime('%Y-%m-%d')
@@ -205,13 +226,16 @@ def decorate_stories() -> dict:
         raise
 
 
-# Job configuration for RQ scheduler
+# Job configuration for RQ
+# NOTE: Typically triggered via API endpoint, not cron
+# API endpoint: POST /jobs/decoration with optional {"newsletter": "pivot_ai"}
 JOB_CONFIG = {
     "func": decorate_stories,
-    "trigger": "cron",
-    "hour": 2,   # 2 AM UTC = ~9 PM EST
-    "minute": 25,
-    "day_of_week": "tue-sat",
     "id": "step3_decoration",
-    "replace_existing": True
+    "queue": "default",
+    "timeout": "30m",
+    # Default newsletter style - can be overridden via API params
+    "default_params": {
+        "newsletter": "pivot_ai"
+    }
 }

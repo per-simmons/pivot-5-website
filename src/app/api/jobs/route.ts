@@ -66,6 +66,15 @@ interface QueueStatus {
  *   "step": "prefilter" | "slot_selection" | "decoration" | "images" | "html_compile" | "mautic_send" | "social_sync",
  *   "params": { ... optional parameters ... }
  * }
+ *
+ * Step-specific params:
+ *   decoration:
+ *     "newsletter": "pivot_ai" | "pivot_build" | "pivot_invest"
+ *       Newsletter style variant for decoration prompts.
+ *       Default: "pivot_ai"
+ *
+ * Example:
+ *   { "step": "decoration", "params": { "newsletter": "pivot_build" } }
  */
 export async function POST(request: NextRequest) {
   try {

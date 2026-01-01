@@ -331,116 +331,135 @@ Return ONLY the subject line, no quotes or explanation."""
     # STEP 3: DECORATION
     # =========================================================================
 
-    def decorate_story(self, story_data: dict, cleaned_content: str) -> dict:
+    def decorate_story(self, story_data: dict, cleaned_content: str, newsletter: str = 'pivot_ai') -> dict:
         """
-        Step 3: Generate headline, dek, bullets, and image prompt
+        Step 3: Generate headline, dek, bullets, label, and image prompt using MASTER PROMPT
 
+        Uses the Content Creator prompt from n8n workflow HCbd2g852rkQgSqr.
         Database prompts use {variable} syntax for Python .format() substitution.
 
         Args:
-            story_data: {headline, source, url, topic, slot_number}
+            story_data: {headline, source, url, topic, slot_number, core_url, date_published, source_id}
             cleaned_content: Cleaned article markdown
+            newsletter: Newsletter variant ('pivot_ai', 'pivot_build', 'pivot_invest')
 
         Returns:
-            {ai_headline, ai_dek, b1, b2, b3, image_prompt, label}
+            {ai_headline, ai_dek, ai_bullet_1, ai_bullet_2, ai_bullet_3, image_prompt, label, source, clean_url}
         """
         # Extract story data
         original_headline = story_data.get('headline', '')
-        source = story_data.get('source', '')
-        topic = story_data.get('topic', '')
-        slot_number = story_data.get('slot_number', 0)
+        source_id = story_data.get('source_id', story_data.get('source', ''))
+        core_url = story_data.get('core_url', story_data.get('url', ''))
+        date_published = story_data.get('date_published', '')
 
-        # Slot focus descriptions
-        slot_focus_map = {
-            1: "Jobs & Economy",
-            2: "Big Tech / Tier 1 AI",
-            3: "Industry Verticals",
-            4: "Emerging Tech",
-            5: "Consumer AI"
-        }
-        slot_focus = slot_focus_map.get(slot_number, "AI News")
+        # Truncate content for prompt (8KB limit per n8n)
+        content_summary = cleaned_content[:8000]
 
-        # Truncate content for prompt
-        content_summary = cleaned_content[:6000]
+        # Load newsletter style prompt from database
+        style_key = f"{newsletter}_style"
+        newsletter_style = get_prompt(style_key)
+        if not newsletter_style:
+            # Default to pivot_ai style
+            newsletter_style = get_prompt('pivot_ai_style')
+        if not newsletter_style:
+            # Hardcoded fallback
+            newsletter_style = """Audience: professionals following the AI field, not just technology broadly.
+Focus: capabilities, limitations, ecosystem dynamics, and real-world impact.
+Tone: sharp, skeptical of hype, but accessible to a broad tech/business audience.
 
-        # Load prompts from database
-        headline_template = get_prompt('headline_generator')
-        bullet_template = get_prompt('bullet_generator')
-        image_prompt_template = get_prompt('image_prompt')
+Global Writing Rules:
+- Write for busy CEOs - clear, confident, direct.
+- Present tense, active voice.
+- No jargon, no "could/might/possibly".
+- Avoid vague terms like "impact" or "transformation".
+- Stick to business consequences.
+- EXACTLY 2 sentences per bullet.
+- Headline: Title Case, one sentence, NO colons or semi-colons."""
 
-        # Build combined prompt by substituting variables in each
-        combined_parts = []
+        # Load master Content Creator prompt from database (stored as headline_generator)
+        prompt_template = get_prompt('headline_generator')
 
-        if headline_template:
+        if prompt_template:
             try:
-                combined_parts.append(headline_template.format(
-                    original_headline=original_headline,
-                    summary=content_summary[:2000],
-                    slot_number=slot_number,
-                    slot_focus=slot_focus
-                ))
-            except KeyError as e:
-                logger.warning(f"Missing variable in headline_generator prompt: {e}")
-
-        if bullet_template:
-            try:
-                combined_parts.append(bullet_template.format(
+                prompt = prompt_template.format(
+                    newsletter_style=newsletter_style,
+                    core_url=core_url,
                     headline=original_headline,
-                    content=content_summary
-                ))
+                    source_id=source_id,
+                    date_published=date_published,
+                    newsletter=newsletter,
+                    cleaned_content=content_summary
+                )
             except KeyError as e:
-                logger.warning(f"Missing variable in bullet_generator prompt: {e}")
+                logger.warning(f"Missing variable in headline_generator prompt: {e}, using fallback")
+                prompt_template = None
 
-        if image_prompt_template:
-            try:
-                combined_parts.append(image_prompt_template.format(
-                    headline=original_headline,
-                    summary=content_summary[:2000],
-                    slot_number=slot_number
-                ))
-            except KeyError as e:
-                logger.warning(f"Missing variable in image_prompt prompt: {e}")
+        if not prompt_template:
+            # Fallback to hardcoded MASTER PROMPT from n8n
+            logger.warning("Decoration prompts not found in database, using n8n fallback")
+            prompt = f"""MASTER PROMPT — PIVOT 5 AI NEWSLETTER CONTENT CREATION
 
-        if combined_parts:
-            # Combine all prompts with story context
-            prompt = "\n\n".join(combined_parts)
-            prompt += f"""
+## YOUR ROLE
+You are an expert newsletter editor creating content for Pivot 5's AI-focused newsletter.
 
-FULL ARTICLE CONTENT:
+## AUDIENCE
+- CEOs, founders, general managers, and senior business leaders
+- They are busy, strategic thinkers who want actionable insights
+- They care about business impact, competitive dynamics, and what matters for decision-making
+
+## VOICE & STYLE
+- Confident, clear, informed — like a trusted advisor briefing an executive
+- Present tense, active voice
+- No jargon, no hedging (avoid "could/might/possibly")
+- Avoid vague terms like "impact" or "transformation" — stick to concrete business consequences
+- Professional but not stiff
+
+## OUTPUT FORMAT
+Return ONLY valid JSON with these exact fields:
+
+{{
+  "label": "CATEGORY from list below",
+  "ai_headline": "Title Case headline, one sentence, NO colons or semi-colons",
+  "ai_dek": "One sentence hook/subtitle",
+  "ai_bullet_1": "EXACTLY 2 sentences - the main announcement or news",
+  "ai_bullet_2": "EXACTLY 2 sentences - additional context or details",
+  "ai_bullet_3": "EXACTLY 2 sentences - key insight, implication, or what happens next",
+  "source": "Publication name (e.g., TechCrunch, The Information)",
+  "clean_url": "Original URL without tracking parameters",
+  "image_prompt": "Brief visual description for an illustrative image"
+}}
+
+## LABEL OPTIONS (choose exactly one):
+WORK, EDUCATION, INFRASTRUCTURE, POLICY, TALENT, HEALTH, RETAIL, ENTERPRISE, COMPETITION, FUNDING, SECURITY, TOOLS, SEARCH, INVESTORS, CHINA, REGULATION, ETHICS, LAWSUITS
+
+## CRITICAL RULES FOR BULLETS
+1. Each bullet MUST be EXACTLY 2 sentences. Not 1. Not 3. Exactly 2.
+2. Bullet 1: Lead with the news — what happened, who did it, what changed
+3. Bullet 2: Context — why this matters, what it means, relevant background
+4. Bullet 3: Forward-looking — implications, what to watch, competitive dynamics
+5. Keep each bullet concise but complete — typically 25-45 words per bullet
+
+## HEADLINE RULES
+- Title Case (capitalize major words)
+- One complete sentence
+- NO colons, semi-colons, or em-dashes
+- Focus on the most newsworthy element
+- Make it scannable and specific
+
+=== NEWSLETTER STYLE ===
+{newsletter_style}
+
+=== ARTICLE METADATA ===
+URL: {core_url}
+Headline: {original_headline}
+Source: {source_id}
+Published: {date_published}
+Newsletter: {newsletter}
+
+=== ARTICLE CONTENT ===
 {content_summary}
 
-Generate all of the above in JSON format with keys: ai_headline, ai_dek, b1, b2, b3, label, image_prompt
-
-Return JSON only."""
-        else:
-            # Fallback to hardcoded prompt
-            logger.warning("Decoration prompts not found in database, using fallback")
-            prompt = f"""You are decorating a story for Pivot 5, a professional AI newsletter.
-
-ORIGINAL HEADLINE: {original_headline}
-SOURCE: {source}
-TOPIC: {topic}
-
-ARTICLE CONTENT:
-{content_summary}
-
-Generate the following in JSON format:
-
-1. ai_headline: Punchy headline in Title Case. Max 80 characters. Create intrigue.
-
-2. ai_dek: One sentence hook that expands on headline. Professional tone.
-
-3. b1: First bullet - Main announcement (2 sentences, max 260 characters). Start with action verb.
-
-4. b2: Second bullet - Key details/context (2 sentences, max 260 characters).
-
-5. b3: Third bullet - Business impact or "why it matters" (2 sentences, max 260 characters).
-
-6. label: Topic label in ALL CAPS (e.g., "JOBS & ECONOMY", "BIG TECH", "HEALTHCARE AI", "EMERGING TECH", "CONSUMER AI")
-
-7. image_prompt: Description for AI image generation. Professional, editorial style. Abstract representation of the story theme. No text, logos, or faces.
-
-Return JSON only."""
+Return ONLY the JSON object. No commentary, no code fences, no explanation."""
 
         # Get model/temperature from headline_generator prompt metadata
         prompt_meta = get_prompt_with_metadata('headline_generator')
@@ -459,23 +478,34 @@ Return JSON only."""
         except json.JSONDecodeError:
             return self._parse_decoration_response(response.content[0].text)
 
-    def apply_bolding(self, bullets: List[str]) -> List[str]:
+    def apply_bolding(self, decoration: dict) -> dict:
         """
-        Step 3: Apply markdown bold to key phrases in bullets
+        Step 3: Apply HTML <b> tags to key phrases in bullets
 
-        Database prompt uses {bullets} variable for Python .format() substitution.
+        Takes the full decoration dict and applies HTML bold formatting to ai_bullet_1/2/3.
+        Uses the bold_formatter prompt from n8n workflow HCbd2g852rkQgSqr.
+
+        Args:
+            decoration: Dict with ai_bullet_1, ai_bullet_2, ai_bullet_3 fields
+
+        Returns:
+            Dict with same fields but bullets containing <b>phrase</b> HTML tags
         """
         # Load bold_formatter prompt from database
         prompt_template = get_prompt('bold_formatter')
-
-        # Format bullets as text
-        bullets_text = '\n'.join([f"- {b}" for b in bullets])
 
         prompt = None
         if prompt_template:
             try:
                 prompt = prompt_template.format(
-                    bullets=bullets_text
+                    label=decoration.get('label', ''),
+                    ai_headline=decoration.get('ai_headline', ''),
+                    ai_dek=decoration.get('ai_dek', ''),
+                    ai_bullet_1=decoration.get('ai_bullet_1', ''),
+                    ai_bullet_2=decoration.get('ai_bullet_2', ''),
+                    ai_bullet_3=decoration.get('ai_bullet_3', ''),
+                    source=decoration.get('source', ''),
+                    clean_url=decoration.get('clean_url', '')
                 )
             except KeyError as e:
                 logger.warning(f"Missing variable in bold_formatter prompt: {e}, using fallback")
@@ -483,20 +513,38 @@ Return JSON only."""
 
         if not prompt:
             logger.warning("bold_formatter prompt not found in database, using fallback")
-            prompt = f"""Apply markdown bold (**text**) to 1-2 key phrases in each bullet point.
-Bold the most impactful/newsworthy phrases.
+            # Fallback: HTML <b> tags, matching n8n workflow HCbd2g852rkQgSqr
+            prompt = f"""You are a formatting assistant. Your task is to add HTML bold tags to highlight the most important phrase in each bullet point.
 
-BULLETS:
-{bullets_text}
+## INSTRUCTIONS
 
-Return JSON only:
+For each bullet field (ai_bullet_1, ai_bullet_2, ai_bullet_3):
+1. Identify the SINGLE most important phrase (5-15 words) that captures the key information
+2. Wrap that phrase in HTML bold tags: <b>phrase here</b>
+3. Only bold ONE phrase per bullet
+4. Do NOT bold entire sentences
+5. Do NOT change any wording, punctuation, or content
+
+## INPUT JSON
 {{
-  "formatted_bullets": [
-    "Bullet with **key phrase** bolded...",
-    "Another bullet with **important stat** highlighted...",
-    "Third bullet with **company name** emphasized..."
-  ]
-}}"""
+  "label": "{decoration.get('label', '')}",
+  "ai_headline": "{decoration.get('ai_headline', '')}",
+  "ai_dek": "{decoration.get('ai_dek', '')}",
+  "ai_bullet_1": "{decoration.get('ai_bullet_1', '')}",
+  "ai_bullet_2": "{decoration.get('ai_bullet_2', '')}",
+  "ai_bullet_3": "{decoration.get('ai_bullet_3', '')}",
+  "source": "{decoration.get('source', '')}",
+  "clean_url": "{decoration.get('clean_url', '')}"
+}}
+
+## OUTPUT FORMAT
+Return the COMPLETE JSON object with only the bullet fields modified to include <b></b> tags.
+
+## EXAMPLE
+Input bullet: "Netflix launched a new AI-powered recommendation engine. The feature uses machine learning to predict viewing preferences."
+Output bullet: "Netflix <b>launched a new AI-powered recommendation engine</b>. The feature uses machine learning to predict viewing preferences."
+
+Return ONLY the JSON object. No code fences, no commentary."""
 
         # Get model/temperature from database
         prompt_meta = get_prompt_with_metadata('bold_formatter')
@@ -505,43 +553,64 @@ Return JSON only:
 
         response = self.client.messages.create(
             model=model,
-            max_tokens=500,
+            max_tokens=1000,
             temperature=float(temperature),
             messages=[{"role": "user", "content": prompt}]
         )
 
         try:
             result = json.loads(response.content[0].text)
-            # Handle both JSON object with formatted_bullets key and plain array
-            if isinstance(result, dict) and 'formatted_bullets' in result:
-                return result['formatted_bullets']
-            elif isinstance(result, list):
+            # Return the bolded decoration dict
+            if isinstance(result, dict):
                 return result
             else:
                 logger.warning("Unexpected bold_formatter response format")
-                return bullets
+                return decoration
         except json.JSONDecodeError:
-            return bullets  # Return original if parsing fails
+            # Try to extract JSON from response
+            import re
+            json_match = re.search(r'\{.*\}', response.content[0].text, re.DOTALL)
+            if json_match:
+                try:
+                    return json.loads(json_match.group())
+                except json.JSONDecodeError:
+                    pass
+            logger.warning("Failed to parse bold_formatter response")
+            return decoration  # Return original if parsing fails
 
     def _parse_decoration_response(self, text: str) -> dict:
-        """Fallback parser for decoration response"""
+        """Fallback parser for decoration response
+
+        Uses correct field names from n8n workflow HCbd2g852rkQgSqr:
+        - ai_bullet_1, ai_bullet_2, ai_bullet_3 (NOT b1/b2/b3)
+        - Valid label categories from the 18 options
+        """
         import re
 
         json_match = re.search(r'\{.*\}', text, re.DOTALL)
         if json_match:
             try:
-                return json.loads(json_match.group())
+                parsed = json.loads(json_match.group())
+                # Normalize field names if old format is returned
+                if 'b1' in parsed and 'ai_bullet_1' not in parsed:
+                    parsed['ai_bullet_1'] = parsed.pop('b1', '')
+                    parsed['ai_bullet_2'] = parsed.pop('b2', '')
+                    parsed['ai_bullet_3'] = parsed.pop('b3', '')
+                return parsed
             except json.JSONDecodeError:
                 pass
 
+        # Return empty structure with correct field names
         return {
             "ai_headline": "",
             "ai_dek": "",
-            "b1": "",
-            "b2": "",
-            "b3": "",
-            "label": "AI NEWS",
+            "ai_bullet_1": "",
+            "ai_bullet_2": "",
+            "ai_bullet_3": "",
+            "label": "ENTERPRISE",  # Default to valid category from 18 options
             "image_prompt": "",
+            "source": "",
+            "clean_url": "",
             "error": "Failed to parse response"
         }
 
