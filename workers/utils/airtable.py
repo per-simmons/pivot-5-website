@@ -36,7 +36,7 @@ class AirtableClient:
         self.prefilter_log_table_id = os.environ.get('AI_EDITOR_PREFILTER_LOG_TABLE', 'tbl72YMsm9iRHj3sp')
         self.selected_slots_table_id = os.environ.get('AI_EDITOR_SELECTED_SLOTS_TABLE', 'tblzt2z7r512Kto3O')
         self.decoration_table_id = os.environ.get('AI_EDITOR_DECORATION_TABLE', 'tbla16LJCf5Z6cRn3')
-        self.source_scores_table_id = os.environ.get('AI_EDITOR_SOURCE_SCORES_TABLE', 'tbl3Zkdl1No2edDLK')
+        # NOTE: source_scores_table_id removed 1/1/26 - credibility now in system prompts
         self.queued_stories_table_id = os.environ.get('AI_EDITOR_QUEUED_STORIES_TABLE', 'tblkVBP5mKq3sBpkv')
         self.newsletter_selects_table_id = os.environ.get('AIRTABLE_NEWSLETTER_SELECTS_TABLE', 'tblKhICCdWnyuqgry')
 
@@ -94,41 +94,83 @@ class AirtableClient:
 
     def get_article_by_pivot_id(self, pivot_id: str) -> Optional[dict]:
         """
-        Lookup article details by pivotId
-        Returns: source_id, original_url, markdown
+        Lookup article details by pivotId from Newsletter Selects table.
+
+        FIXED 1/1/26: Was using wrong base (Pivot Media Master) and wrong table (Articles).
+        Now uses AI Editor 2.0 base and Newsletter Selects table.
+
+        Returns fields compatible with decoration.py:
+        - pivot_id (mapped to pivot_Id for backwards compat)
+        - source_name (mapped to source_id for backwards compat)
+        - core_url (mapped to original_url for backwards compat)
+        - raw (mapped to markdown for backwards compat)
         """
-        table = self._get_table(self.pivot_media_base_id, self.articles_table_id)
+        table = self._get_table(self.ai_editor_base_id, self.newsletter_selects_table_id)
 
         records = table.all(
-            formula=f"{{pivot_Id}}='{pivot_id}'",
+            formula=f"{{pivot_id}}='{pivot_id}'",  # lowercase pivot_id in Newsletter Selects
             max_records=1,
-            fields=['pivot_Id', 'source_id', 'original_url', 'markdown']
+            fields=['pivot_id', 'source_name', 'core_url', 'raw', 'headline']
         )
 
-        return records[0] if records else None
+        if not records:
+            return None
+
+        # Map Newsletter Selects fields to expected field names for backwards compatibility
+        record = records[0]
+        original_fields = record.get('fields', {})
+
+        # Return record with mapped field names
+        return {
+            'id': record['id'],
+            'fields': {
+                'pivot_Id': original_fields.get('pivot_id', ''),  # Map to capital I for compat
+                'source_id': original_fields.get('source_name', ''),  # Map source_name -> source_id
+                'original_url': original_fields.get('core_url', ''),  # Map core_url -> original_url
+                'markdown': original_fields.get('raw', ''),  # Map raw -> markdown
+                'headline': original_fields.get('headline', ''),
+            }
+        }
 
     def get_articles_batch(self, pivot_ids: List[str]) -> Dict[str, dict]:
         """
-        Batch lookup articles by pivotIds
+        Batch lookup articles by pivotIds from Newsletter Selects table.
         Returns: dict mapping pivotId -> article record
 
-        Updated to include core_url (n8n Gap #6 - Pre-Filter Log uses core_url)
+        FIXED 1/1/26: Was using wrong base (Pivot Media Master) and wrong table (Articles).
+        Now uses AI Editor 2.0 base and Newsletter Selects table.
         """
         if not pivot_ids:
             return {}
 
-        table = self._get_table(self.pivot_media_base_id, self.articles_table_id)
+        table = self._get_table(self.ai_editor_base_id, self.newsletter_selects_table_id)
 
-        # Build OR formula for batch lookup
-        conditions = [f"{{pivot_Id}}='{pid}'" for pid in pivot_ids]
+        # Build OR formula for batch lookup (lowercase pivot_id in Newsletter Selects)
+        conditions = [f"{{pivot_id}}='{pid}'" for pid in pivot_ids]
         filter_formula = f"OR({','.join(conditions)})"
 
         records = table.all(
             formula=filter_formula,
-            fields=['pivot_Id', 'source_id', 'original_url', 'core_url', 'markdown']
+            fields=['pivot_id', 'source_name', 'core_url', 'raw', 'headline']
         )
 
-        return {r['fields'].get('pivot_Id'): r for r in records}
+        # Map fields for backwards compatibility
+        result = {}
+        for r in records:
+            original_fields = r.get('fields', {})
+            pivot_id_value = original_fields.get('pivot_id', '')
+            result[pivot_id_value] = {
+                'id': r['id'],
+                'fields': {
+                    'pivot_Id': pivot_id_value,
+                    'source_id': original_fields.get('source_name', ''),
+                    'original_url': original_fields.get('core_url', ''),
+                    'core_url': original_fields.get('core_url', ''),
+                    'markdown': original_fields.get('raw', ''),
+                    'headline': original_fields.get('headline', ''),
+                }
+            }
+        return result
 
     def write_newsletter_issue(self, issue_data: dict) -> str:
         """
@@ -232,41 +274,9 @@ class AirtableClient:
 
         return truncated.rstrip() + '...'
 
-    def get_source_scores(self, max_records: int = 500) -> List[dict]:
-        """
-        Step 1, Node 6: Get source credibility scores
-        Returns: list of {source_name, credibility_score}
-        """
-        table = self._get_table(self.ai_editor_base_id, self.source_scores_table_id)
-
-        records = table.all(
-            max_records=max_records,
-            fields=['source_name', 'credibility_score']
-        )
-
-        return records
-
-    def build_source_lookup(self) -> Dict[str, int]:
-        """
-        Step 1, Node 7: Build source_name -> score lookup map
-        Keys are lowercased for case-insensitive matching
-
-        Updated 1/1/26: Fail gracefully if Source Scores table is inaccessible (403).
-        Claude will use default credibility score of 2 for all sources.
-        """
-        try:
-            records = self.get_source_scores()
-            lookup = {
-                r['fields'].get('source_name', '').lower(): r['fields'].get('credibility_score', 3)
-                for r in records
-                if r['fields'].get('source_name')
-            }
-            logger.info(f"[Source Lookup] Loaded {len(lookup)} source credibility scores")
-            return lookup
-        except Exception as e:
-            # Log warning but don't crash - Claude will use default score of 2
-            logger.warning(f"[Source Lookup] Failed to load source scores, using defaults: {e}")
-            return {}
+    # NOTE: Source Scores table removed 1/1/26
+    # Credibility guidance is now baked into the Claude system prompts in the database.
+    # Removed: get_source_scores(), build_source_lookup()
 
     def get_queued_stories(self) -> List[dict]:
         """
