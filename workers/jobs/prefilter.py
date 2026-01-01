@@ -195,125 +195,127 @@ def prefilter_stories() -> dict:
         print(f"[Step 1] Articles per slot batch: {', '.join(f'Slot {s}: {len(b)}' for s, b in slot_batches.items())}")
 
         # =================================================================
-        # PHASE 3: RUN 5 BATCH GEMINI CALLS + SLOT 1 COMPANY FILTER
+        # PHASE 3: RUN 5 BATCH GEMINI CALLS + INCREMENTAL AIRTABLE WRITES
+        # Each slot writes immediately after processing (crash-safe)
         # =================================================================
-
-        # Results will be: {story_id: set of eligible slots}
-        story_slots: Dict[str, Set[int]] = {}
-
-        # SLOT 1: Gemini Batch + Company Filter (parallel in n8n)
-        print("[Step 1] Running Slot 1 batch pre-filter...")
-        slot1_gemini_matches = gemini.prefilter_batch_slot_1(slot_batches[1], yesterday_data['headlines'])
-        for match in slot1_gemini_matches:
-            sid = match.get('story_id')
-            if sid:
-                if sid not in story_slots:
-                    story_slots[sid] = set()
-                story_slots[sid].add(1)
-
-        # Slot 1 Company Filter (runs in parallel, merged with Gemini results)
-        slot1_company_matches = _slot1_company_filter_batch(slot_batches[1])
-        for sid in slot1_company_matches:
-            if sid not in story_slots:
-                story_slots[sid] = set()
-            story_slots[sid].add(1)
-        print(f"[Step 1] Slot 1: {len(slot1_gemini_matches)} Gemini + {len(slot1_company_matches)} Company Filter matches")
-
-        # SLOT 2: Gemini Batch
-        print("[Step 1] Running Slot 2 batch pre-filter...")
-        slot2_matches = gemini.prefilter_batch_slot_2(slot_batches[2], yesterday_data['headlines'])
-        for match in slot2_matches:
-            sid = match.get('story_id')
-            if sid:
-                if sid not in story_slots:
-                    story_slots[sid] = set()
-                story_slots[sid].add(2)
-        print(f"[Step 1] Slot 2: {len(slot2_matches)} matches")
-
-        # SLOT 3: Gemini Batch
-        print("[Step 1] Running Slot 3 batch pre-filter...")
-        slot3_matches = gemini.prefilter_batch_slot_3(slot_batches[3], yesterday_data['headlines'])
-        for match in slot3_matches:
-            sid = match.get('story_id')
-            if sid:
-                if sid not in story_slots:
-                    story_slots[sid] = set()
-                story_slots[sid].add(3)
-        print(f"[Step 1] Slot 3: {len(slot3_matches)} matches")
-
-        # SLOT 4: Gemini Batch
-        print("[Step 1] Running Slot 4 batch pre-filter...")
-        slot4_matches = gemini.prefilter_batch_slot_4(slot_batches[4], yesterday_data['headlines'])
-        for match in slot4_matches:
-            sid = match.get('story_id')
-            if sid:
-                if sid not in story_slots:
-                    story_slots[sid] = set()
-                story_slots[sid].add(4)
-        print(f"[Step 1] Slot 4: {len(slot4_matches)} matches")
-
-        # SLOT 5: Gemini Batch
-        print("[Step 1] Running Slot 5 batch pre-filter...")
-        slot5_matches = gemini.prefilter_batch_slot_5(slot_batches[5], yesterday_data['headlines'])
-        for match in slot5_matches:
-            sid = match.get('story_id')
-            if sid:
-                if sid not in story_slots:
-                    story_slots[sid] = set()
-                story_slots[sid].add(5)
-        print(f"[Step 1] Slot 5: {len(slot5_matches)} matches")
-
-        # =================================================================
-        # PHASE 4: BUILD PRE-FILTER LOG RECORDS
-        # =================================================================
-
-        prefilter_records = []
 
         # Get current time in EST timezone for all records
         est = ZoneInfo("America/New_York")
         now_est = datetime.now(est)
         date_prefiltered_iso = now_est.isoformat()  # ISO 8601 format with EST timezone
 
-        for story_id, eligible_slots in story_slots.items():
-            if not eligible_slots:
-                continue
+        # Track which stories have been written (to avoid duplicates across slots)
+        written_story_slot_pairs: Set[tuple] = set()
 
-            results["eligible"] += 1
-            article_data = article_lookup.get(story_id, {})
+        def _write_slot_records(slot_num: int, matches: List[dict], source: str = "Gemini"):
+            """
+            Helper to build and write records for a slot immediately.
+            Returns number of records written.
+            """
+            slot_records = []
+            for match in matches:
+                sid = match.get('story_id')
+                if not sid:
+                    continue
 
-            # Create one pre-filter log record per eligible slot
-            for slot in sorted(eligible_slots):
-                results["slot_counts"][slot] += 1
+                # Skip if we already wrote this story+slot combination
+                pair = (sid, slot_num)
+                if pair in written_story_slot_pairs:
+                    continue
+                written_story_slot_pairs.add(pair)
+
+                article_data = article_lookup.get(sid, {})
                 record = {
-                    "storyID": story_id,
+                    "storyID": sid,
                     "pivotId": article_data.get("pivot_id", ""),
                     "headline": article_data.get("headline", ""),
                     "core_url": article_data.get("core_url", ""),
                     "source_id": article_data.get("source_id", ""),
-                    "date_prefiltered": date_prefiltered_iso,  # ISO 8601 format with EST timezone
-                    "slot": str(slot)  # Airtable expects string for Single Select field
+                    "date_prefiltered": date_prefiltered_iso,
+                    "slot": str(slot_num)
                 }
-                # Only include date_og_published if it has a value (Airtable rejects empty date strings)
                 if article_data.get("date_og_published"):
                     record["date_og_published"] = article_data["date_og_published"]
-                prefilter_records.append(record)
+                slot_records.append(record)
+                results["slot_counts"][slot_num] += 1
 
-        # =================================================================
-        # PHASE 5: BATCH WRITE TO AIRTABLE
-        # =================================================================
+            if slot_records:
+                try:
+                    record_ids = airtable.write_prefilter_log_batch(slot_records)
+                    results["written"] += len(record_ids)
+                    print(f"[Step 1] Slot {slot_num} ({source}): Wrote {len(record_ids)} records to Airtable ✓")
+                    return len(record_ids)
+                except Exception as e:
+                    print(f"[Step 1] Slot {slot_num} ({source}): ERROR writing to Airtable: {e}")
+                    results["errors"].append({"slot": slot_num, "source": source, "write_error": str(e)})
+                    return 0
+            return 0
 
-        if prefilter_records:
-            print(f"[Step 1] Writing {len(prefilter_records)} pre-filter records...")
-            try:
-                record_ids = airtable.write_prefilter_log_batch(prefilter_records)
-                results["written"] = len(record_ids)
-                print(f"[Step 1] Successfully wrote {len(record_ids)} records")
-            except Exception as e:
-                print(f"[Step 1] ERROR: Could not write pre-filter records: {e}")
-                results["errors"].append({"write_error": str(e)})
-                # Still report what would have been written
-                results["would_have_written"] = len(prefilter_records)
-                print(f"[Step 1] Would have written {len(prefilter_records)} records")
+        # SLOT 1: Gemini Batch + Company Filter (parallel in n8n)
+        print("[Step 1] Running Slot 1 batch pre-filter...")
+        try:
+            slot1_gemini_matches = gemini.prefilter_batch_slot_1(slot_batches[1], yesterday_data['headlines'])
+            print(f"[Step 1] Slot 1 Gemini: {len(slot1_gemini_matches)} matches")
+            _write_slot_records(1, slot1_gemini_matches, "Gemini")
+        except Exception as e:
+            print(f"[Step 1] Slot 1 Gemini ERROR (continuing): {e}")
+            results["errors"].append({"slot": 1, "source": "Gemini", "error": str(e)})
+            slot1_gemini_matches = []
+
+        # Slot 1 Company Filter (runs in parallel, merged with Gemini results)
+        try:
+            slot1_company_matches = _slot1_company_filter_batch(slot_batches[1])
+            # Convert to match format for _write_slot_records
+            slot1_company_match_dicts = [{"story_id": sid} for sid in slot1_company_matches]
+            print(f"[Step 1] Slot 1 Company Filter: {len(slot1_company_matches)} matches")
+            _write_slot_records(1, slot1_company_match_dicts, "CompanyFilter")
+        except Exception as e:
+            print(f"[Step 1] Slot 1 Company Filter ERROR (continuing): {e}")
+            results["errors"].append({"slot": 1, "source": "CompanyFilter", "error": str(e)})
+
+        # SLOT 2: Gemini Batch
+        print("[Step 1] Running Slot 2 batch pre-filter...")
+        try:
+            slot2_matches = gemini.prefilter_batch_slot_2(slot_batches[2], yesterday_data['headlines'])
+            print(f"[Step 1] Slot 2: {len(slot2_matches)} matches")
+            _write_slot_records(2, slot2_matches, "Gemini")
+        except Exception as e:
+            print(f"[Step 1] Slot 2 ERROR (continuing): {e}")
+            results["errors"].append({"slot": 2, "error": str(e)})
+
+        # SLOT 3: Gemini Batch
+        print("[Step 1] Running Slot 3 batch pre-filter...")
+        try:
+            slot3_matches = gemini.prefilter_batch_slot_3(slot_batches[3], yesterday_data['headlines'])
+            print(f"[Step 1] Slot 3: {len(slot3_matches)} matches")
+            _write_slot_records(3, slot3_matches, "Gemini")
+        except Exception as e:
+            print(f"[Step 1] Slot 3 ERROR (continuing): {e}")
+            results["errors"].append({"slot": 3, "error": str(e)})
+
+        # SLOT 4: Gemini Batch
+        print("[Step 1] Running Slot 4 batch pre-filter...")
+        try:
+            slot4_matches = gemini.prefilter_batch_slot_4(slot_batches[4], yesterday_data['headlines'])
+            print(f"[Step 1] Slot 4: {len(slot4_matches)} matches")
+            _write_slot_records(4, slot4_matches, "Gemini")
+        except Exception as e:
+            print(f"[Step 1] Slot 4 ERROR (continuing): {e}")
+            results["errors"].append({"slot": 4, "error": str(e)})
+
+        # SLOT 5: Gemini Batch
+        print("[Step 1] Running Slot 5 batch pre-filter...")
+        try:
+            slot5_matches = gemini.prefilter_batch_slot_5(slot_batches[5], yesterday_data['headlines'])
+            print(f"[Step 1] Slot 5: {len(slot5_matches)} matches")
+            _write_slot_records(5, slot5_matches, "Gemini")
+        except Exception as e:
+            print(f"[Step 1] Slot 5 ERROR (continuing): {e}")
+            results["errors"].append({"slot": 5, "error": str(e)})
+
+        # Count unique eligible stories (each story may appear in multiple slots)
+        unique_stories = set(pair[0] for pair in written_story_slot_pairs)
+        results["eligible"] = len(unique_stories)
 
         print(f"[Step 1] Pre-filter complete:")
         print(f"  Processed: {results['processed']}")

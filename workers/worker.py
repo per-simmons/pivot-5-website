@@ -180,14 +180,17 @@ def run_worker():
     conn = get_redis_connection()
 
     # Define queues to listen to (in priority order)
+    # Set default_timeout to 2 hours (7200s) for long-running jobs like prefilter
+    # Default RQ timeout is 180s which is too short for batch Gemini API calls
     queues = [
-        Queue('high', connection=conn),
-        Queue('default', connection=conn),
-        Queue('low', connection=conn),
+        Queue('high', connection=conn, default_timeout=7200),
+        Queue('default', connection=conn, default_timeout=7200),
+        Queue('low', connection=conn, default_timeout=7200),
     ]
 
     print(f"[Worker] Starting worker at {datetime.utcnow().isoformat()}")
     print(f"[Worker] Listening on queues: high, default, low")
+    print(f"[Worker] Default job timeout: 7200 seconds (2 hours)")
 
     # Warm up database connection before processing jobs
     warmup_database()
