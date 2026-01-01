@@ -4,8 +4,11 @@ Handles all Airtable read/write operations
 """
 
 import os
+import logging
 from typing import List, Optional, Dict, Any
 from pyairtable import Api, Table
+
+logger = logging.getLogger(__name__)
 
 
 class AirtableClient:
@@ -352,17 +355,35 @@ class AirtableClient:
         """
         Step 2, Nodes 3-7: Get pre-filter candidates for a specific slot
 
-        Updated 12/30/25:
-        - Uses date_og_published (original publish date) instead of date_prefiltered
-        - This matches n8n workflow behavior for freshness filtering
+        Updated 12/31/25:
+        - FIXED: Slot 1 now uses exact n8n formula with NOW() + hours (not TODAY() + days)
+        - Slots 1, 2, 4 use hours-based filtering for precision
+        - Slots 3, 5 use days-based filtering (7-day windows)
+        - Weekend extension (72h) is embedded in Airtable formula for slots 1, 2, 4
         - Uses core_url instead of original_url (n8n Gap #6)
-        - Added max_records safety cap (default 200) to prevent Claude context overflow
         - Sorted by date_og_published DESC so freshest candidates are prioritized
+
+        n8n Slot 1 formula reference:
+        AND({slot}="1", IS_AFTER({date_og_published}, DATEADD(NOW(), IF(OR(WEEKDAY(NOW())=0, WEEKDAY(NOW())=1), -72, -24), 'hours')))
         """
         table = self._get_table(self.ai_editor_base_id, self.prefilter_log_table_id)
 
-        # Filter on date_og_published (article's original publish date), not date_prefiltered
-        filter_formula = f"AND({{slot}}={slot}, IS_AFTER({{date_og_published}}, DATEADD(TODAY(), -{freshness_days}, 'days')))"
+        # Build slot-specific filter formulas matching n8n workflow exactly
+        if slot == 1:
+            # Slot 1: 24 hours (72h on Sunday=0 or Monday=1)
+            # Exact n8n formula from "Pull Slot 1 Candidates" node
+            filter_formula = 'AND({slot}="1", IS_AFTER({date_og_published}, DATEADD(NOW(), IF(OR(WEEKDAY(NOW())=0, WEEKDAY(NOW())=1), -72, -24), \'hours\')))'
+        elif slot == 2:
+            # Slot 2: 48 hours (72h on weekends)
+            filter_formula = 'AND({slot}="2", IS_AFTER({date_og_published}, DATEADD(NOW(), IF(OR(WEEKDAY(NOW())=0, WEEKDAY(NOW())=1), -72, -48), \'hours\')))'
+        elif slot == 4:
+            # Slot 4: 48 hours (72h on weekends)
+            filter_formula = 'AND({slot}="4", IS_AFTER({date_og_published}, DATEADD(NOW(), IF(OR(WEEKDAY(NOW())=0, WEEKDAY(NOW())=1), -72, -48), \'hours\')))'
+        else:
+            # Slots 3 and 5: 7-day windows (no weekend extension needed)
+            filter_formula = f'AND({{slot}}="{slot}", IS_AFTER({{date_og_published}}, DATEADD(TODAY(), -7, \'days\')))'
+
+        logger.info(f"[Slot {slot}] Filter formula: {filter_formula}")
 
         # Note: primary_company field does NOT exist in Pre-Filter Log table
         records = table.all(
@@ -372,6 +393,7 @@ class AirtableClient:
             fields=['storyID', 'pivotId', 'headline', 'core_url', 'source_id', 'date_og_published', 'slot']
         )
 
+        logger.info(f"[Slot {slot}] Found {len(records)} candidates")
         return records
 
     def write_selected_slots(self, issue_data: dict) -> str:
