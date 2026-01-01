@@ -250,13 +250,23 @@ class AirtableClient:
         """
         Step 1, Node 7: Build source_name -> score lookup map
         Keys are lowercased for case-insensitive matching
+
+        Updated 1/1/26: Fail gracefully if Source Scores table is inaccessible (403).
+        Claude will use default credibility score of 2 for all sources.
         """
-        records = self.get_source_scores()
-        return {
-            r['fields'].get('source_name', '').lower(): r['fields'].get('credibility_score', 3)
-            for r in records
-            if r['fields'].get('source_name')
-        }
+        try:
+            records = self.get_source_scores()
+            lookup = {
+                r['fields'].get('source_name', '').lower(): r['fields'].get('credibility_score', 3)
+                for r in records
+                if r['fields'].get('source_name')
+            }
+            logger.info(f"[Source Lookup] Loaded {len(lookup)} source credibility scores")
+            return lookup
+        except Exception as e:
+            # Log warning but don't crash - Claude will use default score of 2
+            logger.warning(f"[Source Lookup] Failed to load source scores, using defaults: {e}")
+            return {}
 
     def get_queued_stories(self) -> List[dict]:
         """
