@@ -41,6 +41,17 @@ const STEP_0_JOBS = {
   ai_scoring: { name: "Run AI Scoring", icon: "psychology" },
 };
 
+// Step 1 slot definitions
+const PREFILTER_SLOTS = [1, 2, 3, 4, 5];
+
+interface SlotState {
+  isRunning: boolean;
+  jobId: string | null;
+  jobStatus: "queued" | "started" | "finished" | "failed" | null;
+  elapsedTime: number;
+  result: { written: number; elapsed: number } | null;
+}
+
 export default function StepPage({ params }: PageProps) {
   const { id } = use(params);
   const stepId = parseInt(id, 10);
@@ -59,6 +70,81 @@ export default function StepPage({ params }: PageProps) {
   const [aiScoringElapsedTime, setAiScoringElapsedTime] = useState(0);
   const [currentJobType, setCurrentJobType] = useState<"ingest" | "ai_scoring" | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+
+  // Step 1 specific: Track individual slot jobs
+  const [slotStates, setSlotStates] = useState<Record<number, SlotState>>({
+    1: { isRunning: false, jobId: null, jobStatus: null, elapsedTime: 0, result: null },
+    2: { isRunning: false, jobId: null, jobStatus: null, elapsedTime: 0, result: null },
+    3: { isRunning: false, jobId: null, jobStatus: null, elapsedTime: 0, result: null },
+    4: { isRunning: false, jobId: null, jobStatus: null, elapsedTime: 0, result: null },
+    5: { isRunning: false, jobId: null, jobStatus: null, elapsedTime: 0, result: null },
+  });
+  const [cancellingSlot, setCancellingSlot] = useState<number | null>(null);
+
+  // Update a specific slot's state
+  const updateSlotState = (slotNum: number, updates: Partial<SlotState>) => {
+    setSlotStates(prev => ({
+      ...prev,
+      [slotNum]: { ...prev[slotNum], ...updates },
+    }));
+  };
+
+  // Check if any slot is running
+  const anySlotRunning = Object.values(slotStates).some(s => s.isRunning);
+
+  // Cancel a slot job
+  const cancelSlotJob = async (slotNum: number) => {
+    const slotJobId = slotStates[slotNum].jobId;
+    if (!slotJobId) return;
+
+    setCancellingSlot(slotNum);
+    try {
+      const response = await fetch("/api/jobs/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: slotJobId }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(`Slot ${slotNum} cancelled`);
+        updateSlotState(slotNum, { isRunning: false, jobId: null, jobStatus: null });
+      } else {
+        toast.error(data.error || "Failed to cancel");
+      }
+    } catch (error) {
+      console.error("Error cancelling slot job:", error);
+      toast.error("Failed to cancel");
+    } finally {
+      setCancellingSlot(null);
+    }
+  };
+
+  // Run a single slot
+  const runSlot = async (slotNum: number) => {
+    updateSlotState(slotNum, { isRunning: true, elapsedTime: 0, result: null });
+
+    try {
+      const response = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step: `prefilter_slot_${slotNum}` }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        updateSlotState(slotNum, { jobId: data.job_id, jobStatus: "queued" });
+        toast.success(`Slot ${slotNum} Started`);
+      } else {
+        updateSlotState(slotNum, { isRunning: false });
+        throw new Error(data.error || "Failed to start");
+      }
+    } catch (error) {
+      updateSlotState(slotNum, { isRunning: false });
+      toast.error(error instanceof Error ? error.message : "Failed to start");
+    }
+  };
 
   // Cancel running job
   const cancelJob = async () => {
@@ -281,6 +367,74 @@ export default function StepPage({ params }: PageProps) {
     };
   }, [aiScoringJobId, stepId]);
 
+  // Poll slot job status (Step 1 only)
+  useEffect(() => {
+    if (stepId !== 1) return;
+
+    const intervals: Record<number, { poll: NodeJS.Timeout; timer: NodeJS.Timeout }> = {};
+
+    PREFILTER_SLOTS.forEach(slotNum => {
+      const state = slotStates[slotNum];
+      if (!state.jobId) return;
+
+      const startTime = Date.now();
+
+      intervals[slotNum] = {
+        timer: setInterval(() => {
+          updateSlotState(slotNum, { elapsedTime: Math.floor((Date.now() - startTime) / 1000) });
+        }, 1000),
+        poll: setInterval(async () => {
+          try {
+            const response = await fetch(`/api/jobs/${state.jobId}`);
+            const status = await response.json();
+
+            if (status.status === "started" || status.status === "queued") {
+              updateSlotState(slotNum, { jobStatus: status.status });
+            }
+
+            if (status.status === "finished" || status.status === "failed") {
+              clearInterval(intervals[slotNum].poll);
+              clearInterval(intervals[slotNum].timer);
+
+              const finalElapsed = Math.floor((Date.now() - startTime) / 1000);
+
+              if (status.status === "finished") {
+                const writtenCount = status.result?.written || 0;
+                updateSlotState(slotNum, {
+                  isRunning: false,
+                  jobId: null,
+                  jobStatus: "finished",
+                  result: { written: writtenCount, elapsed: finalElapsed },
+                });
+                toast.success(`Slot ${slotNum} Completed`, {
+                  description: `Wrote ${writtenCount} records in ${finalElapsed}s`,
+                });
+              } else {
+                updateSlotState(slotNum, {
+                  isRunning: false,
+                  jobId: null,
+                  jobStatus: "failed",
+                });
+                toast.error(`Slot ${slotNum} Failed`, {
+                  description: status.error || "Unknown error",
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`Error polling slot ${slotNum}:`, error);
+          }
+        }, 2000),
+      };
+    });
+
+    return () => {
+      Object.values(intervals).forEach(({ poll, timer }) => {
+        clearInterval(poll);
+        clearInterval(timer);
+      });
+    };
+  }, [stepId, slotStates[1].jobId, slotStates[2].jobId, slotStates[3].jobId, slotStates[4].jobId, slotStates[5].jobId]);
+
   // Mock execution data - in production this would come from an API
   const lastRun = {
     date: "Dec 23, 2025 9:00:15 PM",
@@ -341,6 +495,9 @@ export default function StepPage({ params }: PageProps) {
                   {isAiScoringRunning ? `Scoring... ${aiScoringElapsedTime}s` : "Run AI Scoring"}
                 </Button>
               </div>
+            ) : stepId === 1 ? (
+              /* Step 1: No single run button - slot cards shown below */
+              null
             ) : (
               <Button className="gap-2" onClick={() => handleRunNow()} disabled={isRunning}>
                 <MaterialIcon name={isRunning ? "sync" : "play_arrow"} className={`text-lg ${isRunning ? "animate-spin" : ""}`} />
@@ -366,6 +523,69 @@ export default function StepPage({ params }: PageProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Step 1: Slot Pre-Filter Cards */}
+      {stepId === 1 && (
+        <div className="grid grid-cols-5 gap-3">
+          {PREFILTER_SLOTS.map(slotNum => {
+            const state = slotStates[slotNum];
+            return (
+              <Card key={slotNum} className={state.isRunning ? "border-orange-300 bg-orange-50/30" : ""}>
+                <CardContent className="p-4">
+                  <div className="text-center mb-3">
+                    <span className="font-semibold text-sm">
+                      Slot {slotNum} Pre-Filter Agent
+                    </span>
+                  </div>
+
+                  {state.isRunning ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-center gap-2">
+                        <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-200 text-xs">
+                          {state.jobStatus === "queued" ? "Queued" : "Running"}
+                        </Badge>
+                        <span className="font-mono text-sm font-bold text-orange-700">
+                          {Math.floor(state.elapsedTime / 60)}:{String(state.elapsedTime % 60).padStart(2, "0")}
+                        </span>
+                      </div>
+                      <Progress value={undefined} className="h-1.5 bg-orange-100" />
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => cancelSlotJob(slotNum)}
+                        disabled={cancellingSlot === slotNum}
+                        className="w-full h-8 text-xs"
+                      >
+                        {cancellingSlot === slotNum ? "Stopping..." : "Stop"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {state.result && (
+                        <div className="text-xs text-center text-emerald-600 bg-emerald-50 rounded px-2 py-1">
+                          {state.result.written} records • {state.result.elapsed}s
+                        </div>
+                      )}
+                      {state.jobStatus === "failed" && (
+                        <div className="text-xs text-center text-red-600 bg-red-50 rounded px-2 py-1">
+                          Failed
+                        </div>
+                      )}
+                      <Button
+                        onClick={() => runSlot(slotNum)}
+                        disabled={anySlotRunning}
+                        className="w-full h-8 text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                      >
+                        Run Slot {slotNum}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Completion Banner */}
       {showCompletion && lastResult && (
