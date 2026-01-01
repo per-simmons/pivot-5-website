@@ -303,12 +303,14 @@ ARTICLE:
             use_db_prompt = True
             logger.info("[Gemini slot_1] Using prompt from database")
 
-        # Chunk large batches to prevent Gemini response truncation
-        # Reduced to 5 articles per chunk (12/31/25) - 8 was still causing truncation
+        # Chunk large batches - Gemini 3 Flash supports 1M input / 64K output
+        # Increased to 25 articles per chunk (1/1/26) - 5 was too conservative
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=5)
+        chunks = self._chunk_articles(articles, chunk_size=25)
+        print(f"[Gemini slot_1] Processing {len(articles)} articles in {len(chunks)} chunks...", flush=True)
 
         for i, chunk in enumerate(chunks):
+            print(f"[Gemini slot_1] Chunk {i+1}/{len(chunks)} ({len(chunk)} articles)...", flush=True)
             if len(chunks) > 1:
                 logger.info(f"[Gemini slot_1] Processing chunk {i+1}/{len(chunks)} ({len(chunk)} articles)")
 
@@ -375,12 +377,14 @@ If no stories match, return: {{"matches": []}}"""
             use_db_prompt = True
             logger.info("[Gemini slot_2] Using prompt from database")
 
-        # Chunk large batches to prevent Gemini response truncation
-        # Reduced to 5 articles per chunk (12/31/25) - 8 was still causing truncation
+        # Chunk large batches - Gemini 3 Flash supports 1M input / 64K output
+        # Increased to 25 articles per chunk (1/1/26) - 5 was too conservative
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=5)
+        chunks = self._chunk_articles(articles, chunk_size=25)
+        print(f"[Gemini slot_2] Processing {len(articles)} articles in {len(chunks)} chunks...", flush=True)
 
         for i, chunk in enumerate(chunks):
+            print(f"[Gemini slot_2] Chunk {i+1}/{len(chunks)} ({len(chunk)} articles)...", flush=True)
             if len(chunks) > 1:
                 logger.info(f"[Gemini slot_2] Processing chunk {i+1}/{len(chunks)} ({len(chunk)} articles)")
 
@@ -447,12 +451,14 @@ If no stories match, return: {{"matches": []}}"""
             use_db_prompt = True
             logger.info("[Gemini slot_3] Using prompt from database")
 
-        # Chunk large batches to prevent Gemini response truncation
-        # Reduced to 5 articles per chunk (12/31/25) - 8 was still causing truncation
+        # Chunk large batches - Gemini 3 Flash supports 1M input / 64K output
+        # Increased to 25 articles per chunk (1/1/26) - 5 was too conservative
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=5)
+        chunks = self._chunk_articles(articles, chunk_size=25)
+        print(f"[Gemini slot_3] Processing {len(articles)} articles in {len(chunks)} chunks...", flush=True)
 
         for i, chunk in enumerate(chunks):
+            print(f"[Gemini slot_3] Chunk {i+1}/{len(chunks)} ({len(chunk)} articles)...", flush=True)
             if len(chunks) > 1:
                 logger.info(f"[Gemini slot_3] Processing chunk {i+1}/{len(chunks)} ({len(chunk)} articles)")
 
@@ -527,12 +533,14 @@ If no stories match, return: {{"matches": []}}"""
             use_db_prompt = True
             logger.info("[Gemini slot_4] Using prompt from database")
 
-        # Chunk large batches to prevent Gemini response truncation
-        # Reduced to 5 articles per chunk (12/31/25) - 8 was still causing truncation
+        # Chunk large batches - Gemini 3 Flash supports 1M input / 64K output
+        # Increased to 25 articles per chunk (1/1/26) - 5 was too conservative
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=5)
+        chunks = self._chunk_articles(articles, chunk_size=25)
+        print(f"[Gemini slot_4] Processing {len(articles)} articles in {len(chunks)} chunks...", flush=True)
 
         for i, chunk in enumerate(chunks):
+            print(f"[Gemini slot_4] Chunk {i+1}/{len(chunks)} ({len(chunk)} articles)...", flush=True)
             if len(chunks) > 1:
                 logger.info(f"[Gemini slot_4] Processing chunk {i+1}/{len(chunks)} ({len(chunk)} articles)")
 
@@ -602,12 +610,14 @@ If no stories match, return: {{"matches": []}}"""
             use_db_prompt = True
             logger.info("[Gemini slot_5] Using prompt from database")
 
-        # Chunk large batches to prevent Gemini response truncation
-        # Reduced to 5 articles per chunk (12/31/25) - 8 was still causing truncation
+        # Chunk large batches - Gemini 3 Flash supports 1M input / 64K output
+        # Increased to 25 articles per chunk (1/1/26) - 5 was too conservative
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=5)
+        chunks = self._chunk_articles(articles, chunk_size=25)
+        print(f"[Gemini slot_5] Processing {len(articles)} articles in {len(chunks)} chunks...", flush=True)
 
         for i, chunk in enumerate(chunks):
+            print(f"[Gemini slot_5] Chunk {i+1}/{len(chunks)} ({len(chunk)} articles)...", flush=True)
             if len(chunks) > 1:
                 logger.info(f"[Gemini slot_5] Processing chunk {i+1}/{len(chunks)} ({len(chunk)} articles)")
 
@@ -666,47 +676,94 @@ If no stories match, return: {{"matches": []}}"""
         """
         import time
 
+        print(f"[Gemini {slot_name}] Calling Gemini API (attempt {retry_count + 1}/3)...", flush=True)
+        print(f"[Gemini {slot_name}] Prompt length: {len(prompt)} chars", flush=True)
+
         try:
             response = self.flash_model.generate_content(
                 prompt,
                 generation_config=genai.GenerationConfig(
                     temperature=0.3,
-                    max_output_tokens=8192,  # Increased from 4096 for large batches
+                    max_output_tokens=32768,  # Gemini 3 Flash supports 64K output
                     response_mime_type="application/json"
                 )
             )
 
-            result = json.loads(response.text)
+            response_len = len(response.text)
+            response_text = response.text.strip()
+            print(f"[Gemini {slot_name}] Response received, length: {response_len} chars", flush=True)
+
+            # Check for JSON truncation BEFORE parsing
+            is_truncated = False
+            if not response_text.endswith(']}') and not response_text.endswith('}'):
+                is_truncated = True
+                print(f"[Gemini {slot_name}] ⚠️ JSON TRUNCATION WARNING: Response doesn't end with proper JSON closure", flush=True)
+                print(f"[Gemini {slot_name}] ⚠️ Response ends with: ...{response_text[-50:]}", flush=True)
+
+            # Warn if response is suspiciously large (possible truncation)
+            if response_len > 30000:
+                print(f"[Gemini {slot_name}] ⚠️ LARGE RESPONSE ({response_len} chars) - may hit token limit", flush=True)
+
+            print(f"[Gemini {slot_name}] Response preview: {response_text[:200]}...", flush=True)
+
+            result = json.loads(response_text)
             matches = result.get('matches', [])
+
+            if is_truncated:
+                print(f"[Gemini {slot_name}] ✓ Recovered {len(matches)} matches despite truncation warning", flush=True)
+            else:
+                print(f"[Gemini {slot_name}] ✓ Parsed JSON successfully, found {len(matches)} matches", flush=True)
             logger.info(f"[Gemini {slot_name}] Found {len(matches)} matches")
             return matches
 
         except json.JSONDecodeError as e:
-            logger.error(f"[Gemini {slot_name}] JSON parse error: {e}")
-            # Log truncated response for debugging (first 500 chars)
-            response_preview = response.text[:500] if hasattr(response, 'text') else 'No response text'
-            logger.error(f"[Gemini {slot_name}] Truncated response preview: {response_preview}...")
+            response_text = response.text if hasattr(response, 'text') else ''
+            response_len = len(response_text)
+
+            # Determine if this is truncation or malformed JSON
+            ends_properly = response_text.strip().endswith(']}') or response_text.strip().endswith('}')
+
+            if not ends_properly:
+                print(f"[Gemini {slot_name}] ✗ JSON TRUNCATION! Response cut off at {response_len} chars", flush=True)
+                print(f"[Gemini {slot_name}] ✗ Response doesn't end with valid JSON - likely hit output token limit", flush=True)
+            else:
+                print(f"[Gemini {slot_name}] ✗ JSON PARSE ERROR (not truncation): {e.msg}", flush=True)
+
+            print(f"[Gemini {slot_name}] ✗ Parse error at char position {e.pos}/{response_len}", flush=True)
+            logger.error(f"[Gemini {slot_name}] JSON error - {response_len} chars, error at pos {e.pos}, truncated={not ends_properly}")
+
+            # Show both ends of response to diagnose
+            print(f"[Gemini {slot_name}] Response START: {response_text[:300]}", flush=True)
+            print(f"[Gemini {slot_name}] Response END: ...{response_text[-100:]}", flush=True)
+            logger.error(f"[Gemini {slot_name}] Response preview: {response_text[:300]}...")
 
             # Try to extract partial matches from truncated response
+            print(f"[Gemini {slot_name}] Attempting to recover matches from partial response...", flush=True)
             partial_matches = self._parse_batch_response(response.text)
             if partial_matches:
+                print(f"[Gemini {slot_name}] ✓ Recovered {len(partial_matches)} matches from partial response", flush=True)
                 logger.info(f"[Gemini {slot_name}] Recovered {len(partial_matches)} matches from partial response")
                 return partial_matches
 
+            print(f"[Gemini {slot_name}] ✗ Could not recover any matches from response", flush=True)
             logger.warning(f"[Gemini {slot_name}] Could not recover any matches from response")
 
             # Retry with exponential backoff if we got nothing
             if retry_count < 2:
                 wait_time = (retry_count + 1) * 2
+                print(f"[Gemini {slot_name}] Retrying in {wait_time}s (attempt {retry_count + 2}/3)...", flush=True)
                 logger.info(f"[Gemini {slot_name}] Retrying in {wait_time}s (attempt {retry_count + 2}/3)")
                 time.sleep(wait_time)
                 return self._execute_batch_prefilter(prompt, slot_name, retry_count + 1)
             return []
         except Exception as e:
+            print(f"[Gemini {slot_name}] ✗ Error: {type(e).__name__}: {e}", flush=True)
             logger.error(f"[Gemini {slot_name}] Error: {e}")
             # Retry on generic errors too
             if retry_count < 2:
-                time.sleep((retry_count + 1) * 2)
+                wait_time = (retry_count + 1) * 2
+                print(f"[Gemini {slot_name}] Retrying in {wait_time}s (attempt {retry_count + 2}/3)...", flush=True)
+                time.sleep(wait_time)
                 return self._execute_batch_prefilter(prompt, slot_name, retry_count + 1)
             return []
 
