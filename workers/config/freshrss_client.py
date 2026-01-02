@@ -261,31 +261,34 @@ class FreshRSSClient:
         else:
             endpoint = "/reader/api/0/stream/contents"
 
-        # Calculate cutoff timestamp for filtering
-        # Use since_hours (default 36) for both API and Python filtering
+        # Calculate cutoff for Python filtering
         cutoff = datetime.now(timezone.utc) - timedelta(hours=since_hours)
-        cutoff_timestamp = int(cutoff.timestamp())  # Unix seconds for Google Reader API
 
-        # Fetch from API with 'ot' (oldest timestamp) filter
-        # Google Reader API uses 'ot' parameter as Unix timestamp (seconds)
-        # Only articles with published timestamp > ot will be returned
-        # NOTE: The 'q=pubdate:' syntax is for FreshRSS web search, NOT Google Reader API
+        # IMPORTANT: Google Reader API cannot filter by PUBLICATION date
+        # - 'ot' parameter filters by CRAWL date (when FreshRSS discovered it)
+        # - 'q=pubdate:' is for web UI search only, not API
+        # Therefore: We must filter by publication date in Python
+        #
+        # We still use 'ot' to avoid re-fetching old crawled batches,
+        # but Python filter does the real publication date check
+        crawl_cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+        crawl_timestamp = int(crawl_cutoff.timestamp())
+
         data = self._make_request(
             endpoint,
             params={
                 "n": limit,
                 "output": "json",
-                "ot": cutoff_timestamp  # Only articles published after this Unix timestamp
+                "ot": crawl_timestamp  # Only items CRAWLED in last 7 days
             }
         )
-        print(f"[FreshRSS] Querying with ot={cutoff_timestamp} ({since_hours}h cutoff: {cutoff.strftime('%Y-%m-%d %H:%M')} UTC)")
+        print(f"[FreshRSS] Fetching articles crawled since {crawl_cutoff.strftime('%Y-%m-%d')} (Python filters by pub date: {cutoff.strftime('%Y-%m-%d %H:%M')})")
 
         if not data or "items" not in data:
             return []
 
-        # Process articles
-        # API 'ot' parameter should filter by published timestamp
-        # Python filter is a safety net for articles with missing/wrong dates
+        # Process articles and filter by PUBLICATION date
+        # This is the real filter - API 'ot' only filters by crawl date
         articles = []
         skipped_count = 0
         for item in data["items"]:
@@ -294,17 +297,11 @@ class FreshRSSClient:
             if not article:
                 continue
 
-            # Safety net: Double-check publication date
-            # Should rarely trigger since API 'ot' parameter filters by timestamp
+            # Filter by PUBLICATION date (the only way to do this)
+            # API can't filter by pub date, only by crawl date
             if article.get("published_dt"):
                 if article["published_dt"] < cutoff:
                     skipped_count += 1
-                    # Only log first 3 skipped articles to avoid spam
-                    if skipped_count <= 3:
-                        title = article.get("title", "Unknown")[:40]
-                        pub_date = article["published_dt"].strftime("%Y-%m-%d %H:%M")
-                        cutoff_date = cutoff.strftime("%Y-%m-%d %H:%M")
-                        print(f"[FreshRSS] Skipping old article (pub {pub_date}, cutoff {cutoff_date}): {title}...")
                     continue
 
             articles.append(article)
