@@ -163,6 +163,7 @@ To verify the fix is working:
 | 12/27/2025 | v1 | BROKEN | Base64 decode approach - doesn't work for modern URLs |
 | 12/27/2025 | v2 | ✅ CONFIRMED | googlenewsdecoder package - verified working |
 | 12/27/2025 | v3 | ✅ CONFIRMED | AI Scoring job confirmed working via Airtable API |
+| 01/01/2026 | v4 | ✅ CONFIRMED | Rate limiting fix - 2s intervals, sequential processing |
 
 ---
 
@@ -250,6 +251,85 @@ Newsletter Stories table (`tblY78ziWp5yhiGXp`):
 - `sentiment`, `topic`, `tags`, `fit_score`, `newsletter`
 
 See `workers/jobs/ai_scoring.py` for details.
+
+---
+
+## Rate Limiting Fix (01/01/2026)
+
+### Problem
+Google was returning 429 (Too Many Requests) errors when processing Google News URLs in rapid succession. The original 1-second interval was too aggressive.
+
+### Root Cause
+- `googlenewsdecoder` calls Google's `batchexecute` API for each URL
+- Google rate limits this API aggressively
+- Render.com services share outbound IP ranges, increasing rate limit likelihood
+- Previous 1-second interval triggered rate limiting after ~10-20 requests
+
+### Solution Applied
+
+**File:** `workers/jobs/ingest_sandbox.py`
+
+```python
+async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, Optional[str]]:
+    """
+    RATE LIMITING: Uses conservative timing to avoid Google 429 errors:
+      - 2.0s interval in gnewsdecoder
+      - Up to 3 retries with exponential backoff (10s, 20s, 40s)
+    """
+    max_retries = 3
+
+    result = await loop.run_in_executor(
+        _google_news_executor,
+        lambda: gnewsdecoder(url, interval=2.0)  # 2s delay - conservative
+    )
+
+    # On rate limit, retry with exponential backoff
+    if "status" not in result or not result["status"]:
+        if retry_count < max_retries:
+            backoff = 10 * (2 ** retry_count)  # 10s, 20s, 40s
+            await asyncio.sleep(backoff)
+            return await resolve_google_news_url(url, retry_count + 1)
+```
+
+**Batch Processing Changes:**
+```python
+# CONSERVATIVE rate limiting
+batch_size = 5  # Reduced from 10
+
+# Process URLs SEQUENTIALLY within batch (not parallel)
+for idx, article in batch:
+    resolved_url, source_name = await resolve_google_news_url(url)
+    await asyncio.sleep(2)  # 2 second delay between individual URLs
+
+# 5 second delay between batches
+await asyncio.sleep(5)
+```
+
+### Test Results (01/01/2026)
+
+```
+[Ingest Sandbox] Resolving 10 Google News URLs using googlenewsdecoder...
+[Ingest Sandbox] Using conservative rate limiting (2s interval, 3s between URLs)
+[Ingest Sandbox] Decoded: news.google.com -> businessinsider.com (Business Insider)
+[Ingest Sandbox] Decoded: news.google.com -> forbes.com (Forbes)
+[Ingest Sandbox] Decoded: news.google.com -> samsung.com (Samsung)
+... (7 more)
+[Ingest Sandbox] Google News URL resolution complete:
+  - Resolved: 10
+  - Failed/Unresolved: 0
+```
+
+**Result: 10/10 URLs resolved successfully with no rate limiting errors.**
+
+### Additional Changes (01/01/2026)
+
+1. **Decoupled AI Scoring from Ingestion**
+   - Removed auto-chaining of `run_ai_scoring_sandbox()` after ingest
+   - AI scoring now triggered manually via dashboard
+
+2. **Removed AI Scoring Batch Limits**
+   - Changed `batch_size` default from `50` to `None`
+   - AI scoring now processes ALL records with `needs_ai=true`
 
 ---
 

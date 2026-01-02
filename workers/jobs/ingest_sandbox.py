@@ -31,8 +31,6 @@ from zoneinfo import ZoneInfo
 EST = ZoneInfo("America/New_York")
 
 from pyairtable import Api
-from redis import Redis
-from rq import Queue
 
 # Google News URL decoding - calls Google's batchexecute API
 from googlenewsdecoder import gnewsdecoder
@@ -149,15 +147,20 @@ def extract_source_from_url(url: str) -> Optional[str]:
         return None
 
 
-async def resolve_google_news_url(url: str) -> tuple[str, Optional[str]]:
+async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, Optional[str]]:
     """
     Resolve a Google News URL to the actual article URL.
 
     Uses the googlenewsdecoder package which calls Google's batchexecute API.
     This is the ONLY reliable way to decode modern Google News URLs.
 
+    RATE LIMITING: Uses conservative timing to avoid Google 429 errors:
+      - 2.0s interval in gnewsdecoder
+      - Up to 3 retries with exponential backoff (10s, 20s, 40s)
+
     Args:
         url: Google News article URL
+        retry_count: Current retry attempt (0-2)
 
     Returns:
         Tuple of (resolved_url, extracted_source_name)
@@ -166,13 +169,15 @@ async def resolve_google_news_url(url: str) -> tuple[str, Optional[str]]:
     if not url or "news.google.com" not in url:
         return url, None
 
+    max_retries = 3
+
     try:
         # Run blocking gnewsdecoder in thread pool
         # The gnewsdecoder package makes HTTP calls to Google's batchexecute API
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             _google_news_executor,
-            lambda: gnewsdecoder(url, interval=1.0)  # 1.0s delay to avoid rate limiting
+            lambda: gnewsdecoder(url, interval=2.0)  # 2s delay - conservative but not too slow
         )
 
         if result.get("status") and result.get("decoded_url"):
@@ -181,10 +186,26 @@ async def resolve_google_news_url(url: str) -> tuple[str, Optional[str]]:
             print(f"[Ingest Sandbox] Decoded Google News URL: {url[:50]}... -> {decoded_url[:60]}... (source: {source_name})")
             return decoded_url, source_name
         else:
-            print(f"[Ingest Sandbox] Could not decode Google News URL: {url[:60]}...")
+            error_msg = result.get("message", "Unknown error")
+            # Check for rate limiting
+            if "429" in str(error_msg) or "rate" in str(error_msg).lower():
+                if retry_count < max_retries:
+                    backoff = 10 * (2 ** retry_count)  # 10s, 20s, 40s
+                    print(f"[Ingest Sandbox] Rate limited, waiting {backoff}s before retry {retry_count + 1}/{max_retries}...")
+                    await asyncio.sleep(backoff)
+                    return await resolve_google_news_url(url, retry_count + 1)
+            print(f"[Ingest Sandbox] Could not decode Google News URL: {url[:60]}... ({error_msg})")
             return url, "Google News"
 
     except Exception as e:
+        error_str = str(e)
+        # Check for rate limiting in exception
+        if "429" in error_str or "rate" in error_str.lower():
+            if retry_count < max_retries:
+                backoff = 10 * (2 ** retry_count)  # 10s, 20s, 40s
+                print(f"[Ingest Sandbox] Rate limited (exception), waiting {backoff}s before retry {retry_count + 1}/{max_retries}...")
+                await asyncio.sleep(backoff)
+                return await resolve_google_news_url(url, retry_count + 1)
         print(f"[Ingest Sandbox] Error decoding Google News URL: {e}")
         return url, "Google News"
 
@@ -194,7 +215,13 @@ async def resolve_article_urls(articles: List[Dict[str, Any]]) -> tuple[List[Dic
     Resolve Google News redirect URLs to actual article URLs.
 
     Uses the googlenewsdecoder package which calls Google's batchexecute API.
-    Processes in small batches with delays to avoid rate limiting.
+    Processes in small batches with CONSERVATIVE delays to avoid rate limiting.
+
+    RATE LIMITING STRATEGY (learned from repair_google_news.py):
+      - Small batch size (5 URLs per batch)
+      - Sequential processing within batches (not parallel) to avoid hammering Google
+      - 5 second delay between batches
+      - 2 second delay between individual URLs within a batch
 
     Args:
         articles: List of article dicts from FreshRSS
@@ -211,11 +238,13 @@ async def resolve_article_urls(articles: List[Dict[str, Any]]) -> tuple[List[Dic
         return articles, 0
 
     print(f"[Ingest Sandbox] Resolving {len(google_news_articles)} Google News URLs using googlenewsdecoder...")
+    print(f"[Ingest Sandbox] Using conservative rate limiting (2s interval, 3s between URLs)")
 
-    # Process in batches with delays to avoid Google rate limiting
-    # gnewsdecoder uses interval=1.0 internally, plus 1s between batches
-    batch_size = 10
+    # CONSERVATIVE rate limiting to avoid Google 429 errors
+    # Based on repair_google_news.py which uses even more conservative timing
+    batch_size = 5  # Reduced from 10
     resolved_count = 0
+    failed_count = 0
 
     for batch_start in range(0, len(google_news_articles), batch_size):
         batch = google_news_articles[batch_start:batch_start + batch_size]
@@ -223,34 +252,38 @@ async def resolve_article_urls(articles: List[Dict[str, Any]]) -> tuple[List[Dic
         total_batches = (len(google_news_articles) + batch_size - 1) // batch_size
         print(f"[Ingest Sandbox] Processing batch {batch_num}/{total_batches} ({len(batch)} URLs)...")
 
-        tasks = [
-            resolve_google_news_url(articles[idx]["url"])
-            for idx, _ in batch
-        ]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # Process URLs SEQUENTIALLY within batch to avoid hammering Google
+        for idx, article in batch:
+            url = articles[idx]["url"]
+            try:
+                resolved_url, source_name = await resolve_google_news_url(url)
 
-        for (idx, article), result in zip(batch, results):
-            if isinstance(result, Exception):
-                print(f"[Ingest Sandbox] Failed to resolve URL for article: {result}")
-                continue
+                # Update article with resolved URL
+                if resolved_url and resolved_url != url:
+                    articles[idx]["url"] = resolved_url
+                    resolved_count += 1
 
-            resolved_url, source_name = result
+                # Update source_id if we got a better one from the resolved URL
+                if source_name and source_name != "Google News":
+                    articles[idx]["source_id"] = source_name
+                elif source_name == "Google News":
+                    failed_count += 1
 
-            # Update article with resolved URL
-            if resolved_url and resolved_url != article["url"]:
-                articles[idx]["url"] = resolved_url
-                resolved_count += 1
+            except Exception as e:
+                print(f"[Ingest Sandbox] Failed to resolve URL: {e}")
+                failed_count += 1
 
-            # Update source_id if we got a better one from the resolved URL
-            if source_name:
-                articles[idx]["source_id"] = source_name
+            # 2 second delay between individual URLs within batch
+            await asyncio.sleep(2)
 
-        # Add delay between batches to avoid rate limiting
-        # Using 1s delay - googlenewsdecoder already has internal interval=1.0
+        # 5 second delay between batches to avoid rate limiting
         if batch_start + batch_size < len(google_news_articles):
-            await asyncio.sleep(1)
+            print(f"[Ingest Sandbox] Batch complete, waiting 5s before next batch...")
+            await asyncio.sleep(5)
 
-    print(f"[Ingest Sandbox] Resolved {resolved_count} Google News URLs to actual sources")
+    print(f"[Ingest Sandbox] Google News URL resolution complete:")
+    print(f"  - Resolved: {resolved_count}")
+    print(f"  - Failed/Unresolved: {failed_count}")
     return articles, resolved_count
 
 
@@ -265,8 +298,6 @@ ARTICLES_TABLE_SANDBOX = os.environ.get(
     "Articles - All Ingested"  # Use table name if ID not set
 )
 
-# Redis configuration for job chaining
-REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
 
 def ingest_articles_sandbox(
@@ -422,31 +453,10 @@ def ingest_articles_sandbox(
         print(f"  - Skipped (blocked): {results['articles_skipped_blocked']}")
         print(f"  - Errors: {len(results['errors'])}")
 
-        # AUTOMATIC CHAINING: Trigger AI Scoring if we ingested any articles
+        # NOTE: AI Scoring is now triggered SEPARATELY via the dashboard
+        # (removed automatic chaining to allow manual control)
         if results["articles_ingested"] > 0:
-            print(f"[Ingest Sandbox] Chaining AI Scoring job for {results['articles_ingested']} new articles...")
-            try:
-                from jobs.ai_scoring_sandbox import run_ai_scoring_sandbox
-
-                redis_conn = Redis.from_url(REDIS_URL)
-                queue = Queue('default', connection=redis_conn)
-
-                # Enqueue AI Scoring - no cap, process all ingested articles
-                ai_job = queue.enqueue(
-                    run_ai_scoring_sandbox,
-                    batch_size=results["articles_ingested"],
-                    job_timeout='60m'
-                )
-
-                results["ai_scoring_job_id"] = ai_job.id
-                print(f"[Ingest Sandbox] AI Scoring job enqueued: {ai_job.id}")
-
-            except Exception as e:
-                error_msg = f"Failed to chain AI Scoring job: {str(e)}"
-                print(f"[Ingest Sandbox] {error_msg}")
-                results["errors"].append(error_msg)
-        else:
-            print("[Ingest Sandbox] No new articles ingested, skipping AI Scoring")
+            print(f"[Ingest Sandbox] {results['articles_ingested']} articles need AI scoring - trigger via dashboard")
 
     except Exception as e:
         error_msg = f"Ingestion job failed: {str(e)}"

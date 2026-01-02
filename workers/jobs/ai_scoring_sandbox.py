@@ -285,15 +285,15 @@ def score_article(client: Anthropic, article: Dict[str, Any]) -> Optional[Dict[s
         return None
 
 
-def run_ai_scoring_sandbox(batch_size: int = 50) -> Dict[str, Any]:
+def run_ai_scoring_sandbox(batch_size: int = None) -> Dict[str, Any]:
     """
     Main sandbox AI Scoring job function.
 
-    Queries articles with needs_ai = true, scores them with Claude,
+    Queries ALL articles with needs_ai = true, scores them with Claude,
     and updates the records. Simplified for single newsletter (pivot_ai).
 
     Args:
-        batch_size: Max articles to process per run (default 50)
+        batch_size: Max articles to process (None = no limit, process all)
 
     Returns:
         Results dict with counts and timing
@@ -326,10 +326,13 @@ def run_ai_scoring_sandbox(batch_size: int = 50) -> Dict[str, Any]:
         newsletter_selects_table = airtable.table(AIRTABLE_AI_EDITOR_BASE_ID, NEWSLETTER_SELECTS_TABLE)
         claude = Anthropic(api_key=ANTHROPIC_API_KEY)
 
-        # Query articles needing AI scoring
+        # Query articles needing AI scoring (no limit - process all)
         print("[AI Scoring Sandbox] Querying articles with needs_ai = true...")
         formula = "{needs_ai} = 1"
-        articles = articles_table.all(formula=formula, max_records=batch_size)
+        if batch_size:
+            articles = articles_table.all(formula=formula, max_records=batch_size)
+        else:
+            articles = articles_table.all(formula=formula)  # No limit - get all
 
         results["articles_queried"] = len(articles)
         print(f"[AI Scoring Sandbox] Found {len(articles)} articles to score")
@@ -354,6 +357,9 @@ def run_ai_scoring_sandbox(batch_size: int = 50) -> Dict[str, Any]:
             if not scores:
                 results["articles_failed"] += 1
                 continue
+
+            # Rate limit: small delay between Claude API calls
+            time.sleep(0.5)
 
             interest_score = scores.get("interest_score", 0)
 
