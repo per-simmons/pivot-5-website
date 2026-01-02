@@ -1,199 +1,83 @@
 """
-Step 4: HTML Compile Job
+Step 4a: HTML Compile Job
 Workflow ID: NKjC8hb0EDHIXx3U
 Schedule: 10 PM EST (0 3 * * 2-6 UTC)
 
-Compiles 5 decorated stories into HTML email template and writes
-to Newsletter Issues table.
+Compiles 5 decorated stories into responsive HTML email template and writes
+to Newsletter Issues Final table with status='next-send'.
+
+Migrated from n8n 1/2/26 to match workflow exactly.
 """
 
 import os
+import logging
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 
+import pytz
+
 from utils.airtable import AirtableClient
 from utils.claude import ClaudeClient
+from utils.html_stripper import strip_html_for_deliverability, build_full_html_email
+
+logger = logging.getLogger(__name__)
+
+# Timezone for issue date formatting
+ET_TIMEZONE = pytz.timezone('America/New_York')
+
+# Default subject line fallback (from n8n workflow)
+DEFAULT_SUBJECT_LINE = "5 headlines. 5 minutes. 5 days a week."
 
 
-# Newsletter HTML template
-EMAIL_TEMPLATE = '''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pivot 5 - {issue_date}</title>
-    <style>
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 640px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }}
-        .container {{
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-        }}
-        .header {{
-            background-color: #ff6f00;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }}
-        .header h1 {{
-            margin: 0;
-            font-size: 28px;
-        }}
-        .tagline {{
-            font-size: 14px;
-            opacity: 0.9;
-            margin-top: 5px;
-        }}
-        .preheader {{
-            display: none;
-            max-height: 0;
-            overflow: hidden;
-        }}
-        .story {{
-            padding: 25px;
-            border-bottom: 1px solid #e0e0e0;
-        }}
-        .story:last-child {{
-            border-bottom: none;
-        }}
-        .topic-label {{
-            display: inline-block;
-            background-color: #ff6f00;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-        }}
-        .headline {{
-            font-size: 22px;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin: 0 0 10px 0;
-            line-height: 1.3;
-        }}
-        .dek {{
-            font-size: 16px;
-            color: #555;
-            margin: 0 0 15px 0;
-        }}
-        .story-image {{
-            width: 100%;
-            height: auto;
-            border-radius: 6px;
-            margin-bottom: 15px;
-        }}
-        .bullets {{
-            margin: 0;
-            padding-left: 20px;
-        }}
-        .bullets li {{
-            margin-bottom: 10px;
-            font-size: 15px;
-            color: #444;
-        }}
-        .read-more {{
-            display: inline-block;
-            color: #ff6f00;
-            text-decoration: none;
-            font-weight: 600;
-            margin-top: 12px;
-            font-size: 14px;
-        }}
-        .read-more:hover {{
-            text-decoration: underline;
-        }}
-        .footer {{
-            background-color: #f8f8f8;
-            padding: 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #666;
-        }}
-        .footer a {{
-            color: #ff6f00;
-            text-decoration: none;
-        }}
-        .unsubscribe {{
-            margin-top: 15px;
-        }}
-        @media only screen and (max-width: 480px) {{
-            body {{
-                padding: 10px;
-            }}
-            .story {{
-                padding: 20px 15px;
-            }}
-            .headline {{
-                font-size: 20px;
-            }}
-        }}
-    </style>
-</head>
-<body>
-    <div class="preheader">{preheader}</div>
-    <div class="container">
-        <div class="header">
-            <h1>PIVOT 5</h1>
-            <div class="tagline">5 headlines \u2022 5 minutes \u2022 5 days a week</div>
-        </div>
-
-        {stories_html}
-
-        <div class="footer">
-            <p>You're receiving this because you subscribed to Pivot 5.</p>
-            <p class="unsubscribe">
-                <a href="{{{{unsubscribe_url}}}}">Unsubscribe</a> |
-                <a href="{{{{preferences_url}}}}">Manage Preferences</a>
-            </p>
-            <p>\u00a9 {year} Pivot Media. All rights reserved.</p>
-        </div>
-    </div>
-</body>
-</html>'''
-
-STORY_TEMPLATE = '''
-<div class="story">
-    <span class="topic-label">{label}</span>
-    <h2 class="headline">{headline}</h2>
-    <p class="dek">{dek}</p>
-    {image_html}
-    <ul class="bullets">
-        <li>{bullet_1}</li>
-        <li>{bullet_2}</li>
-        <li>{bullet_3}</li>
-    </ul>
-    <a href="{url}" class="read-more">Read More \u2192</a>
-</div>
-'''
-
-
-def compile_html() -> dict:
+def get_todays_issue_id() -> str:
     """
-    Step 4: HTML Compile Cron Job - Main entry point
+    Generate issue_id for today in format "Pivot 5 - MMM dd".
 
-    Flow:
-    1. Get decorated stories with image_status='generated'
-    2. Sort by slot_order (1-5)
-    3. Generate 15-word and 20-word summaries
-    4. Compile HTML email template
-    5. Write to Newsletter Issues table
+    Uses zero-padded day format to match n8n workflow.
+    Example: "Pivot 5 - Jan 02" (NOT "Jan 2")
 
     Returns:
-        {compiled: bool, issue_id: str, html_length: int, errors: list}
+        Issue ID string for today
     """
-    print(f"[Step 4] Starting HTML compilation at {datetime.utcnow().isoformat()}")
+    now_et = datetime.now(ET_TIMEZONE)
+    return f"Pivot 5 - {now_et.strftime('%b %d')}"
+
+
+def compile_html(issue_id: Optional[str] = None) -> dict:
+    """
+    Step 4a: HTML Compile - Main entry point
+
+    Matches n8n workflow nodes:
+    - List2: Query Newsletter Issue Stories (image_status='generated')
+    - prepare_issue_and_filter2: Group/filter complete issues
+    - Fetch Subject Line: Get subject from Selected Slots
+    - attach_issue_and_sort2: Sort by slot_order
+    - Build Summary Prompt / Message a model: Generate summaries via Claude
+    - compile_html_email2: Build responsive HTML
+    - Strip HTML for Deliverability: Clean HTML for Mautic
+    - Create a record: Write to Newsletter Issues Final (status='next-send')
+
+    Args:
+        issue_id: Optional specific issue ID. Defaults to today's date.
+
+    Returns:
+        {
+            "compiled": bool,
+            "issue_id": str,
+            "subject_line": str,
+            "html_length": int,
+            "plain_html_length": int,
+            "summary": str,
+            "summary_plus": str,
+            "record_id": str,
+            "story_count": int,
+            "errors": list
+        }
+    """
+    # Use provided issue_id or generate for today
+    target_issue_id = issue_id or get_todays_issue_id()
+
+    logger.info(f"[Step 4a] Starting HTML compilation for: {target_issue_id}")
 
     # Initialize clients
     airtable = AirtableClient()
@@ -202,177 +86,246 @@ def compile_html() -> dict:
     # Track results
     results = {
         "compiled": False,
-        "issue_id": "",
+        "issue_id": target_issue_id,
+        "subject_line": "",
         "html_length": 0,
+        "plain_html_length": 0,
+        "summary": "",
+        "summary_plus": "",
+        "record_id": "",
+        "story_count": 0,
         "errors": []
     }
 
     try:
-        # 1. Get decorated stories ready for compilation
-        print("[Step 4] Fetching decorated stories...")
-        decorations = airtable.get_decorations_for_compile(max_records=5)
+        # =====================================================================
+        # Step 1: Fetch decorated stories with image_status='generated'
+        # Matches n8n node: List2
+        # =====================================================================
+        logger.info(f"[Step 4a] Fetching decorated stories for issue: {target_issue_id}")
 
-        if not decorations:
-            print("[Step 4] No stories ready for compilation")
+        stories = airtable.get_decorated_stories_for_compile(target_issue_id)
+
+        if not stories:
+            error_msg = f"No stories with image_status='generated' found for {target_issue_id}"
+            logger.warning(f"[Step 4a] {error_msg}")
+            results["errors"].append({"step": "fetch_stories", "error": error_msg})
             return results
 
-        print(f"[Step 4] Found {len(decorations)} decorated stories")
+        results["story_count"] = len(stories)
+        logger.info(f"[Step 4a] Found {len(stories)} decorated stories")
 
-        # 2. Sort by slot_order
-        decorations.sort(key=lambda x: x.get('fields', {}).get('slot_order', 99))
+        # Check if we have all 5 stories
+        if len(stories) < 5:
+            logger.warning(f"[Step 4a] Only {len(stories)}/5 stories found. Proceeding anyway.")
+            results["errors"].append({
+                "step": "story_count",
+                "warning": f"Only {len(stories)}/5 stories found"
+            })
 
-        # 3. Extract headlines for summary generation
-        headlines = [
-            d.get('fields', {}).get('ai_headline', '')
-            for d in decorations
-        ]
+        # =====================================================================
+        # Step 2: Sort stories by slot_order (1-5)
+        # Matches n8n node: attach_issue_and_sort2
+        # =====================================================================
+        stories.sort(key=lambda x: x.get('fields', {}).get('slot_order', 99))
+        logger.info(f"[Step 4a] Stories sorted by slot_order")
 
-        # Generate summaries
-        print("[Step 4] Generating summaries...")
-        try:
-            summary_15 = claude.generate_summary(headlines, max_words=15)
-            summary_20 = claude.generate_summary(headlines, max_words=20)
-            print(f"[Step 4] Summary (15): {summary_15}")
-        except Exception as e:
-            print(f"[Step 4] Summary generation failed: {e}")
-            summary_15 = ""
-            summary_20 = ""
-            results["errors"].append({"step": "summary", "error": str(e)})
+        # =====================================================================
+        # Step 3: Fetch subject line from Selected Slots table
+        # Matches n8n node: Fetch Subject Line
+        # =====================================================================
+        logger.info(f"[Step 4a] Fetching subject line...")
 
-        # 4. Build stories HTML
-        print("[Step 4] Compiling stories HTML...")
-        stories_html_parts = []
+        subject_line = airtable.get_subject_line_for_issue(target_issue_id)
 
-        for decoration in decorations:
-            fields = decoration.get('fields', {})
-
-            # Build image HTML if available
-            image_url = fields.get('image_url', '')
-            image_html = ''
-            if image_url:
-                image_html = f'<img src="{image_url}" alt="" class="story-image" />'
-
-            # Apply story template
-            story_html = STORY_TEMPLATE.format(
-                label=fields.get('label', 'AI NEWS'),
-                headline=fields.get('ai_headline', ''),
-                dek=fields.get('ai_dek', ''),
-                image_html=image_html,
-                bullet_1=fields.get('ai_bullet_1', ''),
-                bullet_2=fields.get('ai_bullet_2', ''),
-                bullet_3=fields.get('ai_bullet_3', ''),
-                url=fields.get('original_url', '#')
-            )
-            stories_html_parts.append(story_html)
-
-        stories_html = '\n'.join(stories_html_parts)
-
-        # 5. Get subject line from selected slots
-        subject_line = _get_subject_line(airtable)
         if not subject_line:
-            subject_line = f"Pivot 5: {headlines[0][:40]}..." if headlines else "Pivot 5 Daily AI Newsletter"
+            subject_line = DEFAULT_SUBJECT_LINE
+            logger.warning(f"[Step 4a] No subject line found, using default: {subject_line}")
+            results["errors"].append({
+                "step": "subject_line",
+                "warning": "Using default subject line"
+            })
 
-        # Build full HTML
-        issue_date = datetime.utcnow().strftime('%b %d, %Y')
-        full_html = EMAIL_TEMPLATE.format(
-            issue_date=issue_date,
-            preheader=summary_15 or subject_line,
-            stories_html=stories_html,
-            year=datetime.utcnow().year
+        results["subject_line"] = subject_line
+        logger.info(f"[Step 4a] Subject line: {subject_line}")
+
+        # =====================================================================
+        # Step 4: Generate summaries via Claude
+        # Matches n8n nodes: Build Summary Prompt, Message a model, Parse Summaries
+        # - summary: 15 words (stories 1-3)
+        # - summary_plus: 20 words (stories 4-5 added)
+        # =====================================================================
+        logger.info(f"[Step 4a] Generating summaries via Claude...")
+
+        try:
+            summaries = _generate_summaries(claude, stories)
+            results["summary"] = summaries.get("summary", "")
+            results["summary_plus"] = summaries.get("summary_plus", "")
+            logger.info(f"[Step 4a] Summary (15w): {results['summary']}")
+            logger.info(f"[Step 4a] Summary Plus (20w): {results['summary_plus']}")
+        except Exception as e:
+            error_msg = f"Summary generation failed: {e}"
+            logger.error(f"[Step 4a] {error_msg}")
+            results["errors"].append({"step": "summary", "error": str(e)})
+            # Continue without summaries
+
+        # =====================================================================
+        # Step 5: Compile responsive HTML email
+        # Matches n8n node: compile_html_email2
+        # =====================================================================
+        logger.info(f"[Step 4a] Compiling responsive HTML email...")
+
+        full_html = build_full_html_email(
+            stories=stories,
+            subject_line=subject_line,
+            summary=results["summary"],
+            include_images=True
         )
 
         results["html_length"] = len(full_html)
-        print(f"[Step 4] HTML compiled: {len(full_html)} characters")
+        logger.info(f"[Step 4a] Full HTML compiled: {len(full_html)} chars")
 
-        # 6. Write to Newsletter Issues table
-        print("[Step 4] Writing to Newsletter Issues table...")
+        # =====================================================================
+        # Step 6: Strip HTML for deliverability
+        # Matches n8n node: Strip HTML for Deliverability
+        # =====================================================================
+        logger.info(f"[Step 4a] Stripping HTML for deliverability...")
+
+        plain_html = strip_html_for_deliverability(
+            stories=stories,
+            subject_line=subject_line
+        )
+
+        results["plain_html_length"] = len(plain_html)
+        logger.info(f"[Step 4a] Plain HTML compiled: {len(plain_html)} chars")
+
+        # =====================================================================
+        # Step 7: Create record in Newsletter Issues Final (status='next-send')
+        # Matches n8n node: Create a record
+        # =====================================================================
+        logger.info(f"[Step 4a] Creating record in Newsletter Issues Final...")
+
+        # Get current timestamp in ET
+        now_et = datetime.now(ET_TIMEZONE)
+
         issue_data = {
-            "issue_id": f"pivot5-{datetime.utcnow().strftime('%Y%m%d')}",
+            "issue_id": target_issue_id,
             "newsletter_id": "pivot_ai",
             "html": full_html,
+            "plain_html": plain_html,
             "subject_line": subject_line,
-            "summary": summary_15,
-            "summary_plus": summary_20,
-            "status": "compiled",
-            "compiled_at": datetime.utcnow().isoformat()
+            "summary": results["summary"],
+            "summary_plus": results["summary_plus"],
+            "status": "next-send",
+            "compiled_at": now_et.isoformat(),
+            "story_count": len(stories)
         }
 
-        record_id = airtable.write_newsletter_issue(issue_data)
-        results["issue_id"] = record_id
+        record = airtable.create_newsletter_issue_final(issue_data)
+        results["record_id"] = record.get("id", "")
         results["compiled"] = True
 
-        print(f"[Step 4] Created Newsletter Issue: {record_id}")
+        logger.info(f"[Step 4a] Created Newsletter Issue Final: {results['record_id']}")
 
-        # 7. Update decoration records to mark as compiled
-        print("[Step 4] Updating decoration statuses...")
-        for decoration in decorations:
-            try:
-                airtable.update_decoration(decoration['id'], {
-                    "compile_status": "compiled",
-                    "newsletter_issue_id": record_id
-                })
-            except Exception as e:
-                print(f"[Step 4] Error updating decoration: {e}")
+        # =====================================================================
+        # Success!
+        # =====================================================================
+        logger.info(f"[Step 4a] HTML compilation complete for {target_issue_id}")
+        logger.info(f"[Step 4a] Results: {results}")
 
-        print(f"[Step 4] HTML compilation complete: {results}")
         return results
 
     except Exception as e:
-        print(f"[Step 4] Fatal error: {e}")
+        logger.error(f"[Step 4a] Fatal error: {e}", exc_info=True)
         results["errors"].append({"fatal": str(e)})
         raise
 
 
-def _get_subject_line(airtable: AirtableClient) -> Optional[str]:
-    """Get subject line from latest selected slots record"""
-    try:
-        table = airtable._get_table(
-            airtable.ai_editor_base_id,
-            airtable.selected_slots_table_id
-        )
+def _generate_summaries(claude: ClaudeClient, stories: List[Dict[str, Any]]) -> Dict[str, str]:
+    """
+    Generate 15-word and 20-word summaries using Claude.
 
-        records = table.all(
-            formula="OR({status}='pending', {status}='decorated')",
-            sort=['-issue_date'],
-            max_records=1,
-            fields=['subject_line']
-        )
+    Matches n8n workflow summary generation:
+    - summary: 15 words covering stories 1-3
+    - summary_plus: 20 words covering all 5 stories
 
-        if records:
-            return records[0].get('fields', {}).get('subject_line', '')
+    Args:
+        claude: Claude API client
+        stories: List of decorated story records
 
-    except Exception as e:
-        print(f"[Step 4] Error fetching subject line: {e}")
+    Returns:
+        {"summary": str, "summary_plus": str}
+    """
+    # Extract headlines for summary generation
+    headlines = []
+    for story in stories:
+        fields = story.get('fields', {})
+        headline = fields.get('headline', '')
+        if headline:
+            headlines.append(headline)
 
-    return None
+    if not headlines:
+        return {"summary": "", "summary_plus": ""}
+
+    # Generate 15-word summary (first 3 stories)
+    top_headlines = headlines[:3]
+    summary_15 = claude.generate_summary(top_headlines, max_words=15)
+
+    # Generate 20-word summary (all stories)
+    summary_20 = claude.generate_summary(headlines, max_words=20)
+
+    return {
+        "summary": summary_15 or "",
+        "summary_plus": summary_20 or ""
+    }
 
 
-def preview_html(issue_id: str) -> Optional[str]:
+def preview_html(issue_id: str) -> Optional[Dict[str, str]]:
     """
     Get HTML preview for a specific issue.
 
     Args:
-        issue_id: Newsletter Issue record ID
+        issue_id: Newsletter Issue record ID or issue_id string
 
     Returns:
-        HTML string or None if not found
+        {"html": str, "plain_html": str, "subject_line": str} or None if not found
     """
     airtable = AirtableClient()
 
     try:
-        table = airtable._get_table(
-            airtable.pivot_media_base_id,
-            airtable.newsletter_issues_table_id
-        )
+        # Try to get from Newsletter Issues Final
+        record = airtable.get_newsletter_issue_for_send()
 
-        record = table.get(issue_id)
         if record:
-            return record.get('fields', {}).get('html', '')
+            fields = record.get('fields', {})
+            return {
+                "html": fields.get('html', ''),
+                "plain_html": fields.get('plain_html', ''),
+                "subject_line": fields.get('subject_line', ''),
+                "issue_id": fields.get('issue_id', ''),
+                "status": fields.get('status', '')
+            }
 
     except Exception as e:
-        print(f"[Step 4] Error fetching HTML preview: {e}")
+        logger.error(f"[Step 4a] Error fetching HTML preview: {e}")
 
     return None
+
+
+def recompile_for_issue(issue_id: str) -> dict:
+    """
+    Recompile HTML for a specific issue.
+
+    Use this to regenerate HTML for a past or future issue.
+
+    Args:
+        issue_id: Issue ID (e.g., "Pivot 5 - Jan 02")
+
+    Returns:
+        Same as compile_html()
+    """
+    logger.info(f"[Step 4a] Recompiling for specific issue: {issue_id}")
+    return compile_html(issue_id=issue_id)
 
 
 # Job configuration for RQ scheduler

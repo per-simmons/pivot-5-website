@@ -40,6 +40,11 @@ class AirtableClient:
         self.queued_stories_table_id = os.environ.get('AI_EDITOR_QUEUED_STORIES_TABLE', 'tblkVBP5mKq3sBpkv')
         self.newsletter_selects_table_id = os.environ.get('AIRTABLE_NEWSLETTER_SELECTS_TABLE', 'tblKhICCdWnyuqgry')
 
+        # Table IDs - Step 4 HTML Compile & Send (AI Editor 2.0 base)
+        # Added 1/2/26 for n8n migration
+        self.newsletter_issues_final_table_id = os.environ.get('AI_EDITOR_NEWSLETTER_ISSUES_FINAL_TABLE', 'tblPBfWZzRdLuiqYr')
+        self.newsletter_issues_archive_ai_table_id = os.environ.get('AI_EDITOR_NEWSLETTER_ISSUES_ARCHIVE_TABLE', 'tblB7j5qGcTxyXmfa')
+
         # Table IDs - P5 Social Posts
         self.p5_social_posts_table_id = os.environ.get('P5_SOCIAL_POSTS_TABLE', 'tbllJMN2QBPJoG3jA')
 
@@ -511,6 +516,195 @@ class AirtableClient:
         Step 5: Mark decoration record as synced to social
         """
         return self.update_decoration(record_id, {"social_status": "synced"})
+
+    # =========================================================================
+    # STEP 4: HTML COMPILE & SEND (AI Editor 2.0 base)
+    # Added 1/2/26 for n8n migration
+    # =========================================================================
+
+    def get_decorated_stories_for_compile(self, issue_id: str) -> List[dict]:
+        """
+        Step 4, Node 2 (List2): Get decorated stories ready for HTML compilation.
+
+        Query: Newsletter Issue Stories (Decoration) table
+        Filter: image_status='generated' AND issue_id='{issue_id}'
+        Sort: slot_order ASC
+
+        Args:
+            issue_id: Issue identifier (e.g., "Pivot 5 - Jan 02")
+                      Note: Day must be zero-padded (MMM dd format)
+
+        Returns:
+            List of decorated story records with fields:
+            - issue_id, slot_order, story_id, headline, label
+            - b1, b2, b3 (bullet points)
+            - pivotnews_url, image_url, image_status
+        """
+        table = self._get_table(self.ai_editor_base_id, self.decoration_table_id)
+
+        # Match n8n List2 node filter exactly
+        filter_formula = f"AND({{image_status}} = 'generated', {{issue_id}} = '{issue_id}')"
+
+        records = table.all(
+            formula=filter_formula,
+            sort=['slot_order'],
+            fields=[
+                'issue_id', 'slot_order', 'story_id', 'headline', 'label',
+                'b1', 'b2', 'b3', 'pivotnews_url', 'image_url', 'image_status'
+            ]
+        )
+
+        logger.info(f"[Step 4] Found {len(records)} decorated stories for issue: {issue_id}")
+        return records
+
+    def get_subject_line_for_issue(self, issue_id: str) -> Optional[str]:
+        """
+        Step 4, Node 3 (Fetch Subject Line): Get subject line from Selected Slots table.
+
+        Query: AI Editor - Selected Slots table
+        Filter: issue_id='{issue_id}'
+
+        Args:
+            issue_id: Issue identifier (e.g., "Pivot 5 - Jan 02")
+
+        Returns:
+            Subject line string, or None if not found
+            Fallback: "5 headlines. 5 minutes. 5 days a week."
+        """
+        table = self._get_table(self.ai_editor_base_id, self.selected_slots_table_id)
+
+        records = table.all(
+            formula=f"{{issue_id}} = '{issue_id}'",
+            max_records=1,
+            fields=['issue_id', 'subject_line']
+        )
+
+        if records and records[0].get('fields', {}).get('subject_line'):
+            return records[0]['fields']['subject_line']
+
+        # Return fallback subject line as per n8n workflow
+        return "5 headlines. 5 minutes. 5 days a week."
+
+    def create_newsletter_issue_final(self, data: dict) -> dict:
+        """
+        Step 4, Node 11 (Create a record): Create record in Newsletter Issues Final.
+
+        Table: Newsletter Issues Final (tblPBfWZzRdLuiqYr)
+        Base: AI Editor 2.0 (appglKSJZxmA9iHpl)
+
+        Expected data:
+            - issue_id: str (e.g., "Pivot 5 - Jan 02")
+            - newsletter_id: str ("pivot_ai")
+            - html: str (full compiled HTML)
+            - subject_line: str
+            - status: str ("next-send")
+            - summary: str (15-word summary)
+            - summary_plus: str (20-word summary)
+
+        Returns:
+            Created record with 'id' field
+        """
+        table = self._get_table(self.ai_editor_base_id, self.newsletter_issues_final_table_id)
+
+        record = table.create(data)
+        logger.info(f"[Step 4] Created Newsletter Issues Final record: {record['id']}")
+        return record
+
+    def get_newsletter_issue_for_send(self) -> Optional[dict]:
+        """
+        Step 4b, Node 1 (List6): Get newsletter issue ready for send.
+
+        Query: Newsletter Issues Final table
+        Filter: status='next-send'
+
+        Returns:
+            Newsletter issue record or None
+        """
+        table = self._get_table(self.ai_editor_base_id, self.newsletter_issues_final_table_id)
+
+        records = table.all(
+            formula="{status}='next-send'",
+            max_records=1,
+            fields=['issue_id', 'newsletter_id', 'html', 'subject_line', 'status', 'summary', 'summary_plus']
+        )
+
+        if records:
+            logger.info(f"[Step 4] Found issue for send: {records[0].get('fields', {}).get('issue_id')}")
+            return records[0]
+
+        logger.info("[Step 4] No issues with status='next-send'")
+        return None
+
+    def archive_newsletter_issue_ai_editor(self, data: dict) -> dict:
+        """
+        Step 4b, Node 9 (Update Newsletter Issues Archive): Upsert to archive table.
+
+        Table: Newsletter Issues Archive (tblB7j5qGcTxyXmfa)
+        Base: AI Editor 2.0 (appglKSJZxmA9iHpl)
+        Operation: UPSERT (match on issue_id)
+
+        Expected data:
+            - issue_id: str
+            - newsletter_id: str ("pivot_ai")
+            - send_date: str (date)
+            - sent_at: str (datetime, ET timezone)
+            - subject_line: str
+            - status: str ("sent" / "failed" / "partial_failure")
+            - html: str
+            - summary: str
+            - mautic_sent_count: int
+            - mautic_failed_recipients: int
+            - mautic_send_status: str
+            - mautic_response_raw: str (JSON)
+
+        Returns:
+            Created or updated record
+        """
+        table = self._get_table(self.ai_editor_base_id, self.newsletter_issues_archive_ai_table_id)
+
+        # Use upsert with issue_id as match field
+        issue_id = data.get('issue_id')
+        if not issue_id:
+            raise ValueError("issue_id is required for archive upsert")
+
+        # Check if record exists
+        existing = table.all(
+            formula=f"{{issue_id}} = '{issue_id}'",
+            max_records=1
+        )
+
+        if existing:
+            # Update existing record
+            record = table.update(existing[0]['id'], data)
+            logger.info(f"[Step 4] Updated archive record: {record['id']}")
+        else:
+            # Create new record
+            record = table.create(data)
+            logger.info(f"[Step 4] Created archive record: {record['id']}")
+
+        return record
+
+    def delete_newsletter_issue_final(self, record_id: str) -> bool:
+        """
+        Step 4b, Node 10 (Delete a record3): Delete record from Newsletter Issues Final.
+
+        Called after successful send to clean up the queue.
+
+        Args:
+            record_id: Airtable record ID
+
+        Returns:
+            True if deleted successfully
+        """
+        table = self._get_table(self.ai_editor_base_id, self.newsletter_issues_final_table_id)
+
+        try:
+            table.delete(record_id)
+            logger.info(f"[Step 4] Deleted Newsletter Issues Final record: {record_id}")
+            return True
+        except Exception as e:
+            logger.error(f"[Step 4] Failed to delete record {record_id}: {e}")
+            return False
 
     # =========================================================================
     # P5 SOCIAL POSTS BASE

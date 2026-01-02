@@ -47,6 +47,13 @@ const STEP_3_JOBS = {
   images: { name: "Generate Images", icon: "image" },
 };
 
+// Step 4 has three jobs: compile, mautic send, gmail send
+const STEP_4_JOBS = {
+  html_compile: { name: "Compile HTML", icon: "code" },
+  mautic_send: { name: "Send via Mautic", icon: "send" },
+  gmail_send: { name: "Test via Gmail", icon: "mail" },
+};
+
 // Step 1 slot definitions
 const PREFILTER_SLOTS = [1, 2, 3, 4, 5];
 
@@ -74,7 +81,7 @@ export default function StepPage({ params }: PageProps) {
   const [aiScoringJobId, setAiScoringJobId] = useState<string | null>(null);
   const [aiScoringJobStatus, setAiScoringJobStatus] = useState<"queued" | "started" | "finished" | "failed" | null>(null);
   const [aiScoringElapsedTime, setAiScoringElapsedTime] = useState(0);
-  const [currentJobType, setCurrentJobType] = useState<"ingest" | "ai_scoring" | "decoration" | "images" | null>(null);
+  const [currentJobType, setCurrentJobType] = useState<"ingest" | "ai_scoring" | "decoration" | "images" | "html_compile" | "mautic_send" | "gmail_send" | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
   // Step 3 specific: Track Image Generation job separately
@@ -82,6 +89,18 @@ export default function StepPage({ params }: PageProps) {
   const [imageGenJobId, setImageGenJobId] = useState<string | null>(null);
   const [imageGenJobStatus, setImageGenJobStatus] = useState<"queued" | "started" | "finished" | "failed" | null>(null);
   const [imageGenElapsedTime, setImageGenElapsedTime] = useState(0);
+
+  // Step 4 specific: Track Mautic Send job separately
+  const [isMauticSendRunning, setIsMauticSendRunning] = useState(false);
+  const [mauticSendJobId, setMauticSendJobId] = useState<string | null>(null);
+  const [mauticSendJobStatus, setMauticSendJobStatus] = useState<"queued" | "started" | "finished" | "failed" | null>(null);
+  const [mauticSendElapsedTime, setMauticSendElapsedTime] = useState(0);
+
+  // Step 4 specific: Track Gmail Send job separately
+  const [isGmailSendRunning, setIsGmailSendRunning] = useState(false);
+  const [gmailSendJobId, setGmailSendJobId] = useState<string | null>(null);
+  const [gmailSendJobStatus, setGmailSendJobStatus] = useState<"queued" | "started" | "finished" | "failed" | null>(null);
+  const [gmailSendElapsedTime, setGmailSendElapsedTime] = useState(0);
 
   // Step 1 specific: Track individual slot jobs
   const [slotStates, setSlotStates] = useState<Record<number, SlotState>>({
@@ -162,6 +181,8 @@ export default function StepPage({ params }: PageProps) {
   const cancelJob = async () => {
     const currentJobId = currentJobType === "ai_scoring" ? aiScoringJobId
       : currentJobType === "images" ? imageGenJobId
+      : currentJobType === "mautic_send" ? mauticSendJobId
+      : currentJobType === "gmail_send" ? gmailSendJobId
       : jobId;
     if (!currentJobId) return;
 
@@ -185,6 +206,14 @@ export default function StepPage({ params }: PageProps) {
           setIsImageGenRunning(false);
           setImageGenJobId(null);
           setImageGenJobStatus(null);
+        } else if (currentJobType === "mautic_send") {
+          setIsMauticSendRunning(false);
+          setMauticSendJobId(null);
+          setMauticSendJobStatus(null);
+        } else if (currentJobType === "gmail_send") {
+          setIsGmailSendRunning(false);
+          setGmailSendJobId(null);
+          setGmailSendJobStatus(null);
         } else {
           setIsRunning(false);
           setJobId(null);
@@ -212,15 +241,17 @@ export default function StepPage({ params }: PageProps) {
     notFound();
   }
 
-  const handleRunNow = async (jobType?: "ingest" | "ai_scoring" | "decoration" | "images") => {
-    // For Step 0, use the specified jobType; for Step 3, use the specified jobType; otherwise use the step's job name
-    const jobName = (stepId === 0 || stepId === 3) && jobType ? jobType : STEP_JOB_NAMES[stepId];
+  const handleRunNow = async (jobType?: "ingest" | "ai_scoring" | "decoration" | "images" | "html_compile" | "mautic_send" | "gmail_send") => {
+    // For Step 0, Step 3, and Step 4, use the specified jobType; otherwise use the step's job name
+    const jobName = (stepId === 0 || stepId === 3 || stepId === 4) && jobType ? jobType : STEP_JOB_NAMES[stepId];
     if (!jobName) return;
 
     const jobDisplayName = stepId === 0 && jobType
       ? STEP_0_JOBS[jobType as "ingest" | "ai_scoring"].name
       : stepId === 3 && jobType
       ? STEP_3_JOBS[jobType as "decoration" | "images"].name
+      : stepId === 4 && jobType
+      ? STEP_4_JOBS[jobType as "html_compile" | "mautic_send" | "gmail_send"].name
       : stepConfig.name;
 
     // For Step 0 AI Scoring, use separate state
@@ -233,10 +264,20 @@ export default function StepPage({ params }: PageProps) {
       setIsImageGenRunning(true);
       setImageGenElapsedTime(0);
       setCurrentJobType("images");
+    } else if (stepId === 4 && jobType === "mautic_send") {
+      // For Step 4 Mautic Send, use separate state
+      setIsMauticSendRunning(true);
+      setMauticSendElapsedTime(0);
+      setCurrentJobType("mautic_send");
+    } else if (stepId === 4 && jobType === "gmail_send") {
+      // For Step 4 Gmail Send, use separate state
+      setIsGmailSendRunning(true);
+      setGmailSendElapsedTime(0);
+      setCurrentJobType("gmail_send");
     } else {
       setIsRunning(true);
       setElapsedTime(0);
-      setCurrentJobType(stepId === 0 ? "ingest" : stepId === 3 ? "decoration" : null);
+      setCurrentJobType(stepId === 0 ? "ingest" : stepId === 3 ? "decoration" : stepId === 4 ? "html_compile" : null);
     }
     setShowCompletion(false);
 
@@ -256,6 +297,12 @@ export default function StepPage({ params }: PageProps) {
         } else if (stepId === 3 && jobType === "images") {
           setImageGenJobId(data.job_id);
           setImageGenJobStatus("queued");
+        } else if (stepId === 4 && jobType === "mautic_send") {
+          setMauticSendJobId(data.job_id);
+          setMauticSendJobStatus("queued");
+        } else if (stepId === 4 && jobType === "gmail_send") {
+          setGmailSendJobId(data.job_id);
+          setGmailSendJobStatus("queued");
         } else {
           setJobId(data.job_id);
           setJobStatus("queued");
@@ -268,6 +315,10 @@ export default function StepPage({ params }: PageProps) {
           setIsAiScoringRunning(false);
         } else if (stepId === 3 && jobType === "images") {
           setIsImageGenRunning(false);
+        } else if (stepId === 4 && jobType === "mautic_send") {
+          setIsMauticSendRunning(false);
+        } else if (stepId === 4 && jobType === "gmail_send") {
+          setIsGmailSendRunning(false);
         } else {
           setIsRunning(false);
         }
@@ -278,6 +329,10 @@ export default function StepPage({ params }: PageProps) {
         setIsAiScoringRunning(false);
       } else if (stepId === 3 && jobType === "images") {
         setIsImageGenRunning(false);
+      } else if (stepId === 4 && jobType === "mautic_send") {
+        setIsMauticSendRunning(false);
+      } else if (stepId === 4 && jobType === "gmail_send") {
+        setIsGmailSendRunning(false);
       } else {
         setIsRunning(false);
       }
@@ -454,6 +509,115 @@ export default function StepPage({ params }: PageProps) {
     };
   }, [imageGenJobId, stepId]);
 
+  // Poll Mautic Send job status (Step 4 only)
+  useEffect(() => {
+    if (!mauticSendJobId) return;
+
+    const startTime = Date.now();
+
+    const timerInterval = setInterval(() => {
+      setMauticSendElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/jobs/${mauticSendJobId}`);
+        const status = await response.json();
+
+        if (status.status === "started" || status.status === "queued") {
+          setMauticSendJobStatus(status.status);
+        }
+
+        if (status.status === "finished" || status.status === "failed") {
+          clearInterval(pollInterval);
+          clearInterval(timerInterval);
+          setIsMauticSendRunning(false);
+          setMauticSendJobId(null);
+          setMauticSendJobStatus(status.status);
+          setCurrentJobType(null);
+
+          const finalElapsed = Math.floor((Date.now() - startTime) / 1000);
+
+          if (status.status === "finished") {
+            const sentCount = status.result?.sent_count || 0;
+            const failedCount = status.result?.failed_recipients || 0;
+            setLastResult({ processed: sentCount, elapsed: finalElapsed });
+            setShowCompletion(true);
+            toast.success("Mautic Send Completed", {
+              description: `Sent to ${sentCount} recipients${failedCount > 0 ? `, ${failedCount} failed` : ""} in ${finalElapsed}s`,
+            });
+            window.dispatchEvent(new CustomEvent("jobCompleted", { detail: { stepId } }));
+          } else {
+            toast.error("Mautic Send Failed", {
+              description: status.error || "Unknown error occurred",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error polling Mautic Send job status:", error);
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(timerInterval);
+    };
+  }, [mauticSendJobId, stepId]);
+
+  // Poll Gmail Send job status (Step 4 only)
+  useEffect(() => {
+    if (!gmailSendJobId) return;
+
+    const startTime = Date.now();
+
+    const timerInterval = setInterval(() => {
+      setGmailSendElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/jobs/${gmailSendJobId}`);
+        const status = await response.json();
+
+        if (status.status === "started" || status.status === "queued") {
+          setGmailSendJobStatus(status.status);
+        }
+
+        if (status.status === "finished" || status.status === "failed") {
+          clearInterval(pollInterval);
+          clearInterval(timerInterval);
+          setIsGmailSendRunning(false);
+          setGmailSendJobId(null);
+          setGmailSendJobStatus(status.status);
+          setCurrentJobType(null);
+
+          const finalElapsed = Math.floor((Date.now() - startTime) / 1000);
+
+          if (status.status === "finished") {
+            const recipientCount = status.result?.recipients?.length || 0;
+            setLastResult({ processed: recipientCount, elapsed: finalElapsed });
+            setShowCompletion(true);
+            toast.success("Gmail Test Send Completed", {
+              description: `Sent test email to ${recipientCount} recipient(s) in ${finalElapsed}s`,
+            });
+            window.dispatchEvent(new CustomEvent("jobCompleted", { detail: { stepId } }));
+          } else {
+            toast.error("Gmail Test Send Failed", {
+              description: status.error || "Unknown error occurred",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error polling Gmail Send job status:", error);
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(timerInterval);
+    };
+  }, [gmailSendJobId, stepId]);
+
   // Poll slot job status (Step 1 only)
   useEffect(() => {
     if (stepId !== 1) return;
@@ -609,6 +773,45 @@ export default function StepPage({ params }: PageProps) {
                   {isImageGenRunning ? `Generating... ${imageGenElapsedTime}s` : "Generate Images"}
                 </Button>
               </div>
+            ) : stepId === 4 ? (
+              /* Step 4: Three buttons for Compile, Mautic Send, Gmail Send */
+              <div className="flex gap-2">
+                <Button
+                  className="gap-2"
+                  onClick={() => handleRunNow("html_compile")}
+                  disabled={isRunning || isMauticSendRunning || isGmailSendRunning}
+                >
+                  <MaterialIcon
+                    name={isRunning && currentJobType === "html_compile" ? "sync" : "code"}
+                    className={`text-lg ${isRunning && currentJobType === "html_compile" ? "animate-spin" : ""}`}
+                  />
+                  {isRunning && currentJobType === "html_compile" ? `Compiling... ${elapsedTime}s` : "Compile HTML"}
+                </Button>
+                <Button
+                  className="gap-2"
+                  variant="secondary"
+                  onClick={() => handleRunNow("mautic_send")}
+                  disabled={isRunning || isMauticSendRunning || isGmailSendRunning}
+                >
+                  <MaterialIcon
+                    name={isMauticSendRunning ? "sync" : "send"}
+                    className={`text-lg ${isMauticSendRunning ? "animate-spin" : ""}`}
+                  />
+                  {isMauticSendRunning ? `Sending... ${mauticSendElapsedTime}s` : "Send via Mautic"}
+                </Button>
+                <Button
+                  className="gap-2"
+                  variant="outline"
+                  onClick={() => handleRunNow("gmail_send")}
+                  disabled={isRunning || isMauticSendRunning || isGmailSendRunning}
+                >
+                  <MaterialIcon
+                    name={isGmailSendRunning ? "sync" : "mail"}
+                    className={`text-lg ${isGmailSendRunning ? "animate-spin" : ""}`}
+                  />
+                  {isGmailSendRunning ? `Testing... ${gmailSendElapsedTime}s` : "Test via Gmail"}
+                </Button>
+              </div>
             ) : stepId === 1 ? (
               /* Step 1: No single run button - slot cards shown below */
               null
@@ -746,7 +949,7 @@ export default function StepPage({ params }: PageProps) {
       )}
 
       {/* Running Status Banner */}
-      {(isRunning || isAiScoringRunning) && (
+      {(isRunning || isAiScoringRunning || isMauticSendRunning || isGmailSendRunning) && (
         <Card className="border-blue-200 bg-blue-50/50">
           <CardContent className="py-4">
             <div className="flex items-center gap-4">
@@ -761,18 +964,33 @@ export default function StepPage({ params }: PageProps) {
                         ? (aiScoringJobStatus === "queued" ? "AI Scoring Queued" : "AI Scoring Running")
                         : currentJobType === "ingest"
                         ? (jobStatus === "queued" ? "Ingest Queued" : "Ingest Running")
+                        : currentJobType === "html_compile"
+                        ? (jobStatus === "queued" ? "Compile Queued" : "Compiling HTML")
+                        : currentJobType === "mautic_send"
+                        ? (mauticSendJobStatus === "queued" ? "Mautic Send Queued" : "Sending via Mautic")
+                        : currentJobType === "gmail_send"
+                        ? (gmailSendJobStatus === "queued" ? "Gmail Send Queued" : "Sending Test via Gmail")
                         : (jobStatus === "queued" ? "Job Queued" : "Job Running")}
                     </span>
                     <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
-                      {(currentJobType === "ai_scoring" ? aiScoringJobStatus : jobStatus) === "queued"
+                      {(currentJobType === "ai_scoring" ? aiScoringJobStatus
+                        : currentJobType === "mautic_send" ? mauticSendJobStatus
+                        : currentJobType === "gmail_send" ? gmailSendJobStatus
+                        : jobStatus) === "queued"
                         ? "Waiting for worker..."
                         : "Processing..."}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-lg font-bold text-blue-700">
-                      {Math.floor((currentJobType === "ai_scoring" ? aiScoringElapsedTime : elapsedTime) / 60)}:
-                      {String((currentJobType === "ai_scoring" ? aiScoringElapsedTime : elapsedTime) % 60).padStart(2, "0")}
+                      {Math.floor((currentJobType === "ai_scoring" ? aiScoringElapsedTime
+                        : currentJobType === "mautic_send" ? mauticSendElapsedTime
+                        : currentJobType === "gmail_send" ? gmailSendElapsedTime
+                        : elapsedTime) / 60)}:
+                      {String((currentJobType === "ai_scoring" ? aiScoringElapsedTime
+                        : currentJobType === "mautic_send" ? mauticSendElapsedTime
+                        : currentJobType === "gmail_send" ? gmailSendElapsedTime
+                        : elapsedTime) % 60).padStart(2, "0")}
                     </span>
                     <Button
                       variant="destructive"
@@ -802,7 +1020,10 @@ export default function StepPage({ params }: PageProps) {
                 </div>
                 <Progress value={undefined} className="h-2 bg-blue-100" />
                 <div className="mt-2 text-sm text-blue-600">
-                  <span>Job ID: {(currentJobType === "ai_scoring" ? aiScoringJobId : jobId)?.slice(0, 8)}...</span>
+                  <span>Job ID: {(currentJobType === "ai_scoring" ? aiScoringJobId
+                    : currentJobType === "mautic_send" ? mauticSendJobId
+                    : currentJobType === "gmail_send" ? gmailSendJobId
+                    : jobId)?.slice(0, 8)}...</span>
                 </div>
               </div>
             </div>

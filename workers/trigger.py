@@ -93,6 +93,9 @@ def get_job_function(step_name: str):
         elif step_name == 'mautic_send':
             from jobs.mautic_send import send_via_mautic
             JOB_FUNCTIONS[step_name] = send_via_mautic
+        elif step_name == 'gmail_send':
+            from jobs.gmail_send import send_via_gmail
+            JOB_FUNCTIONS[step_name] = send_via_gmail
         elif step_name == 'social_sync':
             from jobs.social_sync import sync_social_posts
             JOB_FUNCTIONS[step_name] = sync_social_posts
@@ -141,6 +144,7 @@ QUEUE_MAPPING = {
     'images': 'default',
     'html_compile': 'default',
     'mautic_send': 'high',
+    'gmail_send': 'high',
     'social_sync': 'low',
     # Sandbox jobs (FreshRSS-based pipeline)
     'ingest_sandbox': 'default',
