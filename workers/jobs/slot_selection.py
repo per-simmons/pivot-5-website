@@ -8,11 +8,15 @@ previously selected companies/sources/IDs to enforce diversity rules.
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional, Any
 
 from utils.airtable import AirtableClient
 from utils.claude import ClaudeClient
+
+# EST timezone (UTC-5) for newsletter scheduling
+# Newsletter is for US East Coast readers, so all date calculations must use EST
+EST = timezone(timedelta(hours=-5))
 
 
 # Base slot-specific freshness windows (in days)
@@ -33,6 +37,10 @@ def get_next_issue_date() -> tuple[str, str]:
     """
     Calculate the next newsletter issue date with weekend skipping.
 
+    CRITICAL: Uses EST timezone, not UTC!
+    Newsletter schedule is based on US East Coast time.
+    Job runs at ~9:25 PM EST = ~2:25 AM UTC next day.
+
     n8n Logic:
     - Newsletter runs Tue-Sat for Mon-Fri issues
     - Friday run → Monday issue (skip weekend)
@@ -43,8 +51,12 @@ def get_next_issue_date() -> tuple[str, str]:
         Tuple of (issue_date_iso, issue_date_label)
         e.g., ('2025-01-02', 'Pivot 5 - Jan 02')
     """
-    now = datetime.utcnow()
+    # FIXED 1/2/26: Use EST, not UTC. Job runs at 9:25 PM EST.
+    # Using UTC caused Friday calculation when it was still Thursday EST.
+    now = datetime.now(EST)
     weekday = now.weekday()  # 0=Monday, 4=Friday, 5=Saturday, 6=Sunday
+
+    print(f"[Step 2] Date calculation: EST now = {now.strftime('%Y-%m-%d %H:%M %Z')}, weekday = {weekday}")
 
     # Calculate next issue date based on day of week
     if weekday == 4:  # Friday -> Monday (skip Sat/Sun)
@@ -76,8 +88,8 @@ def get_slot_freshness(slot: int) -> int:
     """
     base_freshness = BASE_SLOT_FRESHNESS.get(slot, 7)
 
-    # Check if it's a weekend (Sunday=6 or Monday=0)
-    weekday = datetime.utcnow().weekday()
+    # Check if it's a weekend (Sunday=6 or Monday=0) - use EST, not UTC
+    weekday = datetime.now(EST).weekday()
     is_weekend_run = weekday in (6, 0)  # Sunday or Monday
 
     # Extend to 72 hours (3 days) for slots with short freshness on weekends
@@ -166,14 +178,41 @@ def select_slots() -> dict:
                     continue
 
                 # Filter out already selected stories AND stories from 14-day lookback
+                # FIXED 1/2/26: Also check headlines and pivotIds, not just storyIDs
+                # Same article can get re-ingested with new storyID, causing duplicates
                 recent_story_ids = set(recent_data.get('storyIds', []))
+                recent_headlines = set(h.lower().strip() for h in recent_data.get('headlines', []) if h)
+                recent_pivot_ids = set(recent_data.get('pivotIds', []))
                 selected_today = set(cumulative_state["selectedToday"])
                 excluded_ids = recent_story_ids | selected_today
 
+                def is_duplicate(candidate):
+                    """Check if candidate matches any recently used story by ID, headline, or pivotId"""
+                    fields = candidate.get('fields', {})
+                    story_id = fields.get('storyID', '')
+                    headline = (fields.get('headline', '') or '').lower().strip()
+                    pivot_id = fields.get('pivotId', '')
+
+                    # Check storyID
+                    if story_id in excluded_ids:
+                        return True
+                    # Check headline (case-insensitive)
+                    if headline and headline in recent_headlines:
+                        return True
+                    # Check pivotId
+                    if pivot_id and pivot_id in recent_pivot_ids:
+                        return True
+                    return False
+
                 available_candidates = [
                     c for c in candidates
-                    if c.get('fields', {}).get('storyID') not in excluded_ids
+                    if not is_duplicate(c)
                 ]
+
+                # Log how many were filtered
+                filtered_count = len(candidates) - len(available_candidates)
+                if filtered_count > 0:
+                    print(f"[Step 2] Slot {slot}: Filtered out {filtered_count} duplicates (by storyID/headline/pivotId)")
 
                 if not available_candidates:
                     results["errors"].append({
