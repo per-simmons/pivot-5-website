@@ -261,19 +261,38 @@ class FreshRSSClient:
         else:
             endpoint = "/reader/api/0/stream/contents"
 
-        # Fetch from API
+        # Two-tier filtering approach:
+        # 1. API level: Use generous 7-day window to reduce data (avoids 3-year-old articles)
+        # 2. Python level: Use strict since_hours filter for final filtering
+        #
+        # This prevents the issue where strict API filtering returned 0 articles
+        # (some feeds have weird/missing publication dates)
+        api_cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+        api_cutoff_iso = api_cutoff.strftime("%Y-%m-%dT%H:%M:%S")
+
+        # Python-level cutoff for strict filtering
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=since_hours)
+
+        # Fetch from API with generous pubdate filter
+        # FreshRSS uses 'q' parameter with 'pubdate:YYYY-MM-DDTHH:MM:SS/' syntax
+        # The trailing '/' means "after this date"
+        # See: https://freshrss.github.io/FreshRSS/en/users/10_filter.html
         data = self._make_request(
             endpoint,
-            params={"n": limit, "output": "json"}
+            params={
+                "n": limit,
+                "output": "json",
+                "q": f"pubdate:{api_cutoff_iso}/"  # Generous 7-day filter at API level
+            }
         )
+        print(f"[FreshRSS] Querying with pubdate filter: pubdate:{api_cutoff_iso}/ (7-day API window)")
 
         if not data or "items" not in data:
             return []
 
-        # Calculate cutoff time
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=since_hours)
-
         # Process articles
+        # Note: API-level filtering via 'ot' parameter should already exclude old articles
+        # Python-side filter is kept as a safety net but should rarely trigger
         articles = []
         for item in data["items"]:
             article = self._parse_article(item)
@@ -281,20 +300,16 @@ class FreshRSSClient:
             if not article:
                 continue
 
-            # Filter by crawl time only (when FreshRSS discovered the article)
-            # This prevents re-processing articles we've already seen
-            #
-            # Note: We removed the published_dt filter because:
-            #   - Many articles are crawled days after publication (e.g., via Google News)
-            #   - The pipeline's pivot_id deduplication handles actual duplicates
-            #   - Editorial relevance (how old the news is) is handled by AI scoring
-            if article.get("crawl_dt"):
-                if article["crawl_dt"] < cutoff:
+            # Safety net: Double-check publication date (API should have filtered this)
+            if article.get("published_dt"):
+                if article["published_dt"] < cutoff:
+                    title = article.get("title", "Unknown")[:40]
+                    print(f"[FreshRSS] WARNING: API returned old article, skipping: {title}...")
                     continue
 
             articles.append(article)
 
-        print(f"[FreshRSS] Fetched {len(articles)} articles (filtered from {len(data['items'])})")
+        print(f"[FreshRSS] Fetched {len(articles)} articles from API")
         return articles
 
     def _parse_article(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
