@@ -304,9 +304,9 @@ ARTICLE:
             logger.info("[Gemini slot_1] Using prompt from database")
 
         # Chunk large batches - Gemini 3 Flash supports 1M input / 64K output
-        # Increased to 25 articles per chunk (1/1/26) - 5 was too conservative
+        # Reduced to 100 per chunk (1/1/26) - 200 caused JSON truncation in Slot 3
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=200)
+        chunks = self._chunk_articles(articles, chunk_size=100)
         print(f"[Gemini slot_1] Processing {len(articles)} articles in {len(chunks)} chunks...", flush=True)
 
         for i, chunk in enumerate(chunks):
@@ -378,9 +378,9 @@ If no stories match, return: {{"matches": []}}"""
             logger.info("[Gemini slot_2] Using prompt from database")
 
         # Chunk large batches - Gemini 3 Flash supports 1M input / 64K output
-        # Increased to 25 articles per chunk (1/1/26) - 5 was too conservative
+        # Reduced to 100 per chunk (1/1/26) - 200 caused JSON truncation in Slot 3
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=200)
+        chunks = self._chunk_articles(articles, chunk_size=100)
         print(f"[Gemini slot_2] Processing {len(articles)} articles in {len(chunks)} chunks...", flush=True)
 
         for i, chunk in enumerate(chunks):
@@ -452,9 +452,9 @@ If no stories match, return: {{"matches": []}}"""
             logger.info("[Gemini slot_3] Using prompt from database")
 
         # Chunk large batches - Gemini 3 Flash supports 1M input / 64K output
-        # Increased to 25 articles per chunk (1/1/26) - 5 was too conservative
+        # Reduced to 100 per chunk (1/1/26) - 200 caused JSON truncation in Slot 3
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=200)
+        chunks = self._chunk_articles(articles, chunk_size=100)
         print(f"[Gemini slot_3] Processing {len(articles)} articles in {len(chunks)} chunks...", flush=True)
 
         for i, chunk in enumerate(chunks):
@@ -534,9 +534,9 @@ If no stories match, return: {{"matches": []}}"""
             logger.info("[Gemini slot_4] Using prompt from database")
 
         # Chunk large batches - Gemini 3 Flash supports 1M input / 64K output
-        # Increased to 25 articles per chunk (1/1/26) - 5 was too conservative
+        # Reduced to 100 per chunk (1/1/26) - 200 caused JSON truncation in Slot 3
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=200)
+        chunks = self._chunk_articles(articles, chunk_size=100)
         print(f"[Gemini slot_4] Processing {len(articles)} articles in {len(chunks)} chunks...", flush=True)
 
         for i, chunk in enumerate(chunks):
@@ -611,9 +611,9 @@ If no stories match, return: {{"matches": []}}"""
             logger.info("[Gemini slot_5] Using prompt from database")
 
         # Chunk large batches - Gemini 3 Flash supports 1M input / 64K output
-        # Increased to 25 articles per chunk (1/1/26) - 5 was too conservative
+        # Reduced to 100 per chunk (1/1/26) - 200 caused JSON truncation in Slot 3
         all_matches = []
-        chunks = self._chunk_articles(articles, chunk_size=200)
+        chunks = self._chunk_articles(articles, chunk_size=100)
         print(f"[Gemini slot_5] Processing {len(articles)} articles in {len(chunks)} chunks...", flush=True)
 
         for i, chunk in enumerate(chunks):
@@ -684,7 +684,7 @@ If no stories match, return: {{"matches": []}}"""
                 prompt,
                 generation_config=genai.GenerationConfig(
                     temperature=0.3,
-                    max_output_tokens=32768,  # Gemini 3 Flash supports 64K output
+                    max_output_tokens=65536,  # Increased to full 64K to prevent truncation (1/1/26)
                     response_mime_type="application/json"
                 )
             )
