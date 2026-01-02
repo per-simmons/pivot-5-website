@@ -172,14 +172,14 @@ def generate_images() -> dict:
                     _log(f"    URL: {image_url}")
 
                     # 2d. Update decoration record
+                    # Only update fields that exist in Newsletter Issue Stories table
                     _log(f"  Updating Airtable record...")
                     update_data = {
                         "image_url": image_url,
-                        "image_status": "generated",
-                        "image_source": source,
-                        "date_image_generated": datetime.utcnow().strftime('%Y-%m-%d')
+                        "image_status": "generated"
                     }
                     _log(f"  Update data:", update_data)
+                    _log(f"  (Image source was: {source})")  # Log source for debugging
                     airtable.update_decoration(record_id, update_data)
                     _log(f"  ✓ Airtable updated")
 
@@ -188,10 +188,10 @@ def generate_images() -> dict:
                 else:
                     _log(f"  ❌ Image generation returned no URL")
                     _log(f"    Source returned: {source}")
-                    # Mark as failed
+                    # Mark as failed (image_error field doesn't exist, just log it)
+                    _log(f"  Error: Generation failed - no URL returned")
                     airtable.update_decoration(record_id, {
-                        "image_status": "failed",
-                        "image_error": "Generation failed - no URL returned"
+                        "image_status": "failed"
                     })
 
                     results["failed"] += 1
@@ -209,11 +209,10 @@ def generate_images() -> dict:
                     "error": str(e)
                 })
 
-                # Mark as failed in Airtable
+                # Mark as failed in Airtable (image_error field doesn't exist)
                 try:
                     airtable.update_decoration(record_id, {
-                        "image_status": "failed",
-                        "image_error": str(e)[:500]
+                        "image_status": "failed"
                     })
                     _log(f"  Marked as failed in Airtable")
                 except Exception as update_err:
@@ -333,11 +332,9 @@ def regenerate_image(record_id: str) -> dict:
             _log("  Updating Airtable...")
             airtable.update_decoration(record_id, {
                 "image_url": image_url,
-                "image_status": "generated",
-                "image_source": source,
-                "date_image_generated": datetime.utcnow().strftime('%Y-%m-%d')
+                "image_status": "generated"
             })
-            _log("  ✓ Airtable updated")
+            _log(f"  ✓ Airtable updated (source was: {source})")
 
             return {
                 "success": True,
