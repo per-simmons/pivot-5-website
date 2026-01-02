@@ -104,17 +104,27 @@ DOMAIN_TO_SOURCE = {
 
 # Newsletter domain mappings for Kill The Newsletter content extraction
 # These newsletters are forwarded to Kill The Newsletter and need source extraction
+# Updated January 2, 2026 - Added new newsletters, removed The Neuron
 NEWSLETTER_DOMAIN_TO_SOURCE = {
+    # Original newsletters
     "theaivalley.com": "AI Valley",
     "theaireport.ai": "The AI Report",
     "joinsuperhuman.ai": "Superhuman",
-    "theneurondaily.com": "The Neuron",
     "superhuman.ai": "Superhuman",
     "bensbites.co": "Ben's Bites",
     "bensbites.beehiiv.com": "Ben's Bites",
     "readwrite.com": "ReadWrite AI",
     "aibreakfast.beehiiv.com": "AI Breakfast",
     "tldr.tech": "TLDR AI",
+    # Added January 2, 2026
+    "thedeepview.co": "The Deep View",
+    "therundown.ai": "The Rundown",
+    "theresanaiforthat.com": "There's an AI For That",
+    "forwardfuture.ai": "Forward Future",
+    "futuretools.beehiiv.com": "Future Tools",
+    "mindstream.news": "Mindstream",
+    "mail.beehiiv.com": "Beehiiv Newsletter",
+    # NOTE: theneurondaily.com REMOVED - low quality, in SKIP_NEWSLETTERS
 }
 
 

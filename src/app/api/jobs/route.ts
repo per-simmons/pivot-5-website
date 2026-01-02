@@ -30,6 +30,7 @@ const VALID_STEPS = [
   // Sandbox jobs (FreshRSS-based pipeline)
   "ingest_sandbox",
   "ai_scoring_sandbox",
+  "newsletter_extract_sandbox",
   // Individual slot prefilter jobs (for testing)
   "prefilter_slot_1",
   "prefilter_slot_2",

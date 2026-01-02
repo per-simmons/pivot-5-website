@@ -106,6 +106,9 @@ def get_job_function(step_name: str):
         elif step_name == 'ai_scoring_sandbox':
             from jobs.ai_scoring_sandbox import run_ai_scoring_sandbox
             JOB_FUNCTIONS[step_name] = run_ai_scoring_sandbox
+        elif step_name == 'newsletter_extract_sandbox':
+            from jobs.newsletter_extract_sandbox import newsletter_extract_sandbox
+            JOB_FUNCTIONS[step_name] = newsletter_extract_sandbox
         elif step_name == 'repair_google_news':
             from repair_google_news import repair_google_news_job
             JOB_FUNCTIONS[step_name] = repair_google_news_job
@@ -149,6 +152,7 @@ QUEUE_MAPPING = {
     # Sandbox jobs (FreshRSS-based pipeline)
     'ingest_sandbox': 'default',
     'ai_scoring_sandbox': 'default',
+    'newsletter_extract_sandbox': 'default',
     # Repair/maintenance jobs
     'repair_google_news': 'low',
     # Individual slot prefilter jobs (for testing)

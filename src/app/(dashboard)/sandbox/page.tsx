@@ -27,6 +27,11 @@ const SANDBOX_JOBS = {
     icon: "psychology",
     description: "Score articles with Claude + extract content with Firecrawl"
   },
+  newsletter_extract_sandbox: {
+    name: "Newsletter Link Extraction",
+    icon: "link",
+    description: "Extract news links from AI newsletters via Claude Haiku"
+  },
 };
 
 export default function SandboxPage() {

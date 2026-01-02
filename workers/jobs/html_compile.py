@@ -9,7 +9,6 @@ to Newsletter Issues Final table with status='next-send'.
 Migrated from n8n 1/2/26 to match workflow exactly.
 """
 
-import os
 import logging
 from datetime import datetime
 from typing import List, Dict, Optional, Any
@@ -18,7 +17,7 @@ import pytz
 
 from utils.airtable import AirtableClient
 from utils.claude import ClaudeClient
-from utils.html_stripper import strip_html_for_deliverability, build_full_html_email
+from utils.html_stripper import build_full_html_email
 
 logger = logging.getLogger(__name__)
 
@@ -89,9 +88,7 @@ def compile_html(issue_id: Optional[str] = None) -> dict:
         "issue_id": target_issue_id,
         "subject_line": "",
         "html_length": 0,
-        "plain_html_length": 0,
         "summary": "",
-        "summary_plus": "",
         "record_id": "",
         "story_count": 0,
         "errors": []
@@ -150,19 +147,15 @@ def compile_html(issue_id: Optional[str] = None) -> dict:
         logger.info(f"[Step 4a] Subject line: {subject_line}")
 
         # =====================================================================
-        # Step 4: Generate summaries via Claude
+        # Step 4: Generate summary via Claude
         # Matches n8n nodes: Build Summary Prompt, Message a model, Parse Summaries
-        # - summary: 15 words (stories 1-3)
-        # - summary_plus: 20 words (stories 4-5 added)
         # =====================================================================
-        logger.info(f"[Step 4a] Generating summaries via Claude...")
+        logger.info(f"[Step 4a] Generating summary via Claude...")
 
         try:
             summaries = _generate_summaries(claude, stories)
             results["summary"] = summaries.get("summary", "")
-            results["summary_plus"] = summaries.get("summary_plus", "")
-            logger.info(f"[Step 4a] Summary (15w): {results['summary']}")
-            logger.info(f"[Step 4a] Summary Plus (20w): {results['summary_plus']}")
+            logger.info(f"[Step 4a] Summary: {results['summary']}")
         except Exception as e:
             error_msg = f"Summary generation failed: {e}"
             logger.error(f"[Step 4a] {error_msg}")
@@ -186,21 +179,7 @@ def compile_html(issue_id: Optional[str] = None) -> dict:
         logger.info(f"[Step 4a] Full HTML compiled: {len(full_html)} chars")
 
         # =====================================================================
-        # Step 6: Strip HTML for deliverability
-        # Matches n8n node: Strip HTML for Deliverability
-        # =====================================================================
-        logger.info(f"[Step 4a] Stripping HTML for deliverability...")
-
-        plain_html = strip_html_for_deliverability(
-            stories=stories,
-            subject_line=subject_line
-        )
-
-        results["plain_html_length"] = len(plain_html)
-        logger.info(f"[Step 4a] Plain HTML compiled: {len(plain_html)} chars")
-
-        # =====================================================================
-        # Step 7: Create record in Newsletter Issues Final (status='next-send')
+        # Step 6: Create record in Newsletter Issues Final (status='next-send')
         # Matches n8n node: Create a record
         # =====================================================================
         logger.info(f"[Step 4a] Creating record in Newsletter Issues Final...")
@@ -212,13 +191,9 @@ def compile_html(issue_id: Optional[str] = None) -> dict:
             "issue_id": target_issue_id,
             "newsletter_id": "pivot_ai",
             "html": full_html,
-            "plain_html": plain_html,
             "subject_line": subject_line,
             "summary": results["summary"],
-            "summary_plus": results["summary_plus"],
             "status": "next-send",
-            "compiled_at": now_et.isoformat(),
-            "story_count": len(stories)
         }
 
         record = airtable.create_newsletter_issue_final(issue_data)
