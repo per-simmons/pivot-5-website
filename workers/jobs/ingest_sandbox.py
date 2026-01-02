@@ -171,6 +171,9 @@ async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, 
 
     max_retries = 3
 
+    # Log each decode attempt
+    print(f"[GNEWS DECODE] Attempting: {url[:80]}...")
+
     try:
         # Run blocking gnewsdecoder in thread pool
         # The gnewsdecoder package makes HTTP calls to Google's batchexecute API
@@ -183,7 +186,9 @@ async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, 
         if result.get("status") and result.get("decoded_url"):
             decoded_url = result["decoded_url"]
             source_name = extract_source_from_url(decoded_url)
-            print(f"[Ingest Sandbox] Decoded Google News URL: {url[:50]}... -> {decoded_url[:60]}... (source: {source_name})")
+            print(f"[GNEWS DECODE] ✅ SUCCESS: {url[:50]}...")
+            print(f"[GNEWS DECODE]    → Resolved to: {decoded_url}")
+            print(f"[GNEWS DECODE]    → Source extracted: {source_name}")
             return decoded_url, source_name
         else:
             error_msg = result.get("message", "Unknown error")
@@ -191,10 +196,11 @@ async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, 
             if "429" in str(error_msg) or "rate" in str(error_msg).lower():
                 if retry_count < max_retries:
                     backoff = 10 * (2 ** retry_count)  # 10s, 20s, 40s
-                    print(f"[Ingest Sandbox] Rate limited, waiting {backoff}s before retry {retry_count + 1}/{max_retries}...")
+                    print(f"[GNEWS DECODE] ⚠️ RATE LIMITED - waiting {backoff}s before retry {retry_count + 1}/{max_retries}...")
                     await asyncio.sleep(backoff)
                     return await resolve_google_news_url(url, retry_count + 1)
-            print(f"[Ingest Sandbox] Could not decode Google News URL: {url[:60]}... ({error_msg})")
+            print(f"[GNEWS DECODE] ❌ FAILED: {url[:60]}...")
+            print(f"[GNEWS DECODE]    → Error: {error_msg}")
             return url, "Google News"
 
     except Exception as e:
@@ -203,10 +209,11 @@ async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, 
         if "429" in error_str or "rate" in error_str.lower():
             if retry_count < max_retries:
                 backoff = 10 * (2 ** retry_count)  # 10s, 20s, 40s
-                print(f"[Ingest Sandbox] Rate limited (exception), waiting {backoff}s before retry {retry_count + 1}/{max_retries}...")
+                print(f"[GNEWS DECODE] ⚠️ RATE LIMITED (exception) - waiting {backoff}s before retry {retry_count + 1}/{max_retries}...")
                 await asyncio.sleep(backoff)
                 return await resolve_google_news_url(url, retry_count + 1)
-        print(f"[Ingest Sandbox] Error decoding Google News URL: {e}")
+        print(f"[GNEWS DECODE] ❌ EXCEPTION: {url[:60]}...")
+        print(f"[GNEWS DECODE]    → Error: {e}")
         return url, "Google News"
 
 
@@ -281,9 +288,18 @@ async def resolve_article_urls(articles: List[Dict[str, Any]]) -> tuple[List[Dic
             print(f"[Ingest Sandbox] Batch complete, waiting 5s before next batch...")
             await asyncio.sleep(5)
 
-    print(f"[Ingest Sandbox] Google News URL resolution complete:")
-    print(f"  - Resolved: {resolved_count}")
-    print(f"  - Failed/Unresolved: {failed_count}")
+    # Log detailed summary
+    print(f"")
+    print(f"{'='*60}")
+    print(f"[GNEWS DECODE] SUMMARY")
+    print(f"{'='*60}")
+    print(f"  Total Google News URLs: {len(google_news_articles)}")
+    print(f"  Successfully decoded:   {resolved_count}")
+    print(f"  Failed/Unresolved:      {failed_count}")
+    success_rate = (resolved_count / len(google_news_articles) * 100) if google_news_articles else 0
+    print(f"  Success rate:           {success_rate:.1f}%")
+    print(f"{'='*60}")
+    print(f"")
     return articles, resolved_count
 
 
@@ -353,6 +369,34 @@ def ingest_articles_sandbox(
             articles = client.get_articles(limit=fetch_limit, since_hours=since_hours)
             results["articles_fetched"] = len(articles)
             print(f"[Ingest Sandbox] Fetched {len(articles)} articles from FreshRSS")
+
+            # Log source breakdown from FreshRSS
+            print(f"")
+            print(f"{'='*60}")
+            print(f"[SOURCE BREAKDOWN] Articles by Source (from FreshRSS)")
+            print(f"{'='*60}")
+            source_counts = {}
+            google_news_count = 0
+            direct_feed_count = 0
+            for article in articles:
+                source = article.get("source_id", "Unknown")
+                url = article.get("url", "")
+                source_counts[source] = source_counts.get(source, 0) + 1
+                if "news.google.com" in url:
+                    google_news_count += 1
+                else:
+                    direct_feed_count += 1
+
+            # Sort by count descending
+            for source, count in sorted(source_counts.items(), key=lambda x: -x[1]):
+                print(f"  {source}: {count}")
+            print(f"{'='*60}")
+            print(f"  TOTAL: {len(articles)} articles")
+            print(f"  - Google News URLs (need decoding): {google_news_count}")
+            print(f"  - Direct feed URLs: {direct_feed_count}")
+            print(f"{'='*60}")
+            print(f"")
+
         except Exception as e:
             error_msg = f"Failed to fetch from FreshRSS: {e}"
             print(f"[Ingest Sandbox] {error_msg}")
@@ -370,6 +414,36 @@ def ingest_articles_sandbox(
         try:
             articles, google_news_resolved = asyncio.run(resolve_article_urls(articles))
             results["google_news_resolved"] = google_news_resolved
+
+            # Log POST-RESOLUTION source breakdown
+            print(f"")
+            print(f"{'='*60}")
+            print(f"[SOURCE BREAKDOWN] After Google News URL Resolution")
+            print(f"{'='*60}")
+            post_resolution_sources = {}
+            still_google_news = 0
+            for article in articles:
+                source = article.get("source_id", "Unknown")
+                url = article.get("url", "")
+                post_resolution_sources[source] = post_resolution_sources.get(source, 0) + 1
+                if "news.google.com" in url:
+                    still_google_news += 1
+
+            # Sort by count descending
+            for source, count in sorted(post_resolution_sources.items(), key=lambda x: -x[1]):
+                marker = " ⚠️ (unresolved)" if source == "Google News" else ""
+                print(f"  {source}: {count}{marker}")
+            print(f"{'='*60}")
+            if still_google_news > 0:
+                print(f"  ⚠️ WARNING: {still_google_news} URLs still point to news.google.com")
+            else:
+                print(f"  ✅ All Google News URLs successfully resolved!")
+            print(f"{'='*60}")
+            print(f"")
+
+            # Store source breakdown in results for dashboard visibility
+            results["source_breakdown"] = post_resolution_sources
+
         except Exception as e:
             print(f"[Ingest Sandbox] Warning: URL resolution failed: {e}")
             # Continue with unresolved URLs rather than failing entirely
@@ -389,6 +463,9 @@ def ingest_articles_sandbox(
             existing_pivot_ids = set()
 
         # Process and create new records
+        # Track sources of successfully ingested articles
+        ingested_sources = {}
+
         for article in articles:
             url = article.get("url")
             title = article.get("title")
@@ -439,19 +516,39 @@ def ingest_articles_sandbox(
                 table.create(record)
                 existing_pivot_ids.add(pivot_id)  # Prevent duplicates within batch
                 results["articles_ingested"] += 1
+
+                # Track source for ingested articles summary
+                source_name = record.get("source_name", "Unknown")
+                ingested_sources[source_name] = ingested_sources.get(source_name, 0) + 1
             except Exception as e:
                 error_msg = f"Error creating record for {pivot_id}: {str(e)}"
                 print(f"[Ingest Sandbox] {error_msg}")
                 results["errors"].append(error_msg)
 
-        print(f"[Ingest Sandbox] Ingestion complete:")
-        print(f"  - Articles fetched: {results['articles_fetched']}")
-        print(f"  - Google News URLs resolved: {results['google_news_resolved']}")
-        print(f"  - Articles ingested: {results['articles_ingested']}")
-        print(f"  - Skipped (duplicates): {results['articles_skipped_duplicate']}")
-        print(f"  - Skipped (invalid): {results['articles_skipped_invalid']}")
-        print(f"  - Skipped (blocked): {results['articles_skipped_blocked']}")
-        print(f"  - Errors: {len(results['errors'])}")
+        # Store ingested sources in results for dashboard visibility
+        results["ingested_sources"] = ingested_sources
+
+        # Log final summary
+        print(f"")
+        print(f"{'='*60}")
+        print(f"[INGESTION COMPLETE] Final Summary")
+        print(f"{'='*60}")
+        print(f"  Articles fetched from FreshRSS: {results['articles_fetched']}")
+        print(f"  Google News URLs decoded:       {results['google_news_resolved']}")
+        print(f"  Articles ingested to Airtable:  {results['articles_ingested']}")
+        print(f"  Skipped (duplicates):           {results['articles_skipped_duplicate']}")
+        print(f"  Skipped (invalid):              {results['articles_skipped_invalid']}")
+        print(f"  Skipped (blocked domains):      {results['articles_skipped_blocked']}")
+        print(f"  Errors:                         {len(results['errors'])}")
+        print(f"{'='*60}")
+
+        # Log ingested sources breakdown
+        if results.get("ingested_sources"):
+            print(f"")
+            print(f"[INGESTED] Articles by Source (what went into Airtable):")
+            for source, count in sorted(results["ingested_sources"].items(), key=lambda x: -x[1]):
+                print(f"  {source}: {count}")
+            print(f"")
 
         # NOTE: AI Scoring is now triggered SEPARATELY via the dashboard
         # (removed automatic chaining to allow manual control)
