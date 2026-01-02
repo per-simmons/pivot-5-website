@@ -144,7 +144,7 @@ def _get_pending_decorations(airtable: AirtableClient) -> List[dict]:
     records = table.all(
         formula=filter_formula,
         fields=[
-            'storyID', 'pivotId', 'ai_headline', 'image_prompt',
+            'story_id', 'headline', 'image_prompt',
             'image_status', 'slot_order'
         ]
     )
@@ -179,11 +179,11 @@ def regenerate_image(record_id: str) -> dict:
             return {"success": False, "error": "Record not found"}
 
         fields = record.get('fields', {})
-        story_id = fields.get('storyID', 'unknown')
+        story_id = fields.get('story_id', 'unknown')
         image_prompt = fields.get('image_prompt', '')
 
         if not image_prompt:
-            headline = fields.get('ai_headline', '')
+            headline = fields.get('headline', '')
             image_prompt = f"Abstract editorial illustration representing: {headline}"
 
         # Generate image

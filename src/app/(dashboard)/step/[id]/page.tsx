@@ -41,6 +41,12 @@ const STEP_0_JOBS = {
   ai_scoring: { name: "Run AI Scoring", icon: "psychology" },
 };
 
+// Step 3 has two jobs: decoration and images
+const STEP_3_JOBS = {
+  decoration: { name: "Run Decoration", icon: "edit_note" },
+  images: { name: "Generate Images", icon: "image" },
+};
+
 // Step 1 slot definitions
 const PREFILTER_SLOTS = [1, 2, 3, 4, 5];
 
@@ -68,8 +74,14 @@ export default function StepPage({ params }: PageProps) {
   const [aiScoringJobId, setAiScoringJobId] = useState<string | null>(null);
   const [aiScoringJobStatus, setAiScoringJobStatus] = useState<"queued" | "started" | "finished" | "failed" | null>(null);
   const [aiScoringElapsedTime, setAiScoringElapsedTime] = useState(0);
-  const [currentJobType, setCurrentJobType] = useState<"ingest" | "ai_scoring" | null>(null);
+  const [currentJobType, setCurrentJobType] = useState<"ingest" | "ai_scoring" | "decoration" | "images" | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+
+  // Step 3 specific: Track Image Generation job separately
+  const [isImageGenRunning, setIsImageGenRunning] = useState(false);
+  const [imageGenJobId, setImageGenJobId] = useState<string | null>(null);
+  const [imageGenJobStatus, setImageGenJobStatus] = useState<"queued" | "started" | "finished" | "failed" | null>(null);
+  const [imageGenElapsedTime, setImageGenElapsedTime] = useState(0);
 
   // Step 1 specific: Track individual slot jobs
   const [slotStates, setSlotStates] = useState<Record<number, SlotState>>({
@@ -148,7 +160,9 @@ export default function StepPage({ params }: PageProps) {
 
   // Cancel running job
   const cancelJob = async () => {
-    const currentJobId = currentJobType === "ai_scoring" ? aiScoringJobId : jobId;
+    const currentJobId = currentJobType === "ai_scoring" ? aiScoringJobId
+      : currentJobType === "images" ? imageGenJobId
+      : jobId;
     if (!currentJobId) return;
 
     setIsCancelling(true);
@@ -167,6 +181,10 @@ export default function StepPage({ params }: PageProps) {
           setIsAiScoringRunning(false);
           setAiScoringJobId(null);
           setAiScoringJobStatus(null);
+        } else if (currentJobType === "images") {
+          setIsImageGenRunning(false);
+          setImageGenJobId(null);
+          setImageGenJobStatus(null);
         } else {
           setIsRunning(false);
           setJobId(null);
@@ -194,13 +212,15 @@ export default function StepPage({ params }: PageProps) {
     notFound();
   }
 
-  const handleRunNow = async (jobType?: "ingest" | "ai_scoring") => {
-    // For Step 0, use the specified jobType; otherwise use the step's job name
-    const jobName = stepId === 0 && jobType ? jobType : STEP_JOB_NAMES[stepId];
+  const handleRunNow = async (jobType?: "ingest" | "ai_scoring" | "decoration" | "images") => {
+    // For Step 0, use the specified jobType; for Step 3, use the specified jobType; otherwise use the step's job name
+    const jobName = (stepId === 0 || stepId === 3) && jobType ? jobType : STEP_JOB_NAMES[stepId];
     if (!jobName) return;
 
     const jobDisplayName = stepId === 0 && jobType
-      ? STEP_0_JOBS[jobType].name
+      ? STEP_0_JOBS[jobType as "ingest" | "ai_scoring"].name
+      : stepId === 3 && jobType
+      ? STEP_3_JOBS[jobType as "decoration" | "images"].name
       : stepConfig.name;
 
     // For Step 0 AI Scoring, use separate state
@@ -208,10 +228,15 @@ export default function StepPage({ params }: PageProps) {
       setIsAiScoringRunning(true);
       setAiScoringElapsedTime(0);
       setCurrentJobType("ai_scoring");
+    } else if (stepId === 3 && jobType === "images") {
+      // For Step 3 Image Generation, use separate state
+      setIsImageGenRunning(true);
+      setImageGenElapsedTime(0);
+      setCurrentJobType("images");
     } else {
       setIsRunning(true);
       setElapsedTime(0);
-      setCurrentJobType(stepId === 0 ? "ingest" : null);
+      setCurrentJobType(stepId === 0 ? "ingest" : stepId === 3 ? "decoration" : null);
     }
     setShowCompletion(false);
 
@@ -228,6 +253,9 @@ export default function StepPage({ params }: PageProps) {
         if (stepId === 0 && jobType === "ai_scoring") {
           setAiScoringJobId(data.job_id);
           setAiScoringJobStatus("queued");
+        } else if (stepId === 3 && jobType === "images") {
+          setImageGenJobId(data.job_id);
+          setImageGenJobStatus("queued");
         } else {
           setJobId(data.job_id);
           setJobStatus("queued");
@@ -238,6 +266,8 @@ export default function StepPage({ params }: PageProps) {
       } else {
         if (stepId === 0 && jobType === "ai_scoring") {
           setIsAiScoringRunning(false);
+        } else if (stepId === 3 && jobType === "images") {
+          setIsImageGenRunning(false);
         } else {
           setIsRunning(false);
         }
@@ -246,6 +276,8 @@ export default function StepPage({ params }: PageProps) {
     } catch (error) {
       if (stepId === 0 && jobType === "ai_scoring") {
         setIsAiScoringRunning(false);
+      } else if (stepId === 3 && jobType === "images") {
+        setIsImageGenRunning(false);
       } else {
         setIsRunning(false);
       }
@@ -366,6 +398,61 @@ export default function StepPage({ params }: PageProps) {
       clearInterval(timerInterval);
     };
   }, [aiScoringJobId, stepId]);
+
+  // Poll Image Generation job status (Step 3 only)
+  useEffect(() => {
+    if (!imageGenJobId) return;
+
+    const startTime = Date.now();
+
+    const timerInterval = setInterval(() => {
+      setImageGenElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/jobs/${imageGenJobId}`);
+        const status = await response.json();
+
+        if (status.status === "started" || status.status === "queued") {
+          setImageGenJobStatus(status.status);
+        }
+
+        if (status.status === "finished" || status.status === "failed") {
+          clearInterval(pollInterval);
+          clearInterval(timerInterval);
+          setIsImageGenRunning(false);
+          setImageGenJobId(null);
+          setImageGenJobStatus(status.status);
+          setCurrentJobType(null);
+
+          const finalElapsed = Math.floor((Date.now() - startTime) / 1000);
+
+          if (status.status === "finished") {
+            const generatedCount = status.result?.generated || 0;
+            const failedCount = status.result?.failed || 0;
+            setLastResult({ processed: generatedCount, elapsed: finalElapsed });
+            setShowCompletion(true);
+            toast.success("Image Generation Completed", {
+              description: `Generated ${generatedCount} images${failedCount > 0 ? `, ${failedCount} failed` : ""} in ${finalElapsed}s`,
+            });
+            window.dispatchEvent(new CustomEvent("jobCompleted", { detail: { stepId } }));
+          } else {
+            toast.error("Image Generation Failed", {
+              description: status.error || "Unknown error occurred",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error polling Image Generation job status:", error);
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(timerInterval);
+    };
+  }, [imageGenJobId, stepId]);
 
   // Poll slot job status (Step 1 only)
   useEffect(() => {
@@ -493,6 +580,33 @@ export default function StepPage({ params }: PageProps) {
                     className={`text-lg ${isAiScoringRunning ? "animate-spin" : ""}`}
                   />
                   {isAiScoringRunning ? `Scoring... ${aiScoringElapsedTime}s` : "Run AI Scoring"}
+                </Button>
+              </div>
+            ) : stepId === 3 ? (
+              /* Step 3: Two buttons for Decoration and Image Generation */
+              <div className="flex gap-2">
+                <Button
+                  className="gap-2"
+                  onClick={() => handleRunNow("decoration")}
+                  disabled={isRunning || isImageGenRunning}
+                >
+                  <MaterialIcon
+                    name={isRunning ? "sync" : "edit_note"}
+                    className={`text-lg ${isRunning ? "animate-spin" : ""}`}
+                  />
+                  {isRunning ? `Decorating... ${elapsedTime}s` : "Run Decoration"}
+                </Button>
+                <Button
+                  className="gap-2"
+                  variant="secondary"
+                  onClick={() => handleRunNow("images")}
+                  disabled={isRunning || isImageGenRunning}
+                >
+                  <MaterialIcon
+                    name={isImageGenRunning ? "sync" : "image"}
+                    className={`text-lg ${isImageGenRunning ? "animate-spin" : ""}`}
+                  />
+                  {isImageGenRunning ? `Generating... ${imageGenElapsedTime}s` : "Generate Images"}
                 </Button>
               </div>
             ) : stepId === 1 ? (
