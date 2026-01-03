@@ -229,7 +229,7 @@ async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, 
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             _google_news_executor,
-            lambda: gnewsdecoder(url, interval=2.0)
+            lambda: gnewsdecoder(url, interval=3.0)  # 3s delay - more conservative to avoid 429
         )
 
         if result.get("status") and result.get("decoded_url"):
@@ -241,7 +241,7 @@ async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, 
             error_msg = result.get("message", "Unknown error")
             if "429" in str(error_msg) or "rate" in str(error_msg).lower():
                 if retry_count < max_retries:
-                    backoff = 10 * (2 ** retry_count)
+                    backoff = 30 * (2 ** retry_count)  # 30s, 60s, 120s (more conservative)
                     print(f"[GNEWS DECODE] ⚠️ RATE LIMITED - waiting {backoff}s before retry...")
                     await asyncio.sleep(backoff)
                     return await resolve_google_news_url(url, retry_count + 1)
@@ -252,7 +252,7 @@ async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, 
         error_str = str(e)
         if "429" in error_str or "rate" in error_str.lower():
             if retry_count < max_retries:
-                backoff = 10 * (2 ** retry_count)
+                backoff = 30 * (2 ** retry_count)  # 30s, 60s, 120s (more conservative)
                 print(f"[GNEWS DECODE] ⚠️ RATE LIMITED - waiting {backoff}s before retry...")
                 await asyncio.sleep(backoff)
                 return await resolve_google_news_url(url, retry_count + 1)

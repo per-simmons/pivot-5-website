@@ -158,9 +158,10 @@ async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, 
     Uses the googlenewsdecoder package which calls Google's batchexecute API.
     This is the ONLY reliable way to decode modern Google News URLs.
 
-    RATE LIMITING: Uses conservative timing to avoid Google 429 errors:
-      - 2.0s interval in gnewsdecoder
-      - Up to 3 retries with exponential backoff (10s, 20s, 40s)
+    RATE LIMITING: Uses AGGRESSIVE timing to avoid Google 429 errors:
+      - 3.0s interval in gnewsdecoder (increased from 2.0s)
+      - 5s between each URL decode (matching repair_google_news.py)
+      - Up to 3 retries with exponential backoff (30s, 60s, 120s)
 
     Args:
         url: Google News article URL
@@ -184,7 +185,7 @@ async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, 
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             _google_news_executor,
-            lambda: gnewsdecoder(url, interval=2.0)  # 2s delay - conservative but not too slow
+            lambda: gnewsdecoder(url, interval=3.0)  # 3s delay - more conservative to avoid 429
         )
 
         if result.get("status") and result.get("decoded_url"):
@@ -199,7 +200,7 @@ async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, 
             # Check for rate limiting
             if "429" in str(error_msg) or "rate" in str(error_msg).lower():
                 if retry_count < max_retries:
-                    backoff = 10 * (2 ** retry_count)  # 10s, 20s, 40s
+                    backoff = 30 * (2 ** retry_count)  # 30s, 60s, 120s (more conservative)
                     print(f"[GNEWS DECODE] ⚠️ RATE LIMITED - waiting {backoff}s before retry {retry_count + 1}/{max_retries}...")
                     await asyncio.sleep(backoff)
                     return await resolve_google_news_url(url, retry_count + 1)
@@ -212,7 +213,7 @@ async def resolve_google_news_url(url: str, retry_count: int = 0) -> tuple[str, 
         # Check for rate limiting in exception
         if "429" in error_str or "rate" in error_str.lower():
             if retry_count < max_retries:
-                backoff = 10 * (2 ** retry_count)  # 10s, 20s, 40s
+                backoff = 30 * (2 ** retry_count)  # 30s, 60s, 120s (more conservative)
                 print(f"[GNEWS DECODE] ⚠️ RATE LIMITED (exception) - waiting {backoff}s before retry {retry_count + 1}/{max_retries}...")
                 await asyncio.sleep(backoff)
                 return await resolve_google_news_url(url, retry_count + 1)
@@ -249,7 +250,7 @@ async def resolve_article_urls(articles: List[Dict[str, Any]]) -> tuple[List[Dic
         return articles, 0
 
     print(f"[Ingest Sandbox] Resolving {len(google_news_articles)} Google News URLs using googlenewsdecoder...")
-    print(f"[Ingest Sandbox] Using conservative rate limiting (2s interval, 3s between URLs)")
+    print(f"[Ingest Sandbox] Using conservative rate limiting (3s interval, 5s between URLs, 15s between batches)")
 
     # CONSERVATIVE rate limiting to avoid Google 429 errors
     # Based on repair_google_news.py which uses even more conservative timing
@@ -284,13 +285,13 @@ async def resolve_article_urls(articles: List[Dict[str, Any]]) -> tuple[List[Dic
                 print(f"[Ingest Sandbox] Failed to resolve URL: {e}")
                 failed_count += 1
 
-            # 2 second delay between individual URLs within batch
-            await asyncio.sleep(2)
-
-        # 5 second delay between batches to avoid rate limiting
-        if batch_start + batch_size < len(google_news_articles):
-            print(f"[Ingest Sandbox] Batch complete, waiting 5s before next batch...")
+            # 5 second delay between individual URLs (matching repair_google_news.py)
             await asyncio.sleep(5)
+
+        # 15 second delay between batches to avoid rate limiting
+        if batch_start + batch_size < len(google_news_articles):
+            print(f"[Ingest Sandbox] Batch complete, waiting 15s before next batch...")
+            await asyncio.sleep(15)
 
     # Log detailed summary
     print(f"")
