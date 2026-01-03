@@ -49,11 +49,18 @@ export default function SandboxPage() {
   const [scoringElapsedTime, setScoringElapsedTime] = useState(0);
   const [scoringResult, setScoringResult] = useState<{ scored: number; selects: number; elapsed: number } | null>(null);
 
+  // Newsletter Extraction job state
+  const [isNewsletterRunning, setIsNewsletterRunning] = useState(false);
+  const [newsletterJobId, setNewsletterJobId] = useState<string | null>(null);
+  const [newsletterJobStatus, setNewsletterJobStatus] = useState<"queued" | "started" | "finished" | "failed" | null>(null);
+  const [newsletterElapsedTime, setNewsletterElapsedTime] = useState(0);
+  const [newsletterResult, setNewsletterResult] = useState<{ processed: number; elapsed: number } | null>(null);
+
   const [isCancelling, setIsCancelling] = useState(false);
 
   // Cancel running job
-  const cancelJob = async (jobType: "ingest" | "scoring") => {
-    const jobId = jobType === "ingest" ? ingestJobId : scoringJobId;
+  const cancelJob = async (jobType: "ingest" | "scoring" | "newsletter") => {
+    const jobId = jobType === "ingest" ? ingestJobId : jobType === "scoring" ? scoringJobId : newsletterJobId;
     if (!jobId) return;
 
     setIsCancelling(true);
@@ -71,10 +78,14 @@ export default function SandboxPage() {
           setIsIngestRunning(false);
           setIngestJobId(null);
           setIngestJobStatus(null);
-        } else {
+        } else if (jobType === "scoring") {
           setIsScoringRunning(false);
           setScoringJobId(null);
           setScoringJobStatus(null);
+        } else {
+          setIsNewsletterRunning(false);
+          setNewsletterJobId(null);
+          setNewsletterJobStatus(null);
         }
       } else {
         toast.error(data.error || "Failed to cancel job");
@@ -88,18 +99,22 @@ export default function SandboxPage() {
   };
 
   // Trigger a sandbox job
-  const runJob = async (jobType: "ingest" | "scoring") => {
-    const jobName = jobType === "ingest" ? "ingest_sandbox" : "ai_scoring_sandbox";
-    const jobConfig = jobType === "ingest" ? SANDBOX_JOBS.ingest_sandbox : SANDBOX_JOBS.ai_scoring_sandbox;
+  const runJob = async (jobType: "ingest" | "scoring" | "newsletter") => {
+    const jobName = jobType === "ingest" ? "ingest_sandbox" : jobType === "scoring" ? "ai_scoring_sandbox" : "newsletter_extract_sandbox";
+    const jobConfig = jobType === "ingest" ? SANDBOX_JOBS.ingest_sandbox : jobType === "scoring" ? SANDBOX_JOBS.ai_scoring_sandbox : SANDBOX_JOBS.newsletter_extract_sandbox;
 
     if (jobType === "ingest") {
       setIsIngestRunning(true);
       setIngestElapsedTime(0);
       setIngestResult(null);
-    } else {
+    } else if (jobType === "scoring") {
       setIsScoringRunning(true);
       setScoringElapsedTime(0);
       setScoringResult(null);
+    } else {
+      setIsNewsletterRunning(true);
+      setNewsletterElapsedTime(0);
+      setNewsletterResult(null);
     }
 
     try {
@@ -115,9 +130,12 @@ export default function SandboxPage() {
         if (jobType === "ingest") {
           setIngestJobId(data.job_id);
           setIngestJobStatus("queued");
-        } else {
+        } else if (jobType === "scoring") {
           setScoringJobId(data.job_id);
           setScoringJobStatus("queued");
+        } else {
+          setNewsletterJobId(data.job_id);
+          setNewsletterJobStatus("queued");
         }
         toast.success("Job Started", {
           description: `${jobConfig.name} job queued successfully`,
@@ -125,16 +143,20 @@ export default function SandboxPage() {
       } else {
         if (jobType === "ingest") {
           setIsIngestRunning(false);
-        } else {
+        } else if (jobType === "scoring") {
           setIsScoringRunning(false);
+        } else {
+          setIsNewsletterRunning(false);
         }
         throw new Error(data.error || "Failed to start job");
       }
     } catch (error) {
       if (jobType === "ingest") {
         setIsIngestRunning(false);
-      } else {
+      } else if (jobType === "scoring") {
         setIsScoringRunning(false);
+      } else {
+        setIsNewsletterRunning(false);
       }
       toast.error("Error", {
         description: error instanceof Error ? error.message : "Failed to start job",
@@ -245,6 +267,57 @@ export default function SandboxPage() {
     };
   }, [scoringJobId]);
 
+  // Poll Newsletter Extraction job status
+  useEffect(() => {
+    if (!newsletterJobId) return;
+
+    const startTime = Date.now();
+
+    const timerInterval = setInterval(() => {
+      setNewsletterElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/jobs/${newsletterJobId}`);
+        const status = await response.json();
+
+        if (status.status === "started" || status.status === "queued") {
+          setNewsletterJobStatus(status.status);
+        }
+
+        if (status.status === "finished" || status.status === "failed") {
+          clearInterval(pollInterval);
+          clearInterval(timerInterval);
+          setIsNewsletterRunning(false);
+          setNewsletterJobId(null);
+          setNewsletterJobStatus(status.status);
+
+          const finalElapsed = Math.floor((Date.now() - startTime) / 1000);
+
+          if (status.status === "finished") {
+            const processedCount = status.result?.records_created || status.result?.processed || 0;
+            setNewsletterResult({ processed: processedCount, elapsed: finalElapsed });
+            toast.success("Newsletter Extraction Completed", {
+              description: `Extracted ${processedCount} links in ${finalElapsed}s`,
+            });
+          } else {
+            toast.error("Newsletter Extraction Failed", {
+              description: status.error || "Unknown error occurred",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error polling Newsletter Extraction job status:", error);
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(timerInterval);
+    };
+  }, [newsletterJobId]);
+
   return (
     <div className="p-6 space-y-6">
       {/* Page Header */}
@@ -265,7 +338,7 @@ export default function SandboxPage() {
       </Card>
 
       {/* Pipeline Steps */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Step 1: Ingest from FreshRSS */}
         <Card className={isIngestRunning ? "border-blue-200 bg-blue-50/30" : ""}>
           <CardHeader className="pb-3">
@@ -318,7 +391,7 @@ export default function SandboxPage() {
                 )}
                 <Button
                   onClick={() => runJob("ingest")}
-                  disabled={isScoringRunning}
+                  disabled={isScoringRunning || isNewsletterRunning}
                   className="w-full gap-2"
                 >
                   <MaterialIcon name="rss_feed" className="text-lg" />
@@ -381,12 +454,76 @@ export default function SandboxPage() {
                 )}
                 <Button
                   onClick={() => runJob("scoring")}
-                  disabled={isIngestRunning}
+                  disabled={isIngestRunning || isNewsletterRunning}
                   className="w-full gap-2"
                   variant="secondary"
                 >
                   <MaterialIcon name="psychology" className="text-lg" />
                   Run AI Scoring
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Step 3: Newsletter Link Extraction */}
+        <Card className={isNewsletterRunning ? "border-blue-200 bg-blue-50/30" : ""}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                isNewsletterRunning ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"
+              }`}>
+                <MaterialIcon name={SANDBOX_JOBS.newsletter_extract_sandbox.icon} className="text-xl" />
+              </div>
+              <div>
+                <CardTitle className="text-base">{SANDBOX_JOBS.newsletter_extract_sandbox.name}</CardTitle>
+                <CardDescription className="text-xs">
+                  {SANDBOX_JOBS.newsletter_extract_sandbox.description}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isNewsletterRunning ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
+                    {newsletterJobStatus === "queued" ? "Queued..." : "Running..."}
+                  </Badge>
+                  <span className="font-mono text-lg font-bold text-blue-700">
+                    {Math.floor(newsletterElapsedTime / 60)}:{String(newsletterElapsedTime % 60).padStart(2, "0")}
+                  </span>
+                </div>
+                <Progress value={undefined} className="h-2 bg-blue-100" />
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-blue-600">Job ID: {newsletterJobId?.slice(0, 8)}...</span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => cancelJob("newsletter")}
+                    disabled={isCancelling}
+                    className="h-7 px-2 text-xs"
+                  >
+                    {isCancelling ? "Stopping..." : "Stop"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {newsletterResult && (
+                  <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-md px-3 py-2">
+                    <MaterialIcon name="check_circle" className="text-base" />
+                    <span>Extracted {newsletterResult.processed} links in {newsletterResult.elapsed}s</span>
+                  </div>
+                )}
+                <Button
+                  onClick={() => runJob("newsletter")}
+                  disabled={isIngestRunning || isScoringRunning}
+                  className="w-full gap-2"
+                  variant="outline"
+                >
+                  <MaterialIcon name="link" className="text-lg" />
+                  Extract Newsletter Links
                 </Button>
               </div>
             )}
@@ -404,6 +541,7 @@ export default function SandboxPage() {
               <ol className="list-decimal list-inside space-y-1 text-amber-700">
                 <li><strong>Ingest:</strong> Fetches articles from FreshRSS → saves to &quot;Articles - All Ingested&quot;</li>
                 <li><strong>AI Scoring:</strong> Scores with Claude → extracts content with Firecrawl → creates &quot;Newsletter Selects&quot; for high-interest articles</li>
+                <li><strong>Newsletter Extract:</strong> Extracts news links from AI newsletters using Claude Haiku → saves with provenance tracking</li>
               </ol>
             </div>
           </div>
