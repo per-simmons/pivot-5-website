@@ -50,16 +50,16 @@ NEWSLETTER_EXTRACTION_CONFIG: dict[str, NewsletterConfig] = {
 
     "joinsuperhuman.ai": {
         "name": "Superhuman",
-        "extract_sections": ["Today in AI"],
+        "extract_sections": [],
         "ignore_sections": ["Memes", "Productivity", "In The Know"],
-        "extract_all": False
+        "extract_all": True  # Extract all external links
     },
 
     "superhuman.ai": {
         "name": "Superhuman",
-        "extract_sections": ["Today in AI"],
+        "extract_sections": [],
         "ignore_sections": ["Memes", "Productivity", "In The Know"],
-        "extract_all": False
+        "extract_all": True  # Extract all external links
     },
 
     # =========================================================================
