@@ -28,18 +28,30 @@ ET_TIMEZONE = pytz.timezone('America/New_York')
 DEFAULT_SUBJECT_LINE = "5 headlines. 5 minutes. 5 days a week."
 
 
-def get_todays_issue_id() -> str:
+def get_next_issue_id() -> str:
     """
-    Generate issue_id for today in format "Pivot 5 - MMM dd".
+    Generate issue_id for the NEXT newsletter issue in format "Pivot 5 - MMM dd".
 
+    Newsletter runs tonight for TOMORROW's issue (or Monday if Friday/Saturday).
     Uses zero-padded day format to match n8n workflow.
-    Example: "Pivot 5 - Jan 02" (NOT "Jan 2")
+    Example: "Pivot 5 - Jan 05" (NOT "Jan 5")
 
     Returns:
-        Issue ID string for today
+        Issue ID string for next issue
     """
+    from datetime import timedelta
     now_et = datetime.now(ET_TIMEZONE)
-    return f"Pivot 5 - {now_et.strftime('%b %d')}"
+    weekday = now_et.weekday()  # 0=Monday, 4=Friday, 5=Saturday, 6=Sunday
+
+    # Calculate next issue date (same logic as slot_selection.py)
+    if weekday == 4:  # Friday -> Monday (skip Sat/Sun)
+        next_issue = now_et + timedelta(days=3)
+    elif weekday == 5:  # Saturday -> Monday (skip Sun)
+        next_issue = now_et + timedelta(days=2)
+    else:
+        next_issue = now_et + timedelta(days=1)
+
+    return f"Pivot 5 - {next_issue.strftime('%b %d')}"
 
 
 def compile_html(issue_id: Optional[str] = None) -> dict:
@@ -73,8 +85,8 @@ def compile_html(issue_id: Optional[str] = None) -> dict:
             "errors": list
         }
     """
-    # Use provided issue_id or generate for today
-    target_issue_id = issue_id or get_todays_issue_id()
+    # Use provided issue_id or generate for next issue
+    target_issue_id = issue_id or get_next_issue_id()
 
     logger.info(f"[Step 4a] Starting HTML compilation for: {target_issue_id}")
 
