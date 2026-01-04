@@ -233,6 +233,7 @@ Credibility score is ONE factor among many. A compelling story from a score-2 so
 - Geeky/techy content (model updates, AGI discussions, algorithm details)
 - Content interesting to engineers but not business people
 - Generic market updates like stock prices up and down or tech stocks
+- Skip any stories about AI-generated imagery, deepfakes, or explicit content involving minors or children.
 
 **Editorial lens:** "For a working professional, is this useful to me right now, in my job and day to day?" Stories should be APPLICABLE, not just interesting.
 
