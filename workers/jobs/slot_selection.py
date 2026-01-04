@@ -246,10 +246,19 @@ def select_slots() -> dict:
 
                 # Look up pivotId from candidates (not returned by Claude, but we have it)
                 selected_pivot_id = ""
+                candidate_story_ids = [c.get('fields', {}).get('storyID') for c in available_candidates]
+                print(f"[Step 2] Slot {slot}: Looking for storyID '{selected_story_id}' in {len(available_candidates)} candidates")
+
                 for c in available_candidates:
-                    if c.get('fields', {}).get('storyID') == selected_story_id:
+                    candidate_sid = c.get('fields', {}).get('storyID')
+                    if candidate_sid == selected_story_id:
                         selected_pivot_id = c.get('fields', {}).get('pivotId', '')
+                        print(f"[Step 2] Slot {slot}: MATCH FOUND - pivotId='{selected_pivot_id}'")
                         break
+
+                if not selected_pivot_id:
+                    print(f"[Step 2] Slot {slot}: WARNING - No pivotId found! storyID '{selected_story_id}' not in candidates")
+                    print(f"[Step 2] Slot {slot}: Candidate storyIDs: {candidate_story_ids[:10]}...")  # First 10
 
                 print(f"[Step 2] Slot {slot} selected: {selected_headline[:50]}...")
 
