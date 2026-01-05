@@ -6,31 +6,34 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import {
+  Zap,
+  Download,
+  Brain,
+  Link2,
+  CheckCircle,
+  Loader2,
+  Square,
+  Info,
+  Timer
+} from "lucide-react";
 
-function MaterialIcon({ name, className }: { name: string; className?: string }) {
-  return (
-    <span className={`material-symbols-outlined ${className ?? ""}`}>
-      {name}
-    </span>
-  );
-}
-
-// Sandbox job definitions
-const SANDBOX_JOBS = {
+// Zeroin job definitions
+const ZEROIN_JOBS = {
   ingest_sandbox: {
-    name: "Ingest from FreshRSS",
-    icon: "rss_feed",
-    description: "Fetch articles from FreshRSS Google Reader API"
+    name: "Ingest Articles",
+    icon: Download,
+    description: "Fetch articles from FreshRSS feeds"
   },
   ai_scoring_sandbox: {
-    name: "AI Scoring & Extraction",
-    icon: "psychology",
-    description: "Score articles with Claude + extract content with Firecrawl"
+    name: "AI Scoring",
+    icon: Brain,
+    description: "Score articles with Claude + extract with Firecrawl"
   },
   newsletter_extract_sandbox: {
-    name: "Newsletter Link Extraction",
-    icon: "link",
-    description: "Extract news links from AI newsletters via Claude Haiku"
+    name: "Newsletter Links",
+    icon: Link2,
+    description: "Extract news links from newsletters via Claude Haiku"
   },
 };
 
@@ -101,7 +104,7 @@ export default function SandboxPage() {
   // Trigger a sandbox job
   const runJob = async (jobType: "ingest" | "scoring" | "newsletter") => {
     const jobName = jobType === "ingest" ? "ingest_sandbox" : jobType === "scoring" ? "ai_scoring_sandbox" : "newsletter_extract_sandbox";
-    const jobConfig = jobType === "ingest" ? SANDBOX_JOBS.ingest_sandbox : jobType === "scoring" ? SANDBOX_JOBS.ai_scoring_sandbox : SANDBOX_JOBS.newsletter_extract_sandbox;
+    const jobConfig = jobType === "ingest" ? ZEROIN_JOBS.ingest_sandbox : jobType === "scoring" ? ZEROIN_JOBS.ai_scoring_sandbox : ZEROIN_JOBS.newsletter_extract_sandbox;
 
     if (jobType === "ingest") {
       setIsIngestRunning(true);
@@ -138,7 +141,7 @@ export default function SandboxPage() {
           setNewsletterJobStatus("queued");
         }
         toast.success("Job Started", {
-          description: `${jobConfig.name} job queued successfully`,
+          description: `${jobConfig.name} job queued`,
         });
       } else {
         if (jobType === "ingest") {
@@ -248,7 +251,7 @@ export default function SandboxPage() {
             const selectsCreated = status.result?.newsletter_selects_created || 0;
             setScoringResult({ scored: scoredCount, selects: selectsCreated, elapsed: finalElapsed });
             toast.success("AI Scoring Completed", {
-              description: `Scored ${scoredCount} articles, created ${selectsCreated} Newsletter Selects in ${finalElapsed}s`,
+              description: `Scored ${scoredCount} articles, created ${selectsCreated} selects in ${finalElapsed}s`,
             });
           } else {
             toast.error("AI Scoring Failed", {
@@ -318,83 +321,93 @@ export default function SandboxPage() {
     };
   }, [newsletterJobId]);
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${String(secs).padStart(2, "0")}`;
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Page Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
-              <MaterialIcon name="science" className="text-2xl" />
-            </div>
-            <div>
-              <CardTitle className="text-xl">FreshRSS Sandbox Pipeline</CardTitle>
-              <CardDescription className="mt-1">
-                Test ingestion engine with FreshRSS feeds → AI Scoring → Newsletter Selects
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500 text-white shadow-lg shadow-orange-500/25">
+          <Zap className="h-6 w-6" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-semibold text-zinc-900">Zeroin Ingest</h1>
+          <p className="text-sm text-zinc-500">
+            Ingest → Score → Extract newsletter links
+          </p>
+        </div>
+      </div>
 
       {/* Pipeline Steps */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Step 1: Ingest from FreshRSS */}
-        <Card className={isIngestRunning ? "border-blue-200 bg-blue-50/30" : ""}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Step 1: Ingest */}
+        <Card className={`transition-all duration-200 ${isIngestRunning ? "ring-2 ring-orange-500 ring-offset-2" : "hover:shadow-md"}`}>
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                isIngestRunning ? "bg-blue-100 text-blue-600" : "bg-orange-100 text-orange-600"
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+                isIngestRunning ? "bg-orange-500 text-white" : "bg-orange-100 text-orange-600"
               }`}>
-                <MaterialIcon name={SANDBOX_JOBS.ingest_sandbox.icon} className="text-xl" />
+                {isIngestRunning ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Download className="h-5 w-5" />
+                )}
               </div>
-              <div>
-                <CardTitle className="text-base">{SANDBOX_JOBS.ingest_sandbox.name}</CardTitle>
-                <CardDescription className="text-xs">
-                  {SANDBOX_JOBS.ingest_sandbox.description}
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-sm font-medium">{ZEROIN_JOBS.ingest_sandbox.name}</CardTitle>
+                <CardDescription className="text-xs truncate">
+                  {ZEROIN_JOBS.ingest_sandbox.description}
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             {isIngestRunning ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
-                    {ingestJobStatus === "queued" ? "Queued..." : "Running..."}
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100">
+                    {ingestJobStatus === "queued" ? "Queued" : "Running"}
                   </Badge>
-                  <span className="font-mono text-lg font-bold text-blue-700">
-                    {Math.floor(ingestElapsedTime / 60)}:{String(ingestElapsedTime % 60).padStart(2, "0")}
-                  </span>
+                  <div className="flex items-center gap-1.5 text-orange-600">
+                    <Timer className="h-3.5 w-3.5" />
+                    <span className="font-mono text-sm font-medium">
+                      {formatTime(ingestElapsedTime)}
+                    </span>
+                  </div>
                 </div>
-                <Progress value={undefined} className="h-2 bg-blue-100" />
+                <Progress value={undefined} className="h-1.5" />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-blue-600">Job ID: {ingestJobId?.slice(0, 8)}...</span>
+                  <code className="text-[10px] text-zinc-400">{ingestJobId?.slice(0, 8)}</code>
                   <Button
-                    variant="destructive"
+                    variant="ghost"
                     size="sm"
                     onClick={() => cancelJob("ingest")}
                     disabled={isCancelling}
-                    className="h-7 px-2 text-xs"
+                    className="h-7 px-2 text-xs text-zinc-500 hover:text-red-600"
                   >
-                    {isCancelling ? "Stopping..." : "Stop"}
+                    <Square className="h-3 w-3 mr-1" />
+                    Stop
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="space-y-3">
                 {ingestResult && (
-                  <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-md px-3 py-2">
-                    <MaterialIcon name="check_circle" className="text-base" />
-                    <span>Ingested {ingestResult.processed} articles in {ingestResult.elapsed}s</span>
+                  <div className="flex items-center gap-2 text-xs text-zinc-600 bg-zinc-50 rounded-lg px-3 py-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span>{ingestResult.processed} articles in {ingestResult.elapsed}s</span>
                   </div>
                 )}
                 <Button
                   onClick={() => runJob("ingest")}
                   disabled={isScoringRunning || isNewsletterRunning}
-                  className="w-full gap-2"
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white"
                 >
-                  <MaterialIcon name="rss_feed" className="text-lg" />
+                  <Download className="h-4 w-4 mr-2" />
                   Run Ingest
                 </Button>
               </div>
@@ -402,128 +415,144 @@ export default function SandboxPage() {
           </CardContent>
         </Card>
 
-        {/* Step 2: AI Scoring + Extraction */}
-        <Card className={isScoringRunning ? "border-blue-200 bg-blue-50/30" : ""}>
+        {/* Step 2: AI Scoring */}
+        <Card className={`transition-all duration-200 ${isScoringRunning ? "ring-2 ring-orange-500 ring-offset-2" : "hover:shadow-md"}`}>
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                isScoringRunning ? "bg-blue-100 text-blue-600" : "bg-violet-100 text-violet-600"
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+                isScoringRunning ? "bg-orange-500 text-white" : "bg-orange-100 text-orange-600"
               }`}>
-                <MaterialIcon name={SANDBOX_JOBS.ai_scoring_sandbox.icon} className="text-xl" />
+                {isScoringRunning ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Brain className="h-5 w-5" />
+                )}
               </div>
-              <div>
-                <CardTitle className="text-base">{SANDBOX_JOBS.ai_scoring_sandbox.name}</CardTitle>
-                <CardDescription className="text-xs">
-                  {SANDBOX_JOBS.ai_scoring_sandbox.description}
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-sm font-medium">{ZEROIN_JOBS.ai_scoring_sandbox.name}</CardTitle>
+                <CardDescription className="text-xs truncate">
+                  {ZEROIN_JOBS.ai_scoring_sandbox.description}
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             {isScoringRunning ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
-                    {scoringJobStatus === "queued" ? "Queued..." : "Running..."}
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100">
+                    {scoringJobStatus === "queued" ? "Queued" : "Running"}
                   </Badge>
-                  <span className="font-mono text-lg font-bold text-blue-700">
-                    {Math.floor(scoringElapsedTime / 60)}:{String(scoringElapsedTime % 60).padStart(2, "0")}
-                  </span>
+                  <div className="flex items-center gap-1.5 text-orange-600">
+                    <Timer className="h-3.5 w-3.5" />
+                    <span className="font-mono text-sm font-medium">
+                      {formatTime(scoringElapsedTime)}
+                    </span>
+                  </div>
                 </div>
-                <Progress value={undefined} className="h-2 bg-blue-100" />
+                <Progress value={undefined} className="h-1.5" />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-blue-600">Job ID: {scoringJobId?.slice(0, 8)}...</span>
+                  <code className="text-[10px] text-zinc-400">{scoringJobId?.slice(0, 8)}</code>
                   <Button
-                    variant="destructive"
+                    variant="ghost"
                     size="sm"
                     onClick={() => cancelJob("scoring")}
                     disabled={isCancelling}
-                    className="h-7 px-2 text-xs"
+                    className="h-7 px-2 text-xs text-zinc-500 hover:text-red-600"
                   >
-                    {isCancelling ? "Stopping..." : "Stop"}
+                    <Square className="h-3 w-3 mr-1" />
+                    Stop
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="space-y-3">
                 {scoringResult && (
-                  <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-md px-3 py-2">
-                    <MaterialIcon name="check_circle" className="text-base" />
-                    <span>Scored {scoringResult.scored}, created {scoringResult.selects} selects in {scoringResult.elapsed}s</span>
+                  <div className="flex items-center gap-2 text-xs text-zinc-600 bg-zinc-50 rounded-lg px-3 py-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span>{scoringResult.scored} scored, {scoringResult.selects} selects</span>
                   </div>
                 )}
                 <Button
                   onClick={() => runJob("scoring")}
                   disabled={isIngestRunning || isNewsletterRunning}
-                  className="w-full gap-2"
-                  variant="secondary"
+                  variant="outline"
+                  className="w-full border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
                 >
-                  <MaterialIcon name="psychology" className="text-lg" />
-                  Run AI Scoring
+                  <Brain className="h-4 w-4 mr-2" />
+                  Run Scoring
                 </Button>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Step 3: Newsletter Link Extraction */}
-        <Card className={isNewsletterRunning ? "border-blue-200 bg-blue-50/30" : ""}>
+        {/* Step 3: Newsletter Links */}
+        <Card className={`transition-all duration-200 ${isNewsletterRunning ? "ring-2 ring-orange-500 ring-offset-2" : "hover:shadow-md"}`}>
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                isNewsletterRunning ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+                isNewsletterRunning ? "bg-orange-500 text-white" : "bg-orange-100 text-orange-600"
               }`}>
-                <MaterialIcon name={SANDBOX_JOBS.newsletter_extract_sandbox.icon} className="text-xl" />
+                {isNewsletterRunning ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Link2 className="h-5 w-5" />
+                )}
               </div>
-              <div>
-                <CardTitle className="text-base">{SANDBOX_JOBS.newsletter_extract_sandbox.name}</CardTitle>
-                <CardDescription className="text-xs">
-                  {SANDBOX_JOBS.newsletter_extract_sandbox.description}
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-sm font-medium">{ZEROIN_JOBS.newsletter_extract_sandbox.name}</CardTitle>
+                <CardDescription className="text-xs truncate">
+                  {ZEROIN_JOBS.newsletter_extract_sandbox.description}
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             {isNewsletterRunning ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
-                    {newsletterJobStatus === "queued" ? "Queued..." : "Running..."}
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100">
+                    {newsletterJobStatus === "queued" ? "Queued" : "Running"}
                   </Badge>
-                  <span className="font-mono text-lg font-bold text-blue-700">
-                    {Math.floor(newsletterElapsedTime / 60)}:{String(newsletterElapsedTime % 60).padStart(2, "0")}
-                  </span>
+                  <div className="flex items-center gap-1.5 text-orange-600">
+                    <Timer className="h-3.5 w-3.5" />
+                    <span className="font-mono text-sm font-medium">
+                      {formatTime(newsletterElapsedTime)}
+                    </span>
+                  </div>
                 </div>
-                <Progress value={undefined} className="h-2 bg-blue-100" />
+                <Progress value={undefined} className="h-1.5" />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-blue-600">Job ID: {newsletterJobId?.slice(0, 8)}...</span>
+                  <code className="text-[10px] text-zinc-400">{newsletterJobId?.slice(0, 8)}</code>
                   <Button
-                    variant="destructive"
+                    variant="ghost"
                     size="sm"
                     onClick={() => cancelJob("newsletter")}
                     disabled={isCancelling}
-                    className="h-7 px-2 text-xs"
+                    className="h-7 px-2 text-xs text-zinc-500 hover:text-red-600"
                   >
-                    {isCancelling ? "Stopping..." : "Stop"}
+                    <Square className="h-3 w-3 mr-1" />
+                    Stop
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="space-y-3">
                 {newsletterResult && (
-                  <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-md px-3 py-2">
-                    <MaterialIcon name="check_circle" className="text-base" />
-                    <span>Extracted {newsletterResult.processed} links in {newsletterResult.elapsed}s</span>
+                  <div className="flex items-center gap-2 text-xs text-zinc-600 bg-zinc-50 rounded-lg px-3 py-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span>{newsletterResult.processed} links in {newsletterResult.elapsed}s</span>
                   </div>
                 )}
                 <Button
                   onClick={() => runJob("newsletter")}
                   disabled={isIngestRunning || isScoringRunning}
-                  className="w-full gap-2"
                   variant="outline"
+                  className="w-full border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
                 >
-                  <MaterialIcon name="link" className="text-lg" />
-                  Extract Newsletter Links
+                  <Link2 className="h-4 w-4 mr-2" />
+                  Extract Links
                 </Button>
               </div>
             )}
@@ -532,17 +561,26 @@ export default function SandboxPage() {
       </div>
 
       {/* Info Card */}
-      <Card className="border-amber-200 bg-amber-50/50">
+      <Card className="bg-zinc-50 border-zinc-200">
         <CardContent className="py-4">
           <div className="flex items-start gap-3">
-            <MaterialIcon name="info" className="text-xl text-amber-600 mt-0.5" />
-            <div className="text-sm text-amber-800">
-              <p className="font-medium mb-1">Sandbox Pipeline Flow:</p>
-              <ol className="list-decimal list-inside space-y-1 text-amber-700">
-                <li><strong>Ingest:</strong> Fetches articles from FreshRSS → saves to &quot;Articles - All Ingested&quot;</li>
-                <li><strong>AI Scoring:</strong> Scores with Claude → extracts content with Firecrawl → creates &quot;Newsletter Selects&quot; for high-interest articles</li>
-                <li><strong>Newsletter Extract:</strong> Extracts news links from AI newsletters using Claude Haiku → saves with provenance tracking</li>
-              </ol>
+            <Info className="h-5 w-5 text-zinc-400 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-zinc-600">
+              <p className="font-medium text-zinc-700 mb-2">Pipeline Flow</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                <div className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded bg-orange-100 text-orange-600 text-[10px] font-bold flex-shrink-0">1</span>
+                  <span><strong>Ingest</strong> — FreshRSS → Articles table</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded bg-orange-100 text-orange-600 text-[10px] font-bold flex-shrink-0">2</span>
+                  <span><strong>Score</strong> — Claude + Firecrawl → Newsletter Selects</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded bg-orange-100 text-orange-600 text-[10px] font-bold flex-shrink-0">3</span>
+                  <span><strong>Extract</strong> — Newsletter links with provenance</span>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
