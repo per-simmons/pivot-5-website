@@ -247,6 +247,174 @@ services:
     autoDeploy: true
     healthCheckPath: /health
 
+  # =============================================================================
+  # CRON JOBS - AI INGEST ENGINE (STEP 0)
+  # Runs 3x daily: 6 AM, 2 PM, 10 PM ET (11:00, 19:00, 3:00 UTC)
+  # =============================================================================
+  - type: cron
+    name: ai-editor-ingest-cron
+    runtime: python
+    region: oregon
+    plan: starter
+    schedule: "0 11,19,3 * * *"
+    rootDir: ai-editor-2.0-full-stack-application/app/workers
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -c "from jobs.ingest_sandbox import run_all_ingest_jobs; run_all_ingest_jobs()"
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          name: ai-editor-redis
+          type: redis
+          property: connectionString
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-editor-db
+          property: connectionString
+      - key: AIRTABLE_API_KEY
+        sync: false
+      - key: AIRTABLE_BASE_ID
+        value: appwSozYTkrsQWUXB
+      - key: AI_EDITOR_BASE_ID
+        value: appglKSJZxmA9iHpl
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  # =============================================================================
+  # CRON JOBS - PRE-FILTER (STEP 1) - STAGGERED SLOTS
+  # Runs 1 hour after ingest, 30 min apart per slot
+  # =============================================================================
+  - type: cron
+    name: ai-editor-prefilter-slot-1
+    runtime: python
+    region: oregon
+    plan: starter
+    schedule: "0 12,20,4 * * *"
+    rootDir: ai-editor-2.0-full-stack-application/app/workers
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -c "from jobs.pre_filter import run_slot; run_slot(1)"
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          name: ai-editor-redis
+          type: redis
+          property: connectionString
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-editor-db
+          property: connectionString
+      - key: AIRTABLE_API_KEY
+        sync: false
+      - key: AI_EDITOR_BASE_ID
+        value: appglKSJZxmA9iHpl
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: cron
+    name: ai-editor-prefilter-slot-2
+    runtime: python
+    region: oregon
+    plan: starter
+    schedule: "30 12,20,4 * * *"
+    rootDir: ai-editor-2.0-full-stack-application/app/workers
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -c "from jobs.pre_filter import run_slot; run_slot(2)"
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          name: ai-editor-redis
+          type: redis
+          property: connectionString
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-editor-db
+          property: connectionString
+      - key: AIRTABLE_API_KEY
+        sync: false
+      - key: AI_EDITOR_BASE_ID
+        value: appglKSJZxmA9iHpl
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: cron
+    name: ai-editor-prefilter-slot-3
+    runtime: python
+    region: oregon
+    plan: starter
+    schedule: "0 13,21,5 * * *"
+    rootDir: ai-editor-2.0-full-stack-application/app/workers
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -c "from jobs.pre_filter import run_slot; run_slot(3)"
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          name: ai-editor-redis
+          type: redis
+          property: connectionString
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-editor-db
+          property: connectionString
+      - key: AIRTABLE_API_KEY
+        sync: false
+      - key: AI_EDITOR_BASE_ID
+        value: appglKSJZxmA9iHpl
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: cron
+    name: ai-editor-prefilter-slot-4
+    runtime: python
+    region: oregon
+    plan: starter
+    schedule: "30 13,21,5 * * *"
+    rootDir: ai-editor-2.0-full-stack-application/app/workers
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -c "from jobs.pre_filter import run_slot; run_slot(4)"
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          name: ai-editor-redis
+          type: redis
+          property: connectionString
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-editor-db
+          property: connectionString
+      - key: AIRTABLE_API_KEY
+        sync: false
+      - key: AI_EDITOR_BASE_ID
+        value: appglKSJZxmA9iHpl
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: cron
+    name: ai-editor-prefilter-slot-5
+    runtime: python
+    region: oregon
+    plan: starter
+    schedule: "0 14,22,6 * * *"
+    rootDir: ai-editor-2.0-full-stack-application/app/workers
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -c "from jobs.pre_filter import run_slot; run_slot(5)"
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          name: ai-editor-redis
+          type: redis
+          property: connectionString
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-editor-db
+          property: connectionString
+      - key: AIRTABLE_API_KEY
+        sync: false
+      - key: AI_EDITOR_BASE_ID
+        value: appglKSJZxmA9iHpl
+      - key: GEMINI_API_KEY
+        sync: false
+
 # =============================================================================
 # DATABASES
 # =============================================================================

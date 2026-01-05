@@ -568,3 +568,117 @@ export async function getDecorations(): Promise<DecorationEntry[]> {
     cloudflareId: (record.fields.cloudflare_id as string) || "",
   }));
 }
+
+// Articles - All Ingested
+// Documentation: Table tblGumae8KDpsrWvh in Pivot Media Master Base
+// Fields: headline, source_name, original_url, date_ingested
+export interface Article {
+  id: string;
+  headline: string;
+  sourceName: string;
+  originalUrl: string;
+  dateIngested: string;
+}
+
+export async function getArticles(
+  limit: number = 50,
+  skipCache: boolean = false
+): Promise<Article[]> {
+  if (!PIVOT_MEDIA_BASE_ID || !TABLES.articles) {
+    throw new Error("Pivot Media base ID or articles table not configured");
+  }
+
+  const records = await fetchAirtable(PIVOT_MEDIA_BASE_ID, TABLES.articles, {
+    maxRecords: limit,
+    sort: [{ field: "date_ingested", direction: "desc" }],
+    fields: ["headline", "source_name", "original_url", "date_ingested"],
+    skipCache,
+  });
+
+  return records.map((record) => ({
+    id: record.id,
+    headline: (record.fields.headline as string) || "Untitled",
+    sourceName: (record.fields.source_name as string) || "Unknown",
+    originalUrl: (record.fields.original_url as string) || "",
+    dateIngested: (record.fields.date_ingested as string) || record.createdTime,
+  }));
+}
+
+// Newsletter Selects List (multiple issues for dashboard display)
+// Returns flattened list of selected stories across recent issues
+export interface NewsletterSelect {
+  id: string;
+  issueId: string;
+  issueDate: string;
+  slot: number;
+  headline: string;
+  storyId: string;
+  pivotId: string;
+}
+
+export async function getNewsletterSelectsList(
+  limit: number = 50,
+  skipCache: boolean = false
+): Promise<NewsletterSelect[]> {
+  if (!AI_EDITOR_BASE_ID || !TABLES.selectedSlots) {
+    throw new Error("AI Editor base ID or selected slots table not configured");
+  }
+
+  const records = await fetchAirtable(AI_EDITOR_BASE_ID, TABLES.selectedSlots, {
+    maxRecords: 10,
+    sort: [{ field: "issue_date", direction: "desc" }],
+    fields: [
+      "issue_id",
+      "issue_date",
+      "slot_1_storyId",
+      "slot_1_pivotId",
+      "slot_1_headline",
+      "slot_2_storyId",
+      "slot_2_pivotId",
+      "slot_2_headline",
+      "slot_3_storyId",
+      "slot_3_pivotId",
+      "slot_3_headline",
+      "slot_4_storyId",
+      "slot_4_pivotId",
+      "slot_4_headline",
+      "slot_5_storyId",
+      "slot_5_pivotId",
+      "slot_5_headline",
+    ],
+    skipCache,
+  });
+
+  // Flatten the slots into individual entries
+  const selects: NewsletterSelect[] = [];
+
+  for (const record of records) {
+    const fields = record.fields;
+    const issueId = (fields.issue_id as string) || "";
+    const issueDate = (fields.issue_date as string) || "";
+
+    for (let slot = 1; slot <= 5; slot++) {
+      const headline = (fields[`slot_${slot}_headline`] as string) || "";
+      const storyId = (fields[`slot_${slot}_storyId`] as string) || "";
+      const pivotId = (fields[`slot_${slot}_pivotId`] as string) || "";
+
+      // Only include slots that have content
+      if (headline || storyId) {
+        selects.push({
+          id: `${record.id}-slot-${slot}`,
+          issueId,
+          issueDate,
+          slot,
+          headline,
+          storyId,
+          pivotId,
+        });
+      }
+    }
+
+    // Stop if we've reached the limit
+    if (selects.length >= limit) break;
+  }
+
+  return selects.slice(0, limit);
+}

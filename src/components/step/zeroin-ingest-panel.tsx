@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Import,
   Download,
@@ -20,6 +21,8 @@ import {
   XCircle
 } from "lucide-react";
 import { formatDateET, formatDuration } from "@/lib/date-utils";
+import { ArticlesTable } from "./articles-table";
+import { NewsletterSelectsTable } from "./newsletter-selects-table";
 
 // Zeroin job definitions
 const ZEROIN_JOBS = {
@@ -63,6 +66,9 @@ export function ZeroinIngestPanel() {
   const [newsletterResult, setNewsletterResult] = useState<{ processed: number; elapsed: number } | null>(null);
 
   const [isCancelling, setIsCancelling] = useState(false);
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState("jobs");
 
   // Last run tracking
   interface LastRunInfo {
@@ -403,8 +409,24 @@ export function ZeroinIngestPanel() {
         </div>
       </div>
 
-      {/* Pipeline Steps */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Tabs for Jobs, Articles, and Newsletter Selects */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="bg-zinc-100">
+          <TabsTrigger value="jobs" className="data-[state=active]:bg-white">
+            Jobs
+          </TabsTrigger>
+          <TabsTrigger value="articles" className="data-[state=active]:bg-white">
+            Articles All Ingested
+          </TabsTrigger>
+          <TabsTrigger value="newsletter" className="data-[state=active]:bg-white">
+            Newsletter Selects
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Jobs Tab Content */}
+        <TabsContent value="jobs" className="space-y-6">
+          {/* Pipeline Steps */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Step 1: Ingest */}
         <Card className={`transition-all duration-200 ${isIngestRunning ? "ring-2 ring-orange-500 ring-offset-2" : "hover:shadow-md"}`}>
           <CardHeader className="pb-3">
@@ -619,33 +641,45 @@ export function ZeroinIngestPanel() {
             )}
           </CardContent>
         </Card>
-      </div>
+          </div>
 
-      {/* Info Card */}
-      <Card className="bg-zinc-50 border-zinc-200">
-        <CardContent className="py-4">
-          <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-zinc-400 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-zinc-600">
-              <p className="font-medium text-zinc-700 mb-2">Pipeline Flow</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                <div className="flex items-start gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded bg-orange-100 text-orange-600 text-[10px] font-bold flex-shrink-0">1</span>
-                  <span><strong>Ingest</strong> — FreshRSS → Articles table</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded bg-orange-100 text-orange-600 text-[10px] font-bold flex-shrink-0">2</span>
-                  <span><strong>Score</strong> — Claude + Firecrawl → Newsletter Selects</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded bg-orange-100 text-orange-600 text-[10px] font-bold flex-shrink-0">3</span>
-                  <span><strong>Extract</strong> — Newsletter links with provenance</span>
+          {/* Info Card */}
+          <Card className="bg-zinc-50 border-zinc-200">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-zinc-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-zinc-600">
+                  <p className="font-medium text-zinc-700 mb-2">Pipeline Flow</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                    <div className="flex items-start gap-2">
+                      <span className="flex h-5 w-5 items-center justify-center rounded bg-orange-100 text-orange-600 text-[10px] font-bold flex-shrink-0">1</span>
+                      <span><strong>Ingest</strong> — FreshRSS → Articles table</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="flex h-5 w-5 items-center justify-center rounded bg-orange-100 text-orange-600 text-[10px] font-bold flex-shrink-0">2</span>
+                      <span><strong>Score</strong> — Claude + Firecrawl → Newsletter Selects</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="flex h-5 w-5 items-center justify-center rounded bg-orange-100 text-orange-600 text-[10px] font-bold flex-shrink-0">3</span>
+                      <span><strong>Extract</strong> — Newsletter links with provenance</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Articles All Ingested Tab Content */}
+        <TabsContent value="articles">
+          <ArticlesTable />
+        </TabsContent>
+
+        {/* Newsletter Selects Tab Content */}
+        <TabsContent value="newsletter">
+          <NewsletterSelectsTable />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
