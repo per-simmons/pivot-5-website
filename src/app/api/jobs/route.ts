@@ -31,6 +31,8 @@ const VALID_STEPS = [
   "ingest_sandbox",
   "ai_scoring_sandbox",
   "newsletter_extract_sandbox",
+  // Direct feed ingestion (non-Google News URLs)
+  "ingest_direct_feeds",
   // Individual slot prefilter jobs (for testing)
   "prefilter_slot_1",
   "prefilter_slot_2",
