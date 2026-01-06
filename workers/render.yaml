@@ -365,13 +365,15 @@ services:
 
   # =============================================================================
   # DIRECT FEED EXTRACTION CRONS - 3 Daily Cycles
-  # Runs 1:45 after each pipeline cycle to ingest non-Google News RSS feeds
+  # Runs 1 HOUR after each pipeline COMPLETES to ingest non-Google News RSS feeds
   # These run SEPARATELY from Google News decoding (which is slow)
   #
+  # Pipeline timing: ~3.5 hours (Ingest 1.5h + AI Scoring 45m + Pre-Filter 1.25h)
+  #
   # Schedule (all times ET):
-  #   Cycle 1 (Night):   3:45 AM  (1:45 after 2:00 AM pipeline)
-  #   Cycle 2 (Morning): 11:15 AM (1:45 after 9:30 AM pipeline)
-  #   Cycle 3 (EOD):     6:45 PM  (1:45 after 5:00 PM pipeline)
+  #   Cycle 1 (Night):   6:30 AM  (Pipeline 2:00 AM → ends ~5:30 AM + 1h buffer)
+  #   Cycle 2 (Morning): 2:00 PM  (Pipeline 9:30 AM → ends ~1:00 PM + 1h buffer)
+  #   Cycle 3 (EOD):     9:30 PM  (Pipeline 5:00 PM → ends ~8:30 PM + 1h buffer)
   # =============================================================================
 
   # Direct Feed Cycle 1: Night
@@ -380,7 +382,7 @@ services:
     runtime: python
     region: oregon
     plan: starter
-    schedule: "45 8 * * *"  # 3:45 AM ET = 8:45 UTC
+    schedule: "30 11 * * *"  # 6:30 AM ET = 11:30 UTC
     rootDir: workers
     buildCommand: pip install -r requirements.txt
     startCommand: python -c "from jobs.ingest_direct_feeds import ingest_direct_feeds; ingest_direct_feeds()"
@@ -405,7 +407,7 @@ services:
     runtime: python
     region: oregon
     plan: starter
-    schedule: "15 16 * * *"  # 11:15 AM ET = 16:15 UTC
+    schedule: "0 19 * * *"  # 2:00 PM ET = 19:00 UTC
     rootDir: workers
     buildCommand: pip install -r requirements.txt
     startCommand: python -c "from jobs.ingest_direct_feeds import ingest_direct_feeds; ingest_direct_feeds()"
@@ -430,7 +432,7 @@ services:
     runtime: python
     region: oregon
     plan: starter
-    schedule: "45 23 * * *"  # 6:45 PM ET = 23:45 UTC
+    schedule: "30 2 * * *"  # 9:30 PM ET = 2:30 UTC (next day)
     rootDir: workers
     buildCommand: pip install -r requirements.txt
     startCommand: python -c "from jobs.ingest_direct_feeds import ingest_direct_feeds; ingest_direct_feeds()"
