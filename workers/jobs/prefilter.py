@@ -24,12 +24,12 @@ from utils.gemini import GeminiClient
 SLOT_1_COMPANIES = ['openai', 'google', 'meta', 'nvidia']
 
 
-def prefilter_stories() -> dict:
+def prefilter_stories(lookback_hours: int = 10) -> dict:
     """
     Step 1: Pre-Filter Cron Job - Main entry point
 
     BATCH PROCESSING FLOW (matches n8n exactly):
-    1. Get fresh stories from Newsletter Stories (last 7 days)
+    1. Get fresh stories from Newsletter Stories (last N hours)
     2. Get queued stories from AI Editor base
     3. Merge story sources
     4. Get source credibility scores
@@ -40,10 +40,16 @@ def prefilter_stories() -> dict:
     9. Merge all results
     10. Write eligible stories to Pre-Filter Log (one record per slot)
 
+    Args:
+        lookback_hours: How many hours back to look for stories.
+                       Default 10h for cron (covers ~7.5h between pipeline cycles + buffer).
+                       Use 24h for manual dashboard execution.
+
     Returns:
         {processed: int, eligible: int, written: int, errors: list}
     """
     print(f"[Step 1] Starting pre-filter job at {datetime.utcnow().isoformat()}", flush=True)
+    print(f"[Step 1] Lookback window: {lookback_hours} hours", flush=True)
     print("[Step 1] Using BATCH PROCESSING architecture (matches n8n)", flush=True)
 
     # Initialize clients
@@ -68,10 +74,12 @@ def prefilter_stories() -> dict:
         # 1. Get fresh stories from Newsletter Selects table (AI Editor 2.0 base)
         # Updated 12/31/25: Migrated from Newsletter Stories to Newsletter Selects
         # This is the FreshRSS data source with pre-processed articles
+        # Updated 1/5/26: Use lookback_hours parameter (10h cron, 24h manual)
         print("[Step 1] Fetching stories from Newsletter Selects...", flush=True)
-        seven_days_ago = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%d')
-        print(f"[Step 1] Date filter: since {seven_days_ago}", flush=True)
-        fresh_stories = airtable.get_newsletter_selects(since_date=seven_days_ago)
+        lookback_datetime = datetime.utcnow() - timedelta(hours=lookback_hours)
+        lookback_date_str = lookback_datetime.strftime('%Y-%m-%dT%H:%M:%SZ')
+        print(f"[Step 1] Date filter: since {lookback_date_str} ({lookback_hours} hours ago)", flush=True)
+        fresh_stories = airtable.get_newsletter_selects(since_date=lookback_date_str)
         print(f"[Step 1] Found {len(fresh_stories)} stories from Newsletter Selects", flush=True)
 
         # 2. Get queued stories (manual priority) - optional, may not have API access
@@ -527,19 +535,27 @@ def _slot1_company_filter_batch(articles: List[Dict]) -> List[str]:
 # INDIVIDUAL SLOT FUNCTIONS (for testing/debugging via dashboard)
 # =============================================================================
 
-def _gather_prefilter_data() -> dict:
+def _gather_prefilter_data(lookback_hours: int = 24) -> dict:
     """
     Shared data gathering logic for all prefilter functions.
     Returns all the data needed to run any slot.
+
+    Args:
+        lookback_hours: How many hours back to look for stories.
+                       Default 24h for manual dashboard execution.
     """
     print(f"[Prefilter] Gathering data at {datetime.utcnow().isoformat()}", flush=True)
+    print(f"[Prefilter] Lookback window: {lookback_hours} hours", flush=True)
 
     airtable = AirtableClient()
 
     # 1. Get fresh stories from Newsletter Selects table
+    # Updated 1/5/26: Use lookback_hours parameter (24h default for manual)
     print("[Prefilter] Fetching stories from Newsletter Selects...", flush=True)
-    seven_days_ago = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%d')
-    fresh_stories = airtable.get_newsletter_selects(since_date=seven_days_ago)
+    lookback_datetime = datetime.utcnow() - timedelta(hours=lookback_hours)
+    lookback_date_str = lookback_datetime.strftime('%Y-%m-%dT%H:%M:%SZ')
+    print(f"[Prefilter] Date filter: since {lookback_date_str} ({lookback_hours} hours ago)", flush=True)
+    fresh_stories = airtable.get_newsletter_selects(since_date=lookback_date_str)
     print(f"[Prefilter] Found {len(fresh_stories)} stories from Newsletter Selects", flush=True)
 
     # 2. Get queued stories (manual priority)

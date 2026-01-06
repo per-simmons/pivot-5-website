@@ -250,6 +250,8 @@ def ingest_direct_feeds(
 
         # Process and create records
         ingested_sources = {}
+        duplicate_samples = []  # Track sample duplicates for debugging
+        MAX_DUPLICATE_SAMPLES = 10  # Log first N duplicates for verification
 
         for article in direct_feed_articles:
             url = article.get("url")
@@ -274,6 +276,13 @@ def ingest_direct_feeds(
             # Check for duplicates
             if pivot_id in existing_pivot_ids:
                 results["articles_skipped_duplicate"] += 1
+                # Log sample duplicates for verification
+                if len(duplicate_samples) < MAX_DUPLICATE_SAMPLES:
+                    duplicate_samples.append({
+                        "pivot_id": pivot_id,
+                        "url": url[:100] if url else None,
+                        "title": title[:50] if title else None
+                    })
                 continue
 
             # Extract source name from URL
@@ -335,6 +344,20 @@ def ingest_direct_feeds(
                 print(f"  {source}: {count}")
 
         results["ingested_sources"] = ingested_sources
+
+        # Log sample duplicates for verification
+        if duplicate_samples:
+            print(f"")
+            print(f"{'='*60}")
+            print(f"[DUPLICATE VERIFICATION] Sample duplicates (first {len(duplicate_samples)}):")
+            print(f"{'='*60}")
+            for i, dup in enumerate(duplicate_samples, 1):
+                print(f"  {i}. pivot_id: {dup['pivot_id']}")
+                print(f"     URL: {dup['url']}")
+                print(f"     Title: {dup['title']}")
+                print(f"")
+            print(f"[DUPLICATE VERIFICATION] Use these pivot_ids to verify in Airtable")
+            print(f"{'='*60}")
 
     except Exception as e:
         error_msg = f"Direct feed ingestion failed: {str(e)}"
