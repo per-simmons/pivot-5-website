@@ -12,6 +12,7 @@ import {
   Download,
   Brain,
   Link2,
+  Rss,
   Loader2,
   Square,
   Timer,
@@ -58,6 +59,11 @@ const ZEROIN_JOBS = {
     icon: Link2,
     description: "Extract news links from newsletters via Claude Haiku"
   },
+  ingest_direct_feeds: {
+    name: "Direct Feed Ingest",
+    icon: Rss,
+    description: "Ingest non-Google News RSS feeds (Reuters, TechCrunch, etc.)"
+  },
 };
 
 export function ZeroinIngestPanel() {
@@ -82,6 +88,13 @@ export function ZeroinIngestPanel() {
   const [newsletterElapsedTime, setNewsletterElapsedTime] = useState(0);
   const [newsletterResult, setNewsletterResult] = useState<{ processed: number; elapsed: number } | null>(null);
 
+  // Direct Feed Ingest job state
+  const [isDirectFeedRunning, setIsDirectFeedRunning] = useState(false);
+  const [directFeedJobId, setDirectFeedJobId] = useState<string | null>(null);
+  const [directFeedJobStatus, setDirectFeedJobStatus] = useState<"queued" | "started" | "finished" | "failed" | null>(null);
+  const [directFeedElapsedTime, setDirectFeedElapsedTime] = useState(0);
+  const [directFeedResult, setDirectFeedResult] = useState<{ processed: number; elapsed: number } | null>(null);
+
   const [isCancelling, setIsCancelling] = useState(false);
 
   // Tab state
@@ -96,15 +109,17 @@ export function ZeroinIngestPanel() {
   const [lastRunIngest, setLastRunIngest] = useState<LastRunInfo | null>(null);
   const [lastRunScoring, setLastRunScoring] = useState<LastRunInfo | null>(null);
   const [lastRunNewsletter, setLastRunNewsletter] = useState<LastRunInfo | null>(null);
+  const [lastRunDirectFeed, setLastRunDirectFeed] = useState<LastRunInfo | null>(null);
 
   // Fetch last run data on mount
   useEffect(() => {
     const fetchLastRuns = async () => {
       try {
-        const [ingestRes, scoringRes, newsletterRes] = await Promise.all([
+        const [ingestRes, scoringRes, newsletterRes, directFeedRes] = await Promise.all([
           fetch("/api/jobs/last-run?step=ingest_sandbox"),
           fetch("/api/jobs/last-run?step=ai_scoring_sandbox"),
           fetch("/api/jobs/last-run?step=newsletter_extract_sandbox"),
+          fetch("/api/jobs/last-run?step=ingest_direct_feeds"),
         ]);
 
         if (ingestRes.ok) {
@@ -119,6 +134,10 @@ export function ZeroinIngestPanel() {
           const data = await newsletterRes.json();
           if (data.last_run) setLastRunNewsletter(data.last_run);
         }
+        if (directFeedRes.ok) {
+          const data = await directFeedRes.json();
+          if (data.last_run) setLastRunDirectFeed(data.last_run);
+        }
       } catch (error) {
         console.error("Error fetching last run data:", error);
       }
@@ -128,8 +147,8 @@ export function ZeroinIngestPanel() {
   }, []);
 
   // Cancel running job
-  const cancelJob = async (jobType: "ingest" | "scoring" | "newsletter") => {
-    const jobId = jobType === "ingest" ? ingestJobId : jobType === "scoring" ? scoringJobId : newsletterJobId;
+  const cancelJob = async (jobType: "ingest" | "scoring" | "newsletter" | "directfeed") => {
+    const jobId = jobType === "ingest" ? ingestJobId : jobType === "scoring" ? scoringJobId : jobType === "newsletter" ? newsletterJobId : directFeedJobId;
     if (!jobId) return;
 
     setIsCancelling(true);
@@ -151,10 +170,14 @@ export function ZeroinIngestPanel() {
           setIsScoringRunning(false);
           setScoringJobId(null);
           setScoringJobStatus(null);
-        } else {
+        } else if (jobType === "newsletter") {
           setIsNewsletterRunning(false);
           setNewsletterJobId(null);
           setNewsletterJobStatus(null);
+        } else {
+          setIsDirectFeedRunning(false);
+          setDirectFeedJobId(null);
+          setDirectFeedJobStatus(null);
         }
       } else {
         toast.error(data.error || "Failed to cancel job");
@@ -168,9 +191,15 @@ export function ZeroinIngestPanel() {
   };
 
   // Trigger a sandbox job
-  const runJob = async (jobType: "ingest" | "scoring" | "newsletter") => {
-    const jobName = jobType === "ingest" ? "ingest_sandbox" : jobType === "scoring" ? "ai_scoring_sandbox" : "newsletter_extract_sandbox";
-    const jobConfig = jobType === "ingest" ? ZEROIN_JOBS.ingest_sandbox : jobType === "scoring" ? ZEROIN_JOBS.ai_scoring_sandbox : ZEROIN_JOBS.newsletter_extract_sandbox;
+  const runJob = async (jobType: "ingest" | "scoring" | "newsletter" | "directfeed") => {
+    const jobName = jobType === "ingest" ? "ingest_sandbox"
+      : jobType === "scoring" ? "ai_scoring_sandbox"
+      : jobType === "newsletter" ? "newsletter_extract_sandbox"
+      : "ingest_direct_feeds";
+    const jobConfig = jobType === "ingest" ? ZEROIN_JOBS.ingest_sandbox
+      : jobType === "scoring" ? ZEROIN_JOBS.ai_scoring_sandbox
+      : jobType === "newsletter" ? ZEROIN_JOBS.newsletter_extract_sandbox
+      : ZEROIN_JOBS.ingest_direct_feeds;
 
     if (jobType === "ingest") {
       setIsIngestRunning(true);
@@ -180,10 +209,14 @@ export function ZeroinIngestPanel() {
       setIsScoringRunning(true);
       setScoringElapsedTime(0);
       setScoringResult(null);
-    } else {
+    } else if (jobType === "newsletter") {
       setIsNewsletterRunning(true);
       setNewsletterElapsedTime(0);
       setNewsletterResult(null);
+    } else {
+      setIsDirectFeedRunning(true);
+      setDirectFeedElapsedTime(0);
+      setDirectFeedResult(null);
     }
 
     try {
@@ -202,9 +235,12 @@ export function ZeroinIngestPanel() {
         } else if (jobType === "scoring") {
           setScoringJobId(data.job_id);
           setScoringJobStatus("queued");
-        } else {
+        } else if (jobType === "newsletter") {
           setNewsletterJobId(data.job_id);
           setNewsletterJobStatus("queued");
+        } else {
+          setDirectFeedJobId(data.job_id);
+          setDirectFeedJobStatus("queued");
         }
         toast.success("Job Started", {
           description: `${jobConfig.name} job queued`,
@@ -214,8 +250,10 @@ export function ZeroinIngestPanel() {
           setIsIngestRunning(false);
         } else if (jobType === "scoring") {
           setIsScoringRunning(false);
-        } else {
+        } else if (jobType === "newsletter") {
           setIsNewsletterRunning(false);
+        } else {
+          setIsDirectFeedRunning(false);
         }
         throw new Error(data.error || "Failed to start job");
       }
@@ -224,8 +262,10 @@ export function ZeroinIngestPanel() {
         setIsIngestRunning(false);
       } else if (jobType === "scoring") {
         setIsScoringRunning(false);
-      } else {
+      } else if (jobType === "newsletter") {
         setIsNewsletterRunning(false);
+      } else {
+        setIsDirectFeedRunning(false);
       }
       toast.error("Error", {
         description: error instanceof Error ? error.message : "Failed to start job",
@@ -387,6 +427,57 @@ export function ZeroinIngestPanel() {
     };
   }, [newsletterJobId]);
 
+  // Poll Direct Feed Ingest job status
+  useEffect(() => {
+    if (!directFeedJobId) return;
+
+    const startTime = Date.now();
+
+    const timerInterval = setInterval(() => {
+      setDirectFeedElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/jobs/${directFeedJobId}`);
+        const status = await response.json();
+
+        if (status.status === "started" || status.status === "queued") {
+          setDirectFeedJobStatus(status.status);
+        }
+
+        if (status.status === "finished" || status.status === "failed") {
+          clearInterval(pollInterval);
+          clearInterval(timerInterval);
+          setIsDirectFeedRunning(false);
+          setDirectFeedJobId(null);
+          setDirectFeedJobStatus(status.status);
+
+          const finalElapsed = Math.floor((Date.now() - startTime) / 1000);
+
+          if (status.status === "finished") {
+            const processedCount = status.result?.articles_ingested || status.result?.processed || 0;
+            setDirectFeedResult({ processed: processedCount, elapsed: finalElapsed });
+            toast.success("Direct Feed Ingest Completed", {
+              description: `Ingested ${processedCount} articles in ${finalElapsed}s`,
+            });
+          } else {
+            toast.error("Direct Feed Ingest Failed", {
+              description: status.error || "Unknown error occurred",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error polling Direct Feed Ingest job status:", error);
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(timerInterval);
+    };
+  }, [directFeedJobId]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -531,7 +622,7 @@ export function ZeroinIngestPanel() {
         {/* Jobs Tab Content */}
         <TabsContent value="jobs" className="space-y-6">
           {/* Pipeline Steps */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Step 1: Ingest */}
         <Card className={`transition-all duration-200 ${isIngestRunning ? "ring-2 ring-orange-500 ring-offset-2" : "hover:shadow-md"}`}>
           <CardHeader className="pb-3">
@@ -742,6 +833,78 @@ export function ZeroinIngestPanel() {
                   Extract Links
                 </Button>
                 {renderLastRun(lastRunNewsletter)}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Step 4: Direct Feed Ingest */}
+        <Card className={`transition-all duration-200 ${isDirectFeedRunning ? "ring-2 ring-teal-500 ring-offset-2" : "hover:shadow-md"}`}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+                isDirectFeedRunning ? "bg-teal-500 text-white" : "bg-teal-100 text-teal-600"
+              }`}>
+                {isDirectFeedRunning ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Rss className="h-5 w-5" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-sm font-medium">{ZEROIN_JOBS.ingest_direct_feeds.name}</CardTitle>
+                <CardDescription className="text-xs truncate">
+                  {ZEROIN_JOBS.ingest_direct_feeds.description}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {isDirectFeedRunning ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Badge variant="secondary" className="bg-teal-100 text-teal-700 hover:bg-teal-100">
+                    {directFeedJobStatus === "queued" ? "Queued" : "Running"}
+                  </Badge>
+                  <div className="flex items-center gap-1.5 text-teal-600">
+                    <Timer className="h-3.5 w-3.5" />
+                    <span className="font-mono text-sm font-medium">
+                      {formatTime(directFeedElapsedTime)}
+                    </span>
+                  </div>
+                </div>
+                <Progress value={undefined} className="h-1.5" />
+                <div className="flex items-center justify-between">
+                  <code className="text-[10px] text-zinc-400">{directFeedJobId?.slice(0, 8)}</code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => cancelJob("directfeed")}
+                    disabled={isCancelling}
+                    className="h-7 px-2 text-xs text-zinc-500 hover:text-red-600"
+                  >
+                    <Square className="h-3 w-3 mr-1" />
+                    Stop
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {directFeedResult && (
+                  <div className="text-xs text-zinc-600 bg-zinc-50 rounded-lg px-3 py-2">
+                    <span>{directFeedResult.processed} articles in {directFeedResult.elapsed}s</span>
+                  </div>
+                )}
+                <Button
+                  onClick={() => runJob("directfeed")}
+                  disabled={isIngestRunning || isScoringRunning || isNewsletterRunning}
+                  variant="outline"
+                  className="w-full border-teal-200 text-teal-600 hover:bg-teal-50 hover:text-teal-700"
+                >
+                  <Rss className="h-4 w-4 mr-2" />
+                  Run Direct Feeds
+                </Button>
+                {renderLastRun(lastRunDirectFeed)}
               </div>
             )}
           </CardContent>

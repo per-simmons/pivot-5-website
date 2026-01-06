@@ -109,6 +109,9 @@ def get_job_function(step_name: str):
         elif step_name == 'repair_google_news':
             from repair_google_news import repair_google_news_job
             JOB_FUNCTIONS[step_name] = repair_google_news_job
+        elif step_name == 'ingest_direct_feeds':
+            from jobs.ingest_direct_feeds import ingest_direct_feeds
+            JOB_FUNCTIONS[step_name] = ingest_direct_feeds
         # Individual slot prefilter jobs (for testing)
         elif step_name == 'prefilter_slot_1':
             from jobs.prefilter import prefilter_slot_1
@@ -151,6 +154,8 @@ QUEUE_MAPPING = {
     'newsletter_extract_sandbox': 'default',
     # Repair/maintenance jobs
     'repair_google_news': 'low',
+    # Direct feed ingestion (non-Google News URLs)
+    'ingest_direct_feeds': 'default',
     # Individual slot prefilter jobs (for testing)
     'prefilter_slot_1': 'default',
     'prefilter_slot_2': 'default',
